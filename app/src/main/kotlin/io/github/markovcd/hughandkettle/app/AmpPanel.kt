@@ -1,124 +1,97 @@
 package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
-import io.github.markovcd.hughandkettle.amp.Sectors
+import io.github.markovcd.hughandkettle.amp.Section
 
-/** The whole screen: where the WMI-1 is, then one row per control. Tests find rows by `control:<id>`. */
+/**
+ * The whole screen: the amp's name, the link card, then the controls by section. Knobs sit three to a
+ * row, switches and selectors take a row each. Tests find a control's row by `control:<id>`.
+ */
 @Composable
 fun AmpPanel(panel: PanelState) {
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(panel.amp.name, style = MaterialTheme.typography.titleLarge)
-        LinkRow(panel)
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(panel.amp.controls, key = Control::id) { control ->
-                ControlRow(
-                    control = control,
-                    value = panel.values[control.id] ?: 0,
-                    onValue = { panel.set(control, it) },
-                    modifier = Modifier.testTag("control:${control.id}"),
-                )
+    // With no link there is nothing to turn; the rows dim to 38% and the link card keeps full contrast.
+    val enabled = panel.link != null
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        item {
+            Box(
+                Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(panel.amp.name, style = MaterialTheme.typography.titleLarge)
             }
         }
-    }
-}
-
-@Composable
-private fun LinkRow(panel: PanelState) {
-    val link = panel.link
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = panel.host,
-            onValueChange = { panel.host = it },
-            label = { Text(stringResource(R.string.host)) },
-            singleLine = true,
-            enabled = link == null,
-            modifier = Modifier.weight(2f).testTag("host"),
-        )
-        OutlinedTextField(
-            value = panel.port,
-            onValueChange = { panel.port = it },
-            label = { Text(stringResource(R.string.port)) },
-            singleLine = true,
-            enabled = link == null,
-            modifier = Modifier.weight(1f).testTag("port"),
-        )
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (link == null) {
-            Button(
-                onClick = panel::connect,
-                modifier = Modifier.testTag("connect"),
-            ) { Text(stringResource(R.string.connect)) }
-        } else {
-            Button(onClick = panel::disconnect, modifier = Modifier.testTag("disconnect")) {
-                Text(stringResource(R.string.disconnect))
-            }
-        }
-        Text(
-            text =
-                panel.failure
-                    ?: link?.let { stringResource(R.string.connected_to, it.remote.toString()) }
-                    ?: stringResource(R.string.not_connected),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.testTag("status"),
-        )
-    }
-}
-
-@Composable
-private fun ControlRow(
-    control: Control,
-    value: Int,
-    onValue: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier.fillMaxWidth()) {
-        Text(control.name, style = MaterialTheme.typography.labelLarge)
-        when (val kind = control.kind) {
-            ControlKind.Knob -> {
-                Slider(
-                    value = value.toFloat(),
-                    onValueChange = { onValue(it.toInt()) },
-                    valueRange = 0f..127f,
-                )
-            }
-
-            ControlKind.Switch -> {
-                Switch(checked = value >= 64, onCheckedChange = { onValue(if (it) 127 else 0) })
-            }
-
-            is ControlKind.Selector -> {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    kind.options.forEachIndexed { index, option ->
-                        FilterChip(
-                            selected = Sectors.index(value, kind.options.size) == index,
-                            onClick = { onValue(Sectors.value(index, kind.options.size)) },
-                            label = { Text(option) },
-                        )
-                    }
+        item { LinkCard(panel, Modifier.padding(horizontal = 12.dp)) }
+        Section.entries.forEach { section ->
+            val controls = panel.amp.controls.filter { it.section == section }
+            if (controls.isEmpty()) return@forEach
+            item(key = "section:$section") { SectionLabel(section) }
+            PanelRows.of(controls).forEach { row ->
+                item(key = row.joinToString(",") { it.id }) {
+                    ControlRow(
+                        row,
+                        panel,
+                        enabled,
+                        Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED),
+                    )
                 }
             }
         }
     }
 }
+
+@Composable
+private fun ControlRow(
+    row: List<Control>,
+    panel: PanelState,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val first = row.first()
+    when (val kind = first.kind) {
+        ControlKind.Knob -> {
+            Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEach { control ->
+                    KnobCell(
+                        control = control,
+                        value = panel.values[control.id] ?: 0,
+                        enabled = enabled,
+                        onValue = { panel.set(control, it) },
+                        modifier = Modifier.weight(1f).testTag("control:${control.id}"),
+                    )
+                }
+                repeat(PanelRows.KNOBS_PER_ROW - row.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+
+        ControlKind.Switch -> {
+            SwitchRow(first, panel.values[first.id] ?: 0, enabled, {
+                panel.set(first, it)
+            }, modifier.testTag("control:${first.id}"))
+        }
+
+        is ControlKind.Selector -> {
+            SelectorRow(first, kind, panel.values[first.id] ?: 0, enabled, {
+                panel.set(first, it)
+            }, modifier.testTag("control:${first.id}"))
+        }
+    }
+}
+
+private const val DIMMED = 0.38f

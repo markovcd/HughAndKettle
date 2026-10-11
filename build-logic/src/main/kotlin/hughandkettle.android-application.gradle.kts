@@ -45,6 +45,12 @@ kotlin {
     }
 }
 
+// Android unit tests run on JUnit 4, so kotlin-test's JUnit 4 flavor is named rather than chosen.
+dependencies {
+    "testImplementation"(kotlin("test-junit"))
+    "testImplementation"(catalog.findLibrary("junit4").get())
+}
+
 dependencyLocking {
     lockAllConfigurations()
 }

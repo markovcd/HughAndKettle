@@ -1,7 +1,7 @@
 # 02. Design brief: a logo, an icon and the look of the whole app
 
 - **Severity:** —
-- **Status:** Open
+- **Status:** Landed for what the app has (icon, theme, panel, link card, knob, switch and selector rows); the discovery list, the preset strip and the retrying state wait on phases 1 and 2. The record is in [docs/design/](../design/README.md).
 - **Found:** 2026-10-11, at the first commit
 
 A handoff for a design session (Claude Design, or any designer): what to make, what it must obey,

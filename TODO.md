@@ -9,7 +9,6 @@ that lands it.
 - Say which amp sits behind the WMI-1 (Black Spirit 200, GrandMeister Deluxe 40, GrandMeister 36, other); that model's table is the first to be verified.
 - Run phase 0 of the [implementation plan](docs/handoff/01-implementation-plan.md#phase-0-confirm-the-link-on-hardware) on the hardware and paste the output; everything after it waits on this.
 - Pick a license for the repository.
-- Run the [design brief](docs/handoff/02-design-brief.md) through a design session and hand its output to an agent to land.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 
 ## Code

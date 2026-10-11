@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.ConnectException
 
 /** What the panel shows and does: the link to the WMI-1 and the last value sent or heard per control. */
 class PanelState(
@@ -24,26 +25,39 @@ class PanelState(
     var port by mutableStateOf(WmiDefaults.MIDI_PORT.toString())
     var link by mutableStateOf<WmiLink?>(null)
         private set
-    var failure by mutableStateOf<String?>(null)
+    var connecting by mutableStateOf(false)
+        private set
+    var failure by mutableStateOf<LinkFailure?>(null)
         private set
     val values = mutableStateMapOf<String, Int>()
+
+    /** The fields are editable only while there is nothing to protect. */
+    val idle: Boolean get() = link == null && !connecting
 
     fun connect() {
         val port = port.toIntOrNull()
         if (host.isBlank() || port == null || port !in 1..65535) {
-            failure = "Enter the WMI-1 address and a port between 1 and 65535"
+            failure = LinkFailure.NeedsAddress
             return
         }
+        val target = "${host.trim()}:$port"
+        connecting = true
+        failure = null
         scope.launch {
             val opened =
                 withContext(Dispatchers.IO) {
                     WmiLink.open(host.trim(), port, onMessage = ::heard, onClosed = { link = null })
                 }
-            opened.onSuccess {
-                link = it
-                failure = null
+            connecting = false
+            opened.onSuccess { link = it }
+            opened.onFailure {
+                failure =
+                    if (it is ConnectException) {
+                        LinkFailure.Refused(target)
+                    } else {
+                        LinkFailure.Unreachable(target, it.message ?: it.javaClass.simpleName)
+                    }
             }
-            opened.onFailure { failure = it.message ?: "Cannot reach $host:$port" }
         }
     }
 
@@ -59,7 +73,7 @@ class PanelState(
         values[control.id] = value
         val link = link ?: return
         scope.launch(Dispatchers.IO) {
-            link.send(control.set(value)).onFailure { failure = it.message ?: "Send failed" }
+            link.send(control.set(value)).onFailure { failure = LinkFailure.SendFailed(it.message ?: "link lost") }
         }
     }
 
