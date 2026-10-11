@@ -1,0 +1,10 @@
+# The build context is the source tree only; the commit hash comes in as a build argument.
+.git
+.gradle
+.kotlin
+.idea
+build
+*/build
+build-logic/build
+build-logic/.gradle
+local.properties

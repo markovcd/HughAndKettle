@@ -1,0 +1,16 @@
+# Dependabot says when a pin should move: the Gradle catalog and lock files, the action SHAs, and the
+# gate image's digest. A session takes a cheap upgrade in a commit of its own (the dependencies skill).
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

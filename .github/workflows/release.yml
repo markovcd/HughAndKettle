@@ -1,0 +1,46 @@
+# A release, by hand: dispatch it with a version (or none for the next patch) and release.sh does the
+# rest: the gate on that commit, signing, the changelog commit, the tag and the GitHub release. The
+# keys reach only this job, as secrets. A release is never cancelled once started.
+name: Release
+run-name: Release ${{ inputs.version || 'next patch' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version X.Y.Z; empty for the next patch after the latest tag"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Keys from secrets, into files the script reads and the job deletes with its workspace
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$RELEASE_SSH_KEY" > "$RUNNER_TEMP/keys/release_ssh_key"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/keys/release.jks"
+          echo "RELEASE_SSH_KEY_FILE=$RUNNER_TEMP/keys/release_ssh_key" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/keys/release.jks" >> "$GITHUB_ENV"
+        env:
+          RELEASE_SSH_KEY: ${{ secrets.RELEASE_SSH_KEY }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ./release.sh "${{ inputs.version }}" --publish
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hugh &amp; Kettle</string>
+    <string name="host">WMI-1 address</string>
+    <string name="port">Port</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="not_connected">Not connected</string>
+    <string name="connected_to">Connected to %1$s</string>
+</resources>

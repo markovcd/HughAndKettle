@@ -1,0 +1,10 @@
+build/
+.gradle/
+.kotlin/
+local.properties
+*.iml
+.idea/
+captures/
+# Keys never enter the tree; release.sh makes a throwaway one under build/.
+*.jks
+*.keystore

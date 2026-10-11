@@ -1,0 +1,41 @@
+package io.github.markovcd.hughandkettle.amp
+
+import io.github.markovcd.hughandkettle.midi.ControlChange
+import io.github.markovcd.hughandkettle.midi.MidiChannel
+
+/**
+ * One thing on the amp the app can turn or switch, and the controller number that moves it.
+ *
+ * [id] is written into preset files and is never renamed once shipped; [name] is what a person reads.
+ */
+public data class Control(
+    val id: String,
+    val name: String,
+    val controller: Int,
+    val kind: ControlKind,
+) {
+    init {
+        require(id.matches(Regex("[a-z][a-z0-9_]*"))) { "control id must be snake_case, got '$id'" }
+        require(controller in 0..127) { "controller must be 0..127, got $controller" }
+    }
+
+    /** The message that sets this control to [value] on [channel]. */
+    public fun set(
+        value: Int,
+        channel: MidiChannel = MidiChannel.Default,
+    ): ControlChange = ControlChange(channel, controller, value)
+
+    public fun switched(
+        on: Boolean,
+        channel: MidiChannel = MidiChannel.Default,
+    ): ControlChange = set(if (on) 127 else 0, channel)
+
+    /** The message that selects option [index] of a [ControlKind.Selector]. */
+    public fun selected(
+        index: Int,
+        channel: MidiChannel = MidiChannel.Default,
+    ): ControlChange {
+        val selector = kind as? ControlKind.Selector ?: error("'$id' is not a selector")
+        return set(Sectors.value(index, selector.options.size), channel)
+    }
+}
