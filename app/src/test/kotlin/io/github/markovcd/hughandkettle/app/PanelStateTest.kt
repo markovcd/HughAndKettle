@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.LinkedBlockingQueue
@@ -26,7 +27,8 @@ class PanelStateTest {
     private val fake = FakeWmi(onEvent = seen::put)
     private val holder = LinkHolder()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-    private val panel = PanelState(AmpModels.blackSpirit200, holder, scope)
+    private val last = MutableStateFlow<WmiAddress?>(null)
+    private val panel = PanelState(AmpModels.blackSpirit200, holder, scope, last)
     private val gain = AmpModels.blackSpirit200.controls.first { it.id == "gain" }
 
     @After
@@ -88,5 +90,15 @@ class PanelStateTest {
         panel.connect()
         assertEquals(PanelFailure.NeedsAddress, panel.failure)
         assertEquals(LinkState.Idle, panel.link)
+    }
+
+    @Test
+    fun `The last box fills empty fields and leaves typed ones alone`() {
+        last.value = WmiAddress("192.168.1.20", 2001)
+        assertEquals("192.168.1.20" to "2001", panel.host to panel.port)
+        panel.host = "10.0.0.5"
+        last.value = WmiAddress("192.168.1.21", 2000)
+        assertEquals("10.0.0.5", panel.host)
+        assertEquals(WmiAddress("192.168.1.21", 2000), panel.last)
     }
 }

@@ -13,6 +13,7 @@ import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /** What the panel shows and does: the link's state and the last value sent or heard per control. */
@@ -20,6 +21,7 @@ class PanelState(
     val amp: AmpModel,
     private val holder: LinkHolder,
     private val scope: CoroutineScope,
+    lastWmi: Flow<WmiAddress?>,
 ) {
     var host by mutableStateOf("")
     var port by mutableStateOf(WmiDefaults.MIDI_PORT.toString())
@@ -29,9 +31,22 @@ class PanelState(
         private set
     val values = mutableStateMapOf<String, Int>()
 
+    /** The last box a link reached, offered first. */
+    var last by mutableStateOf<WmiAddress?>(null)
+        private set
+
     init {
         scope.launch { holder.state.collect { link = it } }
         scope.launch { holder.heard.collect(::heard) }
+        scope.launch {
+            lastWmi.collect {
+                last = it
+                if (it != null && host.isBlank()) {
+                    host = it.host
+                    port = it.port.toString()
+                }
+            }
+        }
     }
 
     /** The fields are editable only while there is nothing to protect. */

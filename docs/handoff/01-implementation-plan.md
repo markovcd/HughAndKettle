@@ -73,7 +73,7 @@ iPad app's traffic (`rvictl` on a Mac, `tcpdump -i rvi0`). The capture is the sp
 - [x] Reconnect: a lost link retries with backoff until cancelled, and the panel shows the state
   (connecting, connected, retrying, refused). "Refused" says in words that something else, such as the
   iPad app, may hold the box's single connection.
-- [ ] The last box used is remembered (DataStore preferences, one key, versioned per the saved-data
+- [x] The last box used is remembered (DataStore preferences, one key, versioned per the saved-data
   rule) and offered first.
 - [x] The link's state is a pure class in `wmi` or `amp` (`LinkState`, a state machine with a test per
   transition), and the service and the panel both render it. Nothing about retries lives in Android code.

@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.datastore.preferences)
     debugImplementation(libs.compose.ui.tooling)
     // The empty activity Compose tests host their content in.
     debugImplementation(libs.compose.ui.test.manifest)

@@ -28,8 +28,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val scope = rememberCoroutineScope()
-            val panel =
-                remember { PanelState(AmpModels.blackSpirit200, (application as HughAndKettleApplication).link, scope) }
+            val app = application as HughAndKettleApplication
+            val panel = remember { PanelState(AmpModels.blackSpirit200, app.link, scope, app.lastWmi.last) }
             val discovery = remember { DiscoveryState() }
             AskForNotifications(linked = panel.link != LinkState.Idle)
             HughAndKettleTheme {

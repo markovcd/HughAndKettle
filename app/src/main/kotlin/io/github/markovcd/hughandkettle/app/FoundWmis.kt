@@ -23,12 +23,13 @@ import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiBroadcast
 
 /**
- * Every WMI-1 heard on the network, one tappable row each, listening for as long as it is shown. Tests
- * find a row by `found:<device id>`.
+ * The last box used, then every other WMI-1 heard on the network, one tappable row each, listening for
+ * as long as it is shown. Tests find the rows by `last` and `found:<device id>`.
  */
 @Composable
 internal fun FoundWmis(
     discovery: DiscoveryState,
+    last: WmiAddress?,
     onPick: (WmiAddress) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -53,23 +54,39 @@ internal fun FoundWmis(
                 else -> stringResource(R.string.discovery_found)
             }
         Text(note, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+        if (last != null) {
+            WmiRow(stringResource(R.string.last_used), last, onPick, Modifier.testTag("last"))
+        }
         discovery.found.forEach { box ->
             val address = box.wmiAddress()
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .clickable { onPick(address) }
-                        .padding(horizontal = 4.dp)
-                        .testTag("found:${box.deviceId}"),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(box.deviceId, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text("$address", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-            }
+            if (address != last) WmiRow(box.deviceId, address, onPick, Modifier.testTag("found:${box.deviceId}"))
         }
+    }
+}
+
+@Composable
+private fun WmiRow(
+    name: String,
+    address: WmiAddress,
+    onPick: (WmiAddress) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable { onPick(address) }
+                .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(
+            "$address",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

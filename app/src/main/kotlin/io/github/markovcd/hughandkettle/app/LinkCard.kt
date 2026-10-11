@@ -54,7 +54,7 @@ internal fun LinkCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             StatusLine(panel)
-            if (panel.idle) FoundWmis(discovery, onPick = panel::connect)
+            if (panel.idle) FoundWmis(discovery, panel.last, onPick = panel::connect)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                 OutlinedTextField(
                     value = panel.host,

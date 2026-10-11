@@ -34,11 +34,21 @@ class FoundWmisTest {
         val port = DatagramSocket(0).use { it.localPort }
         fake.broadcast(InetAddress.getLoopbackAddress(), port, interval = 100.milliseconds)
         var picked: WmiAddress? = null
-        compose.setContent { FoundWmis(DiscoveryState(WmiDiscovery(port)), onPick = { picked = it }) }
+        compose.setContent { FoundWmis(DiscoveryState(WmiDiscovery(port)), last = null, onPick = { picked = it }) }
         // Capped at 5 s so a broken broadcaster fails rather than hangs; the first broadcast ends it.
         compose.waitUntilExactlyOneExists(hasTestTag("found:WMI-1_A1B2C3"), timeoutMillis = 5_000)
         compose.onNodeWithTag("found:WMI-1_A1B2C3").performClick()
         compose.waitForIdle()
         assertEquals(WmiAddress("127.0.0.1", fake.port), picked)
+    }
+
+    @Test
+    fun `The last box used is offered first, ahead of anything heard`() {
+        val last = WmiAddress("192.168.1.20", 2000)
+        var picked: WmiAddress? = null
+        compose.setContent { FoundWmis(DiscoveryState(WmiDiscovery(0)), last, onPick = { picked = it }) }
+        compose.onNodeWithTag("last").performClick()
+        compose.waitForIdle()
+        assertEquals(last, picked)
     }
 }

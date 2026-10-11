@@ -16,6 +16,7 @@
     <string name="send_failed">Send failed: %1$s</string>
     <string name="discovery_listening">Listening for WMI-1s on this network…</string>
     <string name="discovery_found">WMI-1s on this network</string>
+    <string name="last_used">Last used</string>
     <string name="discovery_failed">Cannot listen for WMI-1s: %1$s</string>
     <string name="link_channel">Link to the WMI-1</string>
     <string name="section_switching">Switching</string>
