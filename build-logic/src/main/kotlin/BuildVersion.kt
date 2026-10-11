@@ -21,10 +21,15 @@ fun Project.buildVersion(): BuildVersion {
         require(minor < 100 && patch < 100) { "releaseVersion parts above 99 do not fit the version code" }
         return BuildVersion(release, major * 10_000 + minor * 100 + patch)
     }
-    return BuildVersion("0.0.0-dev+${commit().get()}", 1)
+    return BuildVersion("0.0.0-dev+${commit()}", 1)
 }
 
-private fun Project.commit(): Provider<String> =
+/** The gate image has no git and hands the commit over as HK_COMMIT; a machine asks git. */
+private fun Project.commit(): String =
+    providers.environmentVariable("HK_COMMIT").orNull?.takeIf(String::isNotBlank)
+        ?: gitCommit().get()
+
+private fun Project.gitCommit(): Provider<String> =
     providers.exec {
         commandLine("git", "rev-parse", "--short=12", "HEAD")
         isIgnoreExitValue = true
