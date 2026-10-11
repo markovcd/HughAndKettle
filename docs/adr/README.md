@@ -11,3 +11,4 @@ sentence stating the decision. Check here before proposing a change of shape (th
 | [0004](0004-the-gate-is-a-container-and-the-tests-run-on-the-jvm.md) | The gate is a container build, and every test runs on the JVM without an emulator |
 | [0005](0005-the-cli-is-the-first-client-of-every-feature.md) | `hk` is the first client of every feature, and the fake WMI-1 is how the app is driven without an amp |
 | [0006](0006-releases-are-signed-apks-on-github-releases.md) | A release is a signed APK and a CLI zip on GitHub Releases, versioned from a tag and signed with an SSH key |
+| [0007](0007-the-link-is-held-by-the-process-and-kept-alive-by-a-foreground-service.md) | The link is held by the process and kept alive by a foreground service while it is up |

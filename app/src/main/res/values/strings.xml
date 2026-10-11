@@ -17,6 +17,7 @@
     <string name="discovery_listening">Listening for WMI-1s on this network…</string>
     <string name="discovery_found">WMI-1s on this network</string>
     <string name="discovery_failed">Cannot listen for WMI-1s: %1$s</string>
+    <string name="link_channel">Link to the WMI-1</string>
     <string name="section_switching">Switching</string>
     <string name="section_amp">Amp</string>
     <string name="section_fx">FX</string>

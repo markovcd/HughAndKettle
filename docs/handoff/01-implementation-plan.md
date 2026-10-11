@@ -67,15 +67,15 @@ iPad app's traffic (`rvictl` on a Mac, `tcpdump -i rvi0`). The capture is the sp
 - [x] Discovery screen: the app listens for broadcasts (`WmiDiscovery` on `Dispatchers.IO`, holding
   a `WifiManager.MulticastLock` so the radio delivers broadcasts), lists each box by device id and
   address, and connects on tap. Manual address entry stays as the fallback.
-- [ ] The link survives the app: a connected link is held in a foreground service with a
+- [x] The link survives the app: a connected link is held in a foreground service with a
   notification ("Connected to WMI-1_A1B2C3"), so turning the screen off on stage does not drop it.
   ADR: a service over a bound ViewModel, and why.
-- [ ] Reconnect: a lost link retries with backoff until cancelled, and the panel shows the state
+- [x] Reconnect: a lost link retries with backoff until cancelled, and the panel shows the state
   (connecting, connected, retrying, refused). "Refused" says in words that something else, such as the
   iPad app, may hold the box's single connection.
 - [ ] The last box used is remembered (DataStore preferences, one key, versioned per the saved-data
   rule) and offered first.
-- [ ] The link's state is a pure class in `wmi` or `amp` (`LinkState`, a state machine with a test per
+- [x] The link's state is a pure class in `wmi` or `amp` (`LinkState`, a state machine with a test per
   transition), and the service and the panel both render it. Nothing about retries lives in Android code.
 
 **Tests:** state machine transitions on the JVM; `PanelState` against `FakeWmi`; one Compose test on
