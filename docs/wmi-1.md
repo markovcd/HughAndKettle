@@ -46,20 +46,31 @@ client of) and the amp on:
 cli/build/install/hk/bin/hk discover --seconds 20
 ```
 
-Expected: one JSON line naming the box, its address and the TCP port. Then, with that address:
+Expected: one JSON line naming the box, its address and the TCP port. If a line looks wrong (an
+empty device id, a port that is not 2000), run it again with `--raw` and paste the packet's hex. Then,
+with that address:
 
 ```sh
-cli/build/install/hk/bin/hk send <address>:<port> cc 9 127     # mute on
+cli/build/install/hk/bin/hk send <address>:<port> cc 9 127 --keep-open 3 --verbose   # mute on
 cli/build/install/hk/bin/hk send <address>:<port> cc 9 0       # mute off
 cli/build/install/hk/bin/hk send <address>:<port> pc 3         # preset 4
 ```
 
-Expected: the amp mutes, unmutes and changes preset. If `discover` hears nothing, read the laptop's
+Expected: the amp mutes, unmutes and changes preset. The first command holds the link three seconds
+and prints on stderr every byte the box sends, hex and text, so a `*HELLO*` banner shows up there if
+the module sends one. If `discover` hears nothing, read the laptop's
 gateway address in access-point mode and try `send` against it on 2000; if that is refused, the port
 has been changed or the transport is not what is inferred, and a packet capture of the iPad app
 (`tcpdump` on a Mac with the iPad's traffic mirrored by `rvictl`) is the next step. Record the outcome
 in the table above, in the same commit as any constant it changes.
 
-Then listen for what the amp says back: `hk fake-wmi` cannot do this against the real box, so the
-next command to add is `hk listen <address>:<port>`, which prints every message heard while a person
-turns a knob and changes a preset on the amp. What it prints decides phase 2.
+Then listen for what the amp says back, while a person turns a knob, switches a channel and changes a
+preset on the amp, once with the footswitch plugged into MIDI In 2 and once without:
+
+```sh
+cli/build/install/hk/bin/hk listen <address>:<port> --verbose > heard.jsonl
+```
+
+It prints one JSON line per message heard, with the milliseconds since the link opened, until stdin
+closes (Ctrl-D) or `--seconds N` pass; `--verbose` adds the raw bytes on stderr. What it prints
+decides phase 2.

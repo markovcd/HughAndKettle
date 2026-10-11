@@ -18,7 +18,7 @@ The foundations, built and tested on the JVM:
 - `amp`: `AmpModels` with the Black Spirit 200 and GrandMeister Deluxe 40 charts, `Control`,
   `ControlKind`, `Sectors`.
 - `wmi`: `WmiDiscovery`, `WmiBroadcast`, `WmiLink`, `FakeWmi`, `WmiDefaults`.
-- `cli`: `hk discover | send | fake-wmi`.
+- `cli`: `hk discover | send | listen | fake-wmi`.
 - `app`: one Compose screen (`AmpPanel`, `PanelState`) that connects by address and sends controls.
 - The gate (`gate.sh`, `gate.Dockerfile`), the release script, the two workflows, Dependabot,
   dependency locking, ktlint, Lint with warnings as errors.
@@ -38,10 +38,10 @@ output.
 
 **Deliverables (agent, before the user runs anything):**
 
-- [ ] `hk listen <host[:port]> [--seconds N]`: opens the link and prints every message heard as a JSON
+- [x] `hk listen <host[:port]> [--seconds N]`: opens the link and prints every message heard as a JSON
   line until the time is up or stdin closes. Test: against `FakeWmi.emit`.
-- [ ] `hk discover` prints the raw packet as hex (`--raw`) so an unexpected layout can be read.
-- [ ] `hk send` accepts `--keep-open N` to hold the link N seconds after sending, so a `*HELLO*` banner
+- [x] `hk discover` prints the raw packet as hex (`--raw`) so an unexpected layout can be read.
+- [x] `hk send` accepts `--keep-open N` to hold the link N seconds after sending, so a `*HELLO*` banner
   or a reply can be seen with `--verbose` on stderr.
 
 **The user records,** in the table in `docs/wmi-1.md`:

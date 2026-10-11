@@ -1,14 +1,18 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.midi.toHex
 import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import io.github.markovcd.hughandkettle.wmi.WmiDiscovery
 import java.io.PrintWriter
 import kotlin.time.Duration.Companion.seconds
 
-/** Listens for WMI-1 broadcasts and prints each device as it is heard. */
+/**
+ * Listens for WMI-1 broadcasts and prints each device as it is heard. `--raw` also prints every
+ * packet heard, ahead of the device it parsed to if any, so an unexpected layout can be read.
+ */
 public object DiscoverCommand : Command {
     override val name: String = "discover"
-    override val usage: String = "hk discover [--seconds N] [--port N] [--first]"
+    override val usage: String = "hk discover [--seconds N] [--port N] [--first] [--raw]"
 
     override fun run(
         args: Options,
@@ -24,9 +28,23 @@ public object DiscoverCommand : Command {
             return ExitCodes.BAD_ARGUMENTS
         }
         val stopAtFirst = args.flag("first")
+        val raw = args.flag("raw")
         val found =
             WmiDiscovery(port.getOrThrow())
-                .listen(seconds.getOrThrow().seconds) { device ->
+                .listen(
+                    seconds.getOrThrow().seconds,
+                    onPacket = { from, bytes ->
+                        if (raw) {
+                            out.println(
+                                Json.line(
+                                    "host" to from.hostAddress,
+                                    "length" to bytes.size,
+                                    "raw" to bytes.toHex(),
+                                ),
+                            )
+                        }
+                    },
+                ) { device ->
                     out.println(
                         Json.line(
                             "host" to device.address.hostAddress,

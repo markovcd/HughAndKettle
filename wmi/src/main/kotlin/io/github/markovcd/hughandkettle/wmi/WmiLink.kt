@@ -14,12 +14,14 @@ import kotlin.time.Duration
  * An open TCP link to a WMI-1: MIDI bytes out, MIDI messages in.
  *
  * Every message goes out whole with its status byte, so the module can never see the three-byte
- * command-mode escape its firmware listens for. Incoming bytes are parsed on a reader thread and
- * handed to [onMessage] there; [onClosed] fires once, when the far end goes away or [close] is called.
+ * command-mode escape its firmware listens for. Incoming bytes are handed raw to [onBytes], then
+ * parsed and handed to [onMessage], both on a reader thread; [onClosed] fires once, when the far end
+ * goes away or [close] is called.
  */
 public class WmiLink private constructor(
     private val socket: Socket,
     private val onMessage: (MidiMessage) -> Unit,
+    private val onBytes: (ByteArray) -> Unit,
     private val onClosed: (reason: String?) -> Unit,
 ) : Closeable {
     private val output: OutputStream = socket.getOutputStream()
@@ -37,7 +39,9 @@ public class WmiLink private constructor(
                     while (true) {
                         val read = input.read(buffer)
                         if (read < 0) break
-                        parser.feed(buffer.copyOf(read)).forEach(onMessage)
+                        val chunk = buffer.copyOf(read)
+                        onBytes(chunk)
+                        parser.feed(chunk).forEach(onMessage)
                     }
                     "closed by the WMI-1"
                 } catch (e: IOException) {
@@ -72,13 +76,14 @@ public class WmiLink private constructor(
             port: Int = WmiDefaults.MIDI_PORT,
             timeout: Duration = WmiDefaults.ConnectTimeout,
             onMessage: (MidiMessage) -> Unit = {},
+            onBytes: (ByteArray) -> Unit = {},
             onClosed: (reason: String?) -> Unit = {},
         ): Result<WmiLink> =
             runCatching {
                 val socket = Socket()
                 socket.tcpNoDelay = true
                 socket.connect(InetSocketAddress(host, port), timeout.inWholeMilliseconds.toInt())
-                WmiLink(socket, onMessage, onClosed).also { it.reader.start() }
+                WmiLink(socket, onMessage, onBytes, onClosed).also { it.reader.start() }
             }
     }
 }

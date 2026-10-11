@@ -29,14 +29,18 @@ Test reports with a duration per test land in `<module>/build/test-results/test/
 ## `hk`
 
 ```sh
-hk discover [--seconds N] [--port N] [--first]        # hear WMI-1 status broadcasts; one JSON line per box
-hk send <host[:port]> cc <controller> <value> [--channel 1..16]
-hk send <host[:port]> pc <program> [--channel 1..16]
-hk send <host[:port]> raw <hex bytes>
+hk discover [--seconds N] [--port N] [--first] [--raw]   # hear WMI-1 status broadcasts; one JSON line per box
+hk send <host[:port]> cc <controller> <value> [--channel 1..16] [--keep-open N] [--verbose]
+hk send <host[:port]> pc <program> [--channel 1..16] [--keep-open N] [--verbose]
+hk send <host[:port]> raw <hex bytes> [--keep-open N] [--verbose]
+hk listen <host[:port]> [--seconds N] [--verbose]         # print every message the amp sends
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast]
 ```
 
-Stdout carries one JSON object per line and nothing else; stderr carries usage and errors. Exit codes:
+Stdout carries one JSON object per line and nothing else; stderr carries usage, errors and, with
+`--verbose`, every byte the WMI-1 sends. `--raw` adds a line with each packet's hex ahead of the box
+it parsed to; `--keep-open N` holds the link N seconds after sending; `listen` runs until stdin closes
+or `--seconds` pass. Exit codes:
 0 done, 2 bad arguments, 3 no link, 4 nothing found.
 
 Without an amp, run a fake one and point the app or `hk send` at it:

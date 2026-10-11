@@ -2,6 +2,7 @@ package io.github.markovcd.hughandkettle.wmi
 
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 import kotlin.time.Duration
@@ -14,11 +15,13 @@ public class WmiDiscovery(
 ) {
     /**
      * Listens for up to [duration], handing each broadcast to [onFound] as it arrives, and returns the
-     * distinct devices heard. [onFound] returns false to stop early. Fails as a value: a port the
-     * machine will not open comes back as a [Result] failure.
+     * distinct devices heard. Every packet, parsed or not, goes to [onPacket] first, so an unexpected
+     * layout can be read. [onFound] returns false to stop early. Fails as a value: a port the machine
+     * will not open comes back as a [Result] failure.
      */
     public fun listen(
         duration: Duration,
+        onPacket: (from: InetAddress, bytes: ByteArray) -> Unit = { _, _ -> },
         onFound: (WmiBroadcast) -> Boolean = { true },
     ): Result<List<WmiBroadcast>> {
         val socket =
@@ -47,6 +50,7 @@ public class WmiDiscovery(
                 } catch (_: SocketTimeoutException) {
                     continue
                 }
+                onPacket(packet.address, buffer.copyOf(packet.length))
                 val broadcast = WmiBroadcast.parse(buffer, packet.length, packet.address) ?: continue
                 found["${broadcast.address.hostAddress}:${broadcast.midiPort}"] = broadcast
                 if (!onFound(broadcast)) break

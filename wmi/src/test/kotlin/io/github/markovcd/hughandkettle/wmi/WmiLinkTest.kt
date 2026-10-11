@@ -3,6 +3,7 @@ package io.github.markovcd.hughandkettle.wmi
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.MidiMessage
+import io.github.markovcd.hughandkettle.midi.OtherMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -39,6 +40,20 @@ class WmiLinkTest {
         opened(heard::put).use {
             assertTrue(fake.emit(ProgramChange(MidiChannel(1), 3)))
             assertEquals(ProgramChange(MidiChannel(1), 3), heard.poll(5, TimeUnit.SECONDS))
+        }
+    }
+
+    @Test
+    fun `Every byte the WMI-1 sends is handed over raw, a banner the parser drops included`() {
+        val chunks = LinkedBlockingQueue<ByteArray>()
+        val heard = LinkedBlockingQueue<MidiMessage>()
+        WmiLink.open("127.0.0.1", fake.port, onMessage = heard::put, onBytes = chunks::put).getOrThrow().use {
+            next()
+            assertTrue(fake.emit(OtherMessage("*HELLO*".toByteArray(Charsets.US_ASCII))))
+            assertTrue(fake.emit(ProgramChange(MidiChannel(1), 3)))
+            assertEquals(ProgramChange(MidiChannel(1), 3), heard.poll(5, TimeUnit.SECONDS))
+            val raw = generateSequence { chunks.poll() }.fold(ByteArray(0)) { all, chunk -> all + chunk }
+            assertEquals("*HELLO*\u00C0\u0003", String(raw, Charsets.ISO_8859_1))
         }
     }
 
