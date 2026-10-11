@@ -3,6 +3,8 @@
 
     <!-- The WMI-1 is reached over the local network only. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Discovery hears the WMI-1's UDP broadcasts, which the radio drops without a multicast lock. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <application
         android:name=".app.HughAndKettleApplication"

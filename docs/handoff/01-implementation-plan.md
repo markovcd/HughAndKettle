@@ -64,7 +64,7 @@ iPad app's traffic (`rvictl` on a Mac, `tcpdump -i rvi0`). The capture is the sp
 
 **Deliverables:**
 
-- [ ] Discovery screen: the app listens for broadcasts (`WmiDiscovery` on `Dispatchers.IO`, holding
+- [x] Discovery screen: the app listens for broadcasts (`WmiDiscovery` on `Dispatchers.IO`, holding
   a `WifiManager.MulticastLock` so the radio delivers broadcasts), lists each box by device id and
   address, and connects on tap. Manual address entry stays as the fallback.
 - [ ] The link survives the app: a connected link is held in a foreground service with a

@@ -22,9 +22,10 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val panel =
                 remember { PanelState(AmpModels.blackSpirit200, (application as HughAndKettleApplication).link, scope) }
+            val discovery = remember { DiscoveryState() }
             HughAndKettleTheme {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
-                    AmpPanel(panel)
+                    AmpPanel(panel, discovery)
                 }
             }
         }

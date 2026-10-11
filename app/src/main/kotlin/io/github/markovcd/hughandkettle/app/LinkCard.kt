@@ -37,10 +37,14 @@ import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.wmi.LinkFailure
 import io.github.markovcd.hughandkettle.wmi.LinkState
 
-/** Address, port, one button and a status line that is never hidden, in any state. */
+/**
+ * A status line that is never hidden, the WMI-1s heard on the network while there is no link, then
+ * address, port and one button for a box discovery does not find.
+ */
 @Composable
 internal fun LinkCard(
     panel: PanelState,
+    discovery: DiscoveryState,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -50,6 +54,7 @@ internal fun LinkCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             StatusLine(panel)
+            if (panel.idle) FoundWmis(discovery, onPick = panel::connect)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                 OutlinedTextField(
                     value = panel.host,

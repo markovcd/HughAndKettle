@@ -43,6 +43,13 @@ class PanelState(
             failure = PanelFailure.NeedsAddress
             return
         }
+        connect(address)
+    }
+
+    /** Connects to [address], showing it in the fields. */
+    fun connect(address: WmiAddress) {
+        host = address.host
+        port = address.port.toString()
         failure = null
         holder.connect(address)
     }
