@@ -12,6 +12,12 @@ ktlint = "1.8.0"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
+robolectric = "4.17"
+# The Android framework Robolectric runs the app's tests on, fetched by Gradle and locked rather than
+# downloaded by Robolectric at test time. Its SDK level is the one in the app's robolectric.properties.
+robolectricAndroidAll = "17-robolectric-15733970-i7"
+# Compose's test library brings Espresso 3.5, which cannot inject input on SDK 37; named to lift it.
+espresso = "3.7.0"
 # Toolchain: one JDK for build-logic, the JVM modules and the app.
 jdk = "21"
 compileSdk = "37"
@@ -31,6 +37,11 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+robolectric-android-all = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectricAndroidAll" }
 # Gradle plugins, as libraries, for build-logic's own classpath.
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
