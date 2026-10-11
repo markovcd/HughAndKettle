@@ -6,6 +6,7 @@ import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.OtherMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.midi.hexToBytes
+import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
 import java.util.concurrent.CountDownLatch
@@ -30,7 +31,7 @@ public object SendCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = args.positional.getOrNull(0)?.let(Target::parse)
+        val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
         val message = target?.let { message(args, err) }
         val keepOpen =
             args.int("keep-open", 0).getOrElse {
