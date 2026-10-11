@@ -18,8 +18,10 @@ if docker build --file gate.Dockerfile --target gate --tag hughandkettle-gate \
     --build-arg "COMMIT=$commit" $extra_args --progress=plain . > "$log" 2>&1; then
     echo "gate: passed"
 else
-    echo "gate: FAILED. First lines that say why:"
-    grep -n -E "^#[0-9]+ [0-9.]+ (e: |w: |FAILED|.*BUILD FAILED|.*What went wrong|.*Test.*FAILED|.*error:)" "$log" | head -20 || true
+    echo "gate: FAILED. The lines that say why:"
+    # Docker prefixes every line with its step and time; strip that, then show compiler errors,
+    # failing tests, and Gradle's own explanation.
+    sed -E 's/^#[0-9]+ [0-9.]+ //' "$log" | grep -n -E -A12 "^(e: |.*> Task .* FAILED|.*\) FAILED$|\* What went wrong)" | head -80 || true
     echo "gate: the whole log is in $log"
     exit 1
 fi

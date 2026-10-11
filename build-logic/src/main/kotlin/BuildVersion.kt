@@ -12,7 +12,8 @@ data class BuildVersion(val name: String, val code: Int) {
 }
 
 fun Project.buildVersion(): BuildVersion {
-    val release = providers.gradleProperty("releaseVersion").orNull
+    // The gate image always sets the property; an empty value is "not a release".
+    val release = providers.gradleProperty("releaseVersion").orNull?.takeIf(String::isNotBlank)
     if (release != null) {
         val match = Regex("""^(\d+)\.(\d+)\.(\d+)$""").matchEntire(release)
             ?: error("releaseVersion must be X.Y.Z, got '$release'")
