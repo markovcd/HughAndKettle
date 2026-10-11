@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The mark: a kettle that is an amp head, with a handle, a spout and one big knob. From docs/design. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M43,44 C43,33 65,33 65,44"
+        android:strokeColor="#FFB547"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#FFB547"
+        android:pathData="M74,54 L84,46 L86,49 L76,63 Z" />
+    <path
+        android:fillColor="#FFB547"
+        android:fillType="evenOdd"
+        android:pathData="M40,44 H68 Q72,44 73,48 L77,70 Q78,74 74,74 H34 Q30,74 31,70 L35,48 Q36,44 40,44 Z M43,59 A11,11 0 1 0 65,59 A11,11 0 1 0 43,59 Z M46,59 A8,8 0 1 0 62,59 A8,8 0 1 0 46,59 Z M55.06,57.94 L49.55,52.43 L47.43,54.55 L52.94,60.06 Z" />
+</vector>
