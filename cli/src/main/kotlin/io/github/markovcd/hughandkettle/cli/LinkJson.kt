@@ -2,7 +2,6 @@ package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.wmi.LinkFailure
 import io.github.markovcd.hughandkettle.wmi.LinkState
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
 
 /** How a link's state is spelled on the CLI's output. */
 public object LinkJson {
@@ -13,15 +12,15 @@ public object LinkJson {
             }
 
             is LinkState.Connecting -> {
-                listOf("link" to "connecting", "address" to text(state.address), "attempt" to state.attempt)
+                listOf("link" to "connecting", "address" to "${state.address}", "attempt" to state.attempt)
             }
 
             is LinkState.Connected -> {
-                listOf("link" to "connected", "address" to text(state.address))
+                listOf("link" to "connected", "address" to "${state.address}")
             }
 
             is LinkState.Retrying -> {
-                listOf("link" to "retrying", "address" to text(state.address), "failures" to state.failures) +
+                listOf("link" to "retrying", "address" to "${state.address}", "failures" to state.failures) +
                     failure(state.failure)
             }
         }
@@ -32,6 +31,4 @@ public object LinkJson {
             is LinkFailure.Unreachable -> listOf("failure" to "unreachable", "reason" to failure.reason)
             is LinkFailure.Lost -> listOf("failure" to "lost", "reason" to failure.reason)
         }
-
-    private fun text(address: WmiAddress): String = "${address.host}:${address.port}"
 }

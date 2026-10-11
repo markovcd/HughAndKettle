@@ -20,7 +20,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val scope = rememberCoroutineScope()
-            val panel = remember { PanelState(AmpModels.blackSpirit200, scope) }
+            val panel =
+                remember { PanelState(AmpModels.blackSpirit200, (application as HughAndKettleApplication).link, scope) }
             HughAndKettleTheme {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
                     AmpPanel(panel)

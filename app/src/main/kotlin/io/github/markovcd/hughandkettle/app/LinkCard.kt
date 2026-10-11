@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.wmi.LinkFailure
+import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /** Address, port, one button and a status line that is never hidden, in any state. */
 @Composable
@@ -91,55 +93,76 @@ private fun StatusLine(panel: PanelState) {
     val failure = panel.failure
     val link = panel.link
     val colors = MaterialTheme.colorScheme
-    val band = if (failure != null) Modifier.background(colors.errorContainer, RoundedCornerShape(8.dp)) else Modifier
-    val text =
-        when {
-            failure != null -> {
-                failure.words()
-            }
-
-            link != null -> {
-                stringResource(
-                    R.string.connected_to,
-                    link.remote.address.hostAddress ?: link.remote.toString(),
-                )
-            }
-
-            panel.connecting -> {
-                stringResource(R.string.connecting_to, "${panel.host.trim()}:${panel.port}")
-            }
-
-            else -> {
-                stringResource(R.string.not_connected)
-            }
-        }
+    val warning = failure != null || link is LinkState.Retrying
+    val band = if (warning) Modifier.background(colors.errorContainer, RoundedCornerShape(8.dp)) else Modifier
+    val text = failure?.words() ?: link.words()
     Row(
         modifier = band.defaultMinSize(minHeight = 36.dp).padding(horizontal = 10.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
-            failure != null -> WarningTriangle(colors.error)
-            link != null -> Box(Modifier.size(14.dp).background(colors.primary, CircleShape))
-            panel.connecting -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.4.dp)
-            else -> Box(Modifier.size(14.dp).border(2.dp, colors.outline, CircleShape))
+            warning -> {
+                WarningTriangle(colors.error)
+            }
+
+            link is LinkState.Connected -> {
+                Box(Modifier.size(14.dp).background(colors.primary, CircleShape))
+            }
+
+            link is LinkState.Connecting -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.4.dp,
+                )
+            }
+
+            else -> {
+                Box(Modifier.size(14.dp).border(2.dp, colors.outline, CircleShape))
+            }
         }
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (failure != null) colors.onErrorContainer else colors.onSurface,
+            color = if (warning) colors.onErrorContainer else colors.onSurface,
             modifier = Modifier.testTag("status"),
         )
     }
 }
 
 @Composable
-private fun LinkFailure.words(): String =
+private fun PanelFailure.words(): String =
     when (this) {
-        LinkFailure.NeedsAddress -> stringResource(R.string.link_needs_address)
-        is LinkFailure.Refused -> stringResource(R.string.link_refused, target)
-        is LinkFailure.Unreachable -> stringResource(R.string.link_unreachable, target, reason)
-        is LinkFailure.SendFailed -> stringResource(R.string.send_failed, reason)
+        PanelFailure.NeedsAddress -> stringResource(R.string.link_needs_address)
+        is PanelFailure.SendFailed -> stringResource(R.string.send_failed, reason)
+    }
+
+@Composable
+private fun LinkState.words(): String =
+    when (this) {
+        LinkState.Idle -> {
+            stringResource(R.string.not_connected)
+        }
+
+        is LinkState.Connecting -> {
+            if (attempt == 1) {
+                stringResource(R.string.connecting_to, "$address")
+            } else {
+                stringResource(R.string.connecting_again_to, "$address", attempt)
+            }
+        }
+
+        is LinkState.Connected -> {
+            stringResource(R.string.connected_to, "$address")
+        }
+
+        is LinkState.Retrying -> {
+            when (val failure = failure) {
+                LinkFailure.Refused -> stringResource(R.string.link_refused, "$address")
+                is LinkFailure.Unreachable -> stringResource(R.string.link_unreachable, "$address", failure.reason)
+                is LinkFailure.Lost -> stringResource(R.string.link_lost, "$address", failure.reason)
+            }
+        }
     }
 
 @Composable

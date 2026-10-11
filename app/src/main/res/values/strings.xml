@@ -9,8 +9,10 @@
     <string name="connecting_to">Connecting to %1$s…</string>
     <string name="connected_to">Connected to %1$s</string>
     <string name="link_needs_address">Enter the WMI-1 address and a port between 1 and 65535</string>
-    <string name="link_refused">Refused by %1$s: something else may be connected</string>
-    <string name="link_unreachable">Cannot reach %1$s: %2$s</string>
+    <string name="connecting_again_to">Connecting to %1$s, attempt %2$d…</string>
+    <string name="link_refused">Refused by %1$s: something else, such as the iPad app, may hold its one link. Retrying…</string>
+    <string name="link_unreachable">Cannot reach %1$s: %2$s. Retrying…</string>
+    <string name="link_lost">Lost the link to %1$s: %2$s. Retrying…</string>
     <string name="send_failed">Send failed: %1$s</string>
     <string name="section_switching">Switching</string>
     <string name="section_amp">Amp</string>

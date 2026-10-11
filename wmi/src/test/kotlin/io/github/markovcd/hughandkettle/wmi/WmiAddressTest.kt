@@ -21,4 +21,9 @@ class WmiAddressTest {
         assertNull(WmiAddress.parse("host:70000"))
         assertNull(WmiAddress.parse(":2000"))
     }
+
+    @Test
+    fun `An address prints the way it is typed`() {
+        assertEquals("wmi.local:2001", WmiAddress("wmi.local", 2001).toString())
+    }
 }

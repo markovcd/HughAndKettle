@@ -5,6 +5,8 @@ public data class WmiAddress(
     val host: String,
     val port: Int,
 ) {
+    override fun toString(): String = "$host:$port"
+
     public companion object {
         /** Reads `host[:port]`, the port defaulting to the WMI-1's; null when it is not one. */
         public fun parse(text: String): WmiAddress? {

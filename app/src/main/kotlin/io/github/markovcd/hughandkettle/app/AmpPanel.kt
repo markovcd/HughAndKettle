@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
+import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /**
  * The whole screen: the amp's name, the link card, then the controls by section. Knobs sit three to a
@@ -27,7 +28,7 @@ import io.github.markovcd.hughandkettle.amp.Section
 @Composable
 fun AmpPanel(panel: PanelState) {
     // With no link there is nothing to turn; the rows dim to 38% and the link card keeps full contrast.
-    val enabled = panel.link != null
+    val enabled = panel.link is LinkState.Connected
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
             Box(
