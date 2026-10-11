@@ -13,6 +13,7 @@ public data class Control(
     val name: String,
     val controller: Int,
     val kind: ControlKind,
+    val section: Section,
 ) {
     init {
         require(id.matches(Regex("[a-z][a-z0-9_]*"))) { "control id must be snake_case, got '$id'" }

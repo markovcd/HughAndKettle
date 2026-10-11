@@ -58,4 +58,13 @@ class AmpModelsTest {
         assertEquals(127, boost.switched(true).value)
         assertEquals(0, boost.switched(false).value)
     }
+
+    @Test
+    fun `Every section of every amp holds at least one control, and the channel selector opens Switching`() {
+        AmpModels.all.forEach { amp ->
+            val bySection = amp.controls.groupBy(Control::section)
+            assertEquals(Section.entries.toSet(), bySection.keys, amp.name)
+            assertEquals("channel", bySection.getValue(Section.Switching).first().id, amp.name)
+        }
+    }
 }
