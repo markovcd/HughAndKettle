@@ -101,6 +101,33 @@ class CliTest {
     }
 
     @Test
+    fun `Listening with reconnect prints the link's states between the messages, and a dropped link is retried`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val listening = started("listen", "127.0.0.1:${fake.port}", "--seconds", "1", "--reconnect")
+        assertTrue(next() is FakeWmiEvent.Opened)
+        fake.emit(ProgramChange(MidiChannel(1), 3))
+        fake.close()
+        val run = listening.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val address = "127.0.0.1:${fake.port}"
+        val lines =
+            run.out
+                .lines()
+                .filter { it.isNotEmpty() }
+                .map { it.replace(Regex("""^\{"ms":\d+,"""), "") }
+        // The message is printed by the link's reader, the states by the keeper, so only each kind is in order.
+        assertEquals(
+            listOf(
+                """"link":"connecting","address":"$address","attempt":1}""",
+                """"link":"connected","address":"$address"}""",
+                """"link":"retrying","address":"$address","failures":1,"failure":"lost","reason":"closed by the WMI-1"}""",
+            ),
+            lines.filter { it.startsWith(""""link"""") }.take(3),
+        )
+        assertTrue(""""hex":"C0 03","type":"program_change","channel":1,"program":3}""" in lines, run.out)
+    }
+
+    @Test
     fun `Listening for N seconds to a quiet amp ends with the OK code and prints nothing`() {
         // One second is the shortest --seconds takes; this test is that second long.
         val run = run("listen", "127.0.0.1:${fake.port}", "--seconds", "1")

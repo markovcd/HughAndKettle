@@ -18,6 +18,7 @@ Prefer the domain's words over the framework's.
 | **amp model** | One kind of amp and its MIDI chart: Black Spirit 200, GrandMeister Deluxe 40. | `AmpModel`, `AmpModels` | profile, product |
 | **WMI-1** | Hughes & Kettner's WiFi MIDI interface box that plugs into the amp's MIDI ports. Always spelled `WMI-1`. | `Wmi*` | dongle, wifi thingy, interface box, adapter, the wireless |
 | **link** | An open TCP connection between the app (or `hk`) and a WMI-1. | `WmiLink` | connection, session (a MIDI word), socket |
+| **link state** | Where the link stands: idle, connecting, connected, or retrying after a failure. | `LinkState`, kept by `LinkKeeper` | status (the WMI-1's broadcast), connection state |
 | **discovery** | Hearing a WMI-1's status broadcast on the network. | `WmiDiscovery`, `WmiBroadcast` | scan, pairing |
 | **fake WMI-1** | The in-process stand-in used by tests and by `hk fake-wmi`. | `FakeWmi` | mock, simulator, emulator (Android's word) |
 | **control** | One thing on the amp the app can turn or switch: a knob, a switch or a selector. | `Control` | parameter, param, setting, knob (when it is not a knob) |
