@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.wmi.Target
 import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
 import java.util.concurrent.CountDownLatch

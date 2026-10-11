@@ -6,6 +6,7 @@ import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.OtherMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.midi.hexToBytes
+import io.github.markovcd.hughandkettle.wmi.Target
 import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
 import java.util.concurrent.CountDownLatch

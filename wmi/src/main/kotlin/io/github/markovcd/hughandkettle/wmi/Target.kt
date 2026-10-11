@@ -1,6 +1,4 @@
-package io.github.markovcd.hughandkettle.cli
-
-import io.github.markovcd.hughandkettle.wmi.WmiDefaults
+package io.github.markovcd.hughandkettle.wmi
 
 /** A `host[:port]` argument. */
 public data class Target(

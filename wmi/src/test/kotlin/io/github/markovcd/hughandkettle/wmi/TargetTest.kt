@@ -1,4 +1,4 @@
-package io.github.markovcd.hughandkettle.cli
+package io.github.markovcd.hughandkettle.wmi
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
