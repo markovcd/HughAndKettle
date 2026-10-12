@@ -42,6 +42,7 @@ fun AmpPanel(
             }
         }
         item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }
+        item { PresetRow(panel, enabled, Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED)) }
         Section.entries.forEach { section ->
             val controls = panel.amp.controls.filter { it.section == section }
             if (controls.isEmpty()) return@forEach
@@ -74,7 +75,7 @@ private fun ControlRow(
                 row.forEach { control ->
                     KnobCell(
                         control = control,
-                        value = panel.values[control.id] ?: 0,
+                        value = panel.state.values[control.id] ?: 0,
                         enabled = enabled,
                         onValue = { panel.set(control, it) },
                         modifier = Modifier.weight(1f).testTag("control:${control.id}"),
@@ -85,13 +86,13 @@ private fun ControlRow(
         }
 
         ControlKind.Switch -> {
-            SwitchRow(first, panel.values[first.id] ?: 0, enabled, {
+            SwitchRow(first, panel.state.values[first.id] ?: 0, enabled, {
                 panel.set(first, it)
             }, modifier.testTag("control:${first.id}"))
         }
 
         is ControlKind.Selector -> {
-            SelectorRow(first, kind, panel.values[first.id] ?: 0, enabled, {
+            SelectorRow(first, kind, panel.state.values[first.id] ?: 0, enabled, {
                 panel.set(first, it)
             }, modifier.testTag("control:${first.id}"))
         }

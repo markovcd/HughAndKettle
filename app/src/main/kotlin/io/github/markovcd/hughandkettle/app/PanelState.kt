@@ -1,12 +1,11 @@
 package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
+import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
-import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
@@ -16,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-/** What the panel shows and does: the link's state and the last value sent or heard per control. */
+/** What the panel shows and does: the link's state and the amp's state, as sent and heard. */
 class PanelState(
     val amp: AmpModel,
     private val holder: LinkHolder,
@@ -29,7 +28,8 @@ class PanelState(
         private set
     var failure by mutableStateOf<PanelFailure?>(null)
         private set
-    val values = mutableStateMapOf<String, Int>()
+    var state by mutableStateOf(AmpState(amp))
+        private set
 
     /** The last box a link reached, offered first. */
     var last by mutableStateOf<WmiAddress?>(null)
@@ -77,17 +77,20 @@ class PanelState(
     fun set(
         control: Control,
         value: Int,
-    ) {
-        values[control.id] = value
+    ) = send(control.set(value))
+
+    /** Recalls [preset], counted from 1 as the amp shows it. */
+    fun recall(preset: Int) = send(amp.recall(preset))
+
+    private fun send(message: MidiMessage) {
+        state = state.after(message)
         if (link !is LinkState.Connected) return
         scope.launch(Dispatchers.IO) {
-            holder.send(control.set(value)).onFailure { failure = PanelFailure.SendFailed(it.message ?: "link lost") }
+            holder.send(message).onFailure { failure = PanelFailure.SendFailed(it.message ?: "link lost") }
         }
     }
 
     private fun heard(message: MidiMessage) {
-        if (message !is ControlChange) return
-        val control = amp.controls.firstOrNull { it.controller == message.controller } ?: return
-        values[control.id] = message.value
+        state = state.after(message)
     }
 }

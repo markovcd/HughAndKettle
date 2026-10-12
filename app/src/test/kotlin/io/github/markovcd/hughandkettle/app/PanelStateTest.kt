@@ -3,6 +3,7 @@ package io.github.markovcd.hughandkettle.app
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
+import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.wmi.FakeWmi
 import io.github.markovcd.hughandkettle.wmi.FakeWmiEvent
 import io.github.markovcd.hughandkettle.wmi.LinkState
@@ -71,7 +72,7 @@ class PanelStateTest {
     fun `A knob turned on the amp moves on the panel`() {
         connected()
         fake.emit(ControlChange(MidiChannel(1), gain.controller, 42))
-        until("gain at 42") { it.values["gain"] == 42 }
+        until("gain at 42") { it.state.values["gain"] == 42 }
     }
 
     @Test
@@ -100,5 +101,23 @@ class PanelStateTest {
         last.value = WmiAddress("192.168.1.21", 2000)
         assertEquals("10.0.0.5", panel.host)
         assertEquals(WmiAddress("192.168.1.21", 2000), panel.last)
+    }
+
+    @Test
+    fun `A preset recalled on the panel reaches the WMI-1 as its program change and becomes the current preset`() {
+        connected()
+        panel.recall(6)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 5)), nextSeen())
+        assertEquals(6, panel.state.preset)
+    }
+
+    @Test
+    fun `A preset changed on the amp shows on the panel and forgets the values it had`() {
+        connected()
+        panel.set(gain, 100)
+        nextSeen()
+        fake.emit(ProgramChange(MidiChannel(1), 9))
+        until("preset 10") { it.state.preset == 10 }
+        assertEquals(emptyMap(), panel.state.values)
     }
 }
