@@ -71,6 +71,8 @@ public object AmpModels {
                     listOf(
                         Control("power_soak", "Power soak", 30, Selector(List(5) { "Power soak ${it + 1}" }), Extras),
                     ),
+            // The manual's 128 presets are 32 banks of 4.
+            presetsPerBank = 4,
         )
 
     public val all: List<AmpModel> = listOf(blackSpirit200, grandMeisterDeluxe40)
