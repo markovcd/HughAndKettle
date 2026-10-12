@@ -145,7 +145,7 @@ an unknown control reported.
 - [x] Haptics on a sector change; no animation on the sliders (latency is the feature).
 - [x] Accessibility: every control has a content description from its name; tests find things by
   `testTag`, never by text.
-- [ ] A latency measurement: `hk` sends a burst and the fake WMI-1 stamps arrival; the number lands
+- [x] A latency measurement: `hk` sends a burst and the fake WMI-1 stamps arrival; the number lands
   in `docs/performance.md` (the performance skill) so a later change can be compared.
 
 **Tests:** Compose tests on Robolectric for the layout rules that matter (a selector shows every

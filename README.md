@@ -41,6 +41,7 @@ hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | rec
 hk tone rename <name> <new-name> | move <name> <position> | delete <name>
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast]
+hk latency [--count N]                                      # send-to-parsed time against a local fake WMI-1
 ```
 
 Stdout carries one JSON object per line and nothing else; stderr carries usage, errors and, with

@@ -232,5 +232,24 @@ class CliTest {
         assertEquals("""{"amp":"black_spirit_200","preset":5,"values":{"gain":90}}""", run.out.trim())
     }
 
+    @Test
+    fun `Latency prints the spread of N messages to a fake WMI-1, smallest first`() {
+        val run = run("latency", "--count", "20")
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val fields =
+            Regex("\"(\\w+)_us\":(\\d+)").findAll(run.out).associate {
+                it.groupValues[1] to
+                    it.groupValues[2].toLong()
+            }
+        assertEquals(listOf("min", "median", "p95", "max"), fields.keys.toList(), run.out)
+        assertEquals(fields.values.sorted(), fields.values.toList(), run.out)
+        assertTrue(run.out.startsWith("""{"count":20,"""), run.out)
+    }
+
+    @Test
+    fun `Latency over no messages is refused`() {
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run("latency", "--count", "0").code)
+    }
+
     private fun hex(port: Int): String = "%02X %02X".format(port shr 8, port and 0xFF)
 }

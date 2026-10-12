@@ -18,4 +18,5 @@ section becomes a version's section when `release.sh` ships it.
 - App: save the panel as a named tone, recall it with a tap, and move tones between phones as files.
 - App: dark by default, with light or the phone's own setting a tap away, and remembered.
 - App: a tablet in landscape shows the controls in a pane of their own, six knobs to a row.
+- `hk latency` measures how long a control change takes to reach a fake WMI-1 on the same machine.
 - Delay time shows in milliseconds, takes a tapped beat in the app, and `hk set` takes `520ms`.
