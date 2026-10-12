@@ -137,7 +137,7 @@ an unknown control reported.
 
 **Deliverables:**
 
-- [ ] Layout per amp from the table: sections (Amp, FX, Channel, Boost), big targets, a landscape
+- [x] Layout per amp from the table: sections (Amp, FX, Channel, Boost), big targets, a landscape
   layout for tablets, and the four-channel selector as four large buttons.
 - [x] Dark theme by default, with the user's choice persisted; large text for the current preset.
 - [x] Knobs show the amp's scale where the manual gives one (delay time 51 ms to 1360 ms in 128

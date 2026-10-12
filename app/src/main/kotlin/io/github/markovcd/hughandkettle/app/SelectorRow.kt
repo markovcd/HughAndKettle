@@ -26,7 +26,7 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Sectors
 
-/** Up to four options as one segmented row; more as chips, three to a row. A sector change ticks. */
+/** Up to four options as one row of large segments, as the channels; more as chips, three to a row. A sector change ticks. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SelectorRow(

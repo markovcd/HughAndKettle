@@ -26,4 +26,10 @@ class PanelRowsTest {
         assertEquals(listOf("modulation"), rows.first().map(Control::id))
         assertEquals(listOf("modulation_intensity", "modulation_speed"), rows[2].map(Control::id))
     }
+
+    @Test
+    fun `On a wide panel knobs fill rows of six`() {
+        val amp = AmpModels.blackSpirit200.controls.filter { it.section == Section.Amp }
+        assertEquals(listOf(6, 1), PanelRows.of(amp, knobsPerRow = 6).map { it.size })
+    }
 }
