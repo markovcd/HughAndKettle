@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
@@ -57,7 +59,13 @@ internal fun SelectorRow(
             Text(selector.options[picked], style = MaterialTheme.typography.headlineSmall)
         }
         if (count <= SEGMENTS_AT_MOST) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            SingleChoiceSegmentedButtonRow(
+                modifier =
+                    Modifier.fillMaxWidth().height(56.dp).semantics {
+                        contentDescription =
+                            control.name
+                    },
+            ) {
                 selector.options.forEachIndexed { index, option ->
                     SegmentedButton(
                         selected = index == picked,
@@ -77,6 +85,7 @@ internal fun SelectorRow(
             }
         } else {
             FlowRow(
+                modifier = Modifier.semantics { contentDescription = control.name },
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 maxItemsInEachRow = 3,

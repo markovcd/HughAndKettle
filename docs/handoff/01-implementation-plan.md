@@ -142,8 +142,8 @@ an unknown control reported.
 - [x] Dark theme by default, with the user's choice persisted; large text for the current preset.
 - [ ] Knobs show the amp's scale where the manual gives one (delay time 51 ms to 1360 ms in 128
   steps, tap tempo for it), the raw 0 to 127 elsewhere.
-- [ ] Haptics on a sector change; no animation on the sliders (latency is the feature).
-- [ ] Accessibility: every control has a content description from its name; tests find things by
+- [x] Haptics on a sector change; no animation on the sliders (latency is the feature).
+- [x] Accessibility: every control has a content description from its name; tests find things by
   `testTag`, never by text.
 - [ ] A latency measurement: `hk` sends a burst and the fake WMI-1 stamps arrival; the number lands
   in `docs/performance.md` (the performance skill) so a later change can be compared.

@@ -28,7 +28,7 @@ internal fun KnobCell(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(control.name, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 2)
-        Knob(value = value, onValue = onValue, enabled = enabled)
+        Knob(value = value, onValue = onValue, description = control.name, enabled = enabled)
         Text(value.toString(), style = MaterialTheme.typography.headlineSmall)
     }
 }

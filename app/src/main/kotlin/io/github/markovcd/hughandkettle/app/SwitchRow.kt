@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 
@@ -40,6 +42,7 @@ internal fun SwitchRow(
             checked = on,
             onCheckedChange = { onValue(if (it) 127 else 0) },
             enabled = enabled,
+            modifier = Modifier.semantics { contentDescription = control.name },
             thumbContent =
                 if (on) {
                     { CheckMark(MaterialTheme.colorScheme.onPrimary, Modifier.size(SwitchDefaults.IconSize)) }

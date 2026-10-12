@@ -70,8 +70,9 @@ fun AmpPanel(
     }
 }
 
+/** One row of the panel: up to three knobs, or one switch or selector, each described by its control's name. */
 @Composable
-private fun ControlRow(
+internal fun ControlRow(
     row: List<Control>,
     panel: PanelState,
     enabled: Boolean,

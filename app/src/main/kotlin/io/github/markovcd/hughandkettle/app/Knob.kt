@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
@@ -46,6 +47,7 @@ import kotlin.math.sin
 fun Knob(
     value: Int,
     onValue: (Int) -> Unit,
+    description: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     size: Dp = 76.dp,
@@ -67,6 +69,7 @@ fun Knob(
         modifier
             .size(size)
             .semantics {
+                contentDescription = description
                 progressBarRangeInfo = ProgressBarRangeInfo(value.toFloat(), 0f..KnobDial.MAX.toFloat(), KnobDial.MAX)
                 setProgress { target ->
                     move(target.roundToInt())
