@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,7 +27,7 @@ import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * The whole screen: the amp's name and the theme button, the link card, the preset and the tones, then
+ * The whole screen: the amp picker and the theme button, the link card, the preset and the tones, then
  * the controls by section, knobs several to a row and switches and selectors a row each. Wider than
  * [TWO_PANES_FROM], as a tablet in landscape, the controls get a pane of their own to the right with
  * six knobs to a row. Tests find the panes by `panel` and `controls`, and a control's row by `control:<id>`.
@@ -78,10 +77,10 @@ private fun LazyListScope.head(
 ) {
     item {
         Row(
-            Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 4.dp),
+            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(panel.amp.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            AmpPicker(panel, Modifier.weight(1f))
             TextButton(onClick = { onTheme(theme.next) }, modifier = Modifier.testTag("theme")) {
                 Text(stringResource(theme.label))
             }

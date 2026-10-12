@@ -6,7 +6,6 @@ that lands it.
 
 ## Needs the user
 
-- Say which amp sits behind the WMI-1 (Black Spirit 200, GrandMeister Deluxe 40, GrandMeister 36, other); that model's table is the first to be verified.
 - Run phase 0 of the [implementation plan](docs/handoff/01-implementation-plan.md#phase-0-confirm-the-link-on-hardware) on the hardware and paste the output; everything after it waits on this.
 - Try phase 1 on a phone with the real box: it finds the box, connects, survives screen-off and recovers from a power cycle ([plan, phase 1](docs/handoff/01-implementation-plan.md#phase-1-the-link-on-the-phone)).
 - Pick a license for the repository.

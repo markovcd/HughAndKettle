@@ -1,7 +1,10 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.wmi.WmiDiscovery
@@ -20,6 +23,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
+import kotlin.test.assertEquals
 
 @RunWith(RobolectricTestRunner::class)
 class AmpPanelTest {
@@ -60,5 +64,16 @@ class AmpPanelTest {
         compose.onNodeWithTag("panel").assertExists()
         compose.onNodeWithTag("controls").assertExists()
         compose.onNodeWithTag("control:gain").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun `Picking another amp puts its controls on the panel`() {
+        shown()
+        compose.onNodeWithTag("amp").performClick()
+        compose.onNodeWithTag("amp:grandmeister_deluxe_40").performClick()
+        compose.onNodeWithTag("panel").performScrollToNode(hasTestTag("control:power_soak"))
+        compose.onNodeWithTag("control:power_soak").assertExists()
+        assertEquals(AmpModels.grandMeisterDeluxe40, panel.amp)
     }
 }

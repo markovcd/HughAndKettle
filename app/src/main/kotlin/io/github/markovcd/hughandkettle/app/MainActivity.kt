@@ -33,7 +33,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             val scope = rememberCoroutineScope()
             val app = application as HughAndKettleApplication
-            val panel = remember { PanelState(AmpModels.blackSpirit200, app.link, scope, app.lastWmi.last) }
+            val panel =
+                remember {
+                    PanelState(
+                        AmpModels.all.first(),
+                        app.link,
+                        scope,
+                        app.lastWmi.last,
+                        app.amps.choices,
+                        app.amps::remember,
+                    )
+                }
             val discovery = remember { DiscoveryState() }
             val shelf = remember { ToneShelf(app.tones, panel, scope) }
             val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)

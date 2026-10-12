@@ -130,4 +130,38 @@ class PanelStateTest {
         panel.tap(delay, 10.seconds + 500.milliseconds)
         assertEquals(delay.scale!!.value(500), panel.state.values["delay_time"])
     }
+
+    @Test
+    fun `A picked amp starts from nothing known and is remembered for the last box`() {
+        val remembered = ArrayList<Pair<WmiAddress, String>>()
+        val home = WmiAddress("192.168.1.1", 2000)
+        val picking =
+            PanelState(AmpModels.blackSpirit200, holder, scope, MutableStateFlow(home), rememberAmp = { box, amp ->
+                remembered += box to amp.id
+            })
+        picking.set(gain, 100)
+        picking.choose(AmpModels.grandMeisterDeluxe40)
+        assertEquals(AmpModels.grandMeisterDeluxe40, picking.amp)
+        assertEquals(emptyMap(), picking.state.values)
+        assertEquals(listOf(home to "grandmeister_deluxe_40"), remembered)
+    }
+
+    @Test
+    fun `Linking to a box shows the amp picked for it`() {
+        val box = WmiAddress("127.0.0.1", fake.port)
+        val following =
+            PanelState(
+                AmpModels.blackSpirit200,
+                holder,
+                scope,
+                last,
+                MutableStateFlow(
+                    mapOf(box to AmpModels.grandMeisterDeluxe40),
+                ),
+            )
+        assertEquals(AmpModels.blackSpirit200, following.amp)
+        following.connect(box)
+        until("connected") { it.link == LinkState.Connected(box) }
+        assertEquals(AmpModels.grandMeisterDeluxe40, following.amp)
+    }
 }

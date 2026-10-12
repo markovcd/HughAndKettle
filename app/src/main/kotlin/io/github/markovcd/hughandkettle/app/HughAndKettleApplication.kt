@@ -12,13 +12,14 @@ import kotlinx.coroutines.launch
 
 /**
  * Holds what outlives a screen: the link to the WMI-1, the service that keeps it while it is up, the
- * last box it reached, the folder of tones, and the theme picked.
+ * last box it reached, the amp picked for each box, the folder of tones, and the theme picked.
  */
 class HughAndKettleApplication : Application() {
     val link: LinkHolder by lazy { LinkHolder() }
     val lastWmi: LastWmiStore by lazy { LastWmiStore(this) }
     val tones: ToneStore by lazy { ToneStore(filesDir.toPath().resolve("tones")) }
     val theme: ThemeStore by lazy { ThemeStore(this) }
+    val amps: AmpChoiceStore by lazy { AmpChoiceStore(this) }
 
     override fun onCreate() {
         super.onCreate()

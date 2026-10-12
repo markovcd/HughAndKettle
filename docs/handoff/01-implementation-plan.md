@@ -51,7 +51,7 @@ output.
 - [ ] The box's address in access-point mode.
 - [ ] What `hk listen` prints while a knob is turned, a channel is switched and a preset is changed on
   the amp, with the FSM footswitch and without. This is the single most valuable capture.
-- [ ] Which amp model it is.
+- [x] Which amp model it is: a GrandMeister Deluxe 40 (the user, 2026-10-12).
 
 **Done when:** every "inferred" row in `docs/wmi-1.md` is "confirmed" or replaced, `WmiDefaults` and
 `WmiBroadcast` match the hardware, and ADR 0002 is amended or superseded if the transport differs.
@@ -158,7 +158,8 @@ option; a disabled control is not clickable); screenshots retaken by a test, nev
 **Deliverables:**
 
 - [ ] GrandMeister 36 (and any other amp whose chart exists) as rows in `AmpModels`, from the manual,
-  with the same tests. Amp choice in the app, remembered per box.
+  with the same tests. Amp choice in the app, remembered per box (done: the amp's name on the panel
+  opens the list).
 - [ ] Selector option names and order read off the hardware (the TODO item).
 - [ ] WMI-1 configuration, replacing WMI Connect: read the module's settings and set access-point
   or client mode, the WiFi password and the device name. This speaks the RN-171 command mode (`$$$`

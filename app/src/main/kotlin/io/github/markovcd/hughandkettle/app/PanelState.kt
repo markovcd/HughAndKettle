@@ -15,16 +15,25 @@ import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
 
-/** What the panel shows and does: the link's state and the amp's state, as sent and heard. */
+/**
+ * What the panel shows and does: the link's state, which amp is behind the box, and the amp's state,
+ * as sent and heard. The amp picked for a box is remembered through [rememberAmp] and taken up again
+ * from [ampChoices] whenever the panel turns to that box.
+ */
 class PanelState(
-    val amp: AmpModel,
+    amp: AmpModel,
     private val holder: LinkHolder,
     private val scope: CoroutineScope,
     lastWmi: Flow<WmiAddress?>,
+    ampChoices: Flow<Map<WmiAddress, AmpModel>> = flowOf(emptyMap()),
+    private val rememberAmp: suspend (WmiAddress, AmpModel) -> Unit = { _, _ -> },
 ) {
+    var amp by mutableStateOf(amp)
+        private set
     var host by mutableStateOf("")
     var port by mutableStateOf(WmiDefaults.MIDI_PORT.toString())
     var link by mutableStateOf(holder.state.value)
@@ -38,8 +47,22 @@ class PanelState(
     var last by mutableStateOf<WmiAddress?>(null)
         private set
 
+    private var choices: Map<WmiAddress, AmpModel> = emptyMap()
+    private var taps = TapTempo()
+
     init {
-        scope.launch { holder.state.collect { link = it } }
+        scope.launch {
+            holder.state.collect {
+                link = it
+                follow()
+            }
+        }
+        scope.launch {
+            ampChoices.collect {
+                choices = it
+                follow()
+            }
+        }
         scope.launch { holder.heard.collect(::heard) }
         scope.launch {
             lastWmi.collect {
@@ -48,8 +71,38 @@ class PanelState(
                     host = it.host
                     port = it.port.toString()
                 }
+                follow()
             }
         }
+    }
+
+    /** The box the panel is about: the one linked or being linked to, else the last one reached. */
+    val box: WmiAddress?
+        get() =
+            when (val now = link) {
+                LinkState.Idle -> last
+                is LinkState.Connecting -> now.address
+                is LinkState.Connected -> now.address
+                is LinkState.Retrying -> now.address
+            }
+
+    /** Puts [amp] on the panel, and remembers it for the box when there is one. */
+    fun choose(amp: AmpModel) {
+        show(amp)
+        val box = box ?: return
+        scope.launch { rememberAmp(box, amp) }
+    }
+
+    private fun follow() {
+        choices[box]?.let(::show)
+    }
+
+    /** A different amp starts from knowing nothing about it. */
+    private fun show(amp: AmpModel) {
+        if (amp == this.amp) return
+        this.amp = amp
+        state = AmpState(amp)
+        taps = TapTempo()
     }
 
     /** The fields are editable only while there is nothing to protect. */
@@ -81,8 +134,6 @@ class PanelState(
         control: Control,
         value: Int,
     ) = send(control.set(value))
-
-    private var taps = TapTempo()
 
     /**
      * A tap on [control]'s beat at [at], from any fixed point; from the second tap on, the knob moves to
