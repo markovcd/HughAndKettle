@@ -251,5 +251,18 @@ class CliTest {
         assertEquals(ExitCodes.BAD_ARGUMENTS, run("latency", "--count", "0").code)
     }
 
+    @Test
+    fun `A fake WMI-1 run for N seconds stops by itself with the OK code`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val run = run("fake-wmi", "--port", "0", "--no-broadcast", "--seconds", "1")
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertTrue(run.out.startsWith("""{"event":"listening","""), run.out)
+    }
+
+    @Test
+    fun `A fake WMI-1 run for zero seconds is refused`() {
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run("fake-wmi", "--seconds", "0").code)
+    }
+
     private fun hex(port: Int): String = "%02X %02X".format(port shr 8, port and 0xFF)
 }

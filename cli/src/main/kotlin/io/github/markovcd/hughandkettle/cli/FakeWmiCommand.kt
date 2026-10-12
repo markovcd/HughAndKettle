@@ -7,12 +7,13 @@ import java.io.PrintWriter
 import java.net.InetAddress
 
 /**
- * Runs a fake WMI-1 until stdin closes, printing every event as a JSON line. Point the app or
- * `hk send` at the port it prints.
+ * Runs a fake WMI-1 until `--seconds` pass or, without it, until stdin closes, printing every event
+ * as a JSON line. Point the app or `hk send` at the port it prints.
  */
 public object FakeWmiCommand : Command {
     override val name: String = "fake-wmi"
-    override val usage: String = "hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast]"
+    override val usage: String =
+        "hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast] [--seconds N]"
 
     override fun run(
         args: Options,
@@ -24,6 +25,17 @@ public object FakeWmiCommand : Command {
                 err.println(it.message)
                 return ExitCodes.BAD_ARGUMENTS
             }
+        val seconds =
+            args.value("seconds")?.let {
+                args.int("seconds", 0).getOrElse { failure ->
+                    err.println(failure.message)
+                    return ExitCodes.BAD_ARGUMENTS
+                }
+            }
+        if (seconds != null && seconds < 1) {
+            err.println(usage)
+            return ExitCodes.BAD_ARGUMENTS
+        }
         val name = args.value("name") ?: "WMI-1_FAKE"
         val fake =
             FakeWmi(port, name) { event ->
@@ -52,7 +64,7 @@ public object FakeWmiCommand : Command {
                 it.broadcast(to)
             }
             out.println(Json.line("event" to "listening", "port" to it.port, "device" to name))
-            waitForStdinToClose()
+            if (seconds != null) Thread.sleep(seconds * 1000L) else waitForStdinToClose()
         }
         return ExitCodes.OK
     }

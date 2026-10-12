@@ -40,7 +40,7 @@ hk state <host[:port]> <amp-id> [--seconds N]                # what the amp repo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
 hk tone rename <name> <new-name> | move <name> <position> | delete <name>
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
-hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast]
+hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast] [--seconds N]
 hk latency [--count N]                                      # send-to-parsed time against a local fake WMI-1
 ```
 
@@ -65,7 +65,8 @@ cli/build/install/hk/bin/hk fake-wmi --port 2000 --broadcast-to 127.0.0.1
 cli/build/install/hk/bin/hk send 127.0.0.1 cc 20 100
 ```
 
-The fake prints `{"event":"midi","hex":"B0 14 64","type":"control_change",...}`. An emulator reaches
+The fake prints `{"event":"midi","hex":"B0 14 64","type":"control_change",...}` and runs until stdin
+closes, or for `--seconds N` when nothing holds stdin open (a background job). An emulator reaches
 the host machine's fake at `10.0.2.2`.
 
 ## Layout
