@@ -14,3 +14,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # The image's JDK is the build's toolchain (`jdk` in gradle/libs.versions.toml); a new major is a
+      # retarget, taken by hand in its own commit.
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]

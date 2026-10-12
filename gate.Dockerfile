@@ -3,8 +3,9 @@
 # restore against the lock files, compile, ktlint, Android Lint, every test. Nothing in a later stage
 # can exist unless that passed. Stage `artifacts` is what gate.sh and release.sh copy out.
 #
-# eclipse-temurin:21-jdk, pinned by digest. Dependabot proposes moves.
-FROM eclipse-temurin:25-jdk@sha256:8c0a84ea11c8f6ed52600fc19f1040121f2a162998e9f50a5faebbbad9172dcc AS gate
+# eclipse-temurin:21-jdk, pinned by digest. Dependabot proposes moves within 21; the major is the
+# toolchain's `jdk` in gradle/libs.versions.toml and moves with it, since the image carries the only JDK.
+FROM eclipse-temurin:21-jdk@sha256:3e3c176ffed168beb42c607be9bc1639b466cf00261a0fb04425562c9d0c5c2b AS gate
 
 # The Android command-line tools zip and its published checksum, from developer.android.com/studio.
 ARG CMDLINE_TOOLS_ZIP=commandlinetools-linux-15859902_latest.zip
