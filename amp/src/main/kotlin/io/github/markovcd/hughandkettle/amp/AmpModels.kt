@@ -39,7 +39,7 @@ public object AmpModels {
             Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx),
             Control("modulation_speed", "Modulation speed", 26, Knob, Fx),
             Control("delay", "Delay", 53, Switch, Fx),
-            Control("delay_time", "Delay time", 4, Knob, Fx),
+            Control("delay_time", "Delay time", 4, Knob, Fx, Scale(51, 1360, "ms")),
             Control("delay_feedback", "Delay feedback", 27, Knob, Fx),
             Control("delay_volume", "Delay volume", 28, Knob, Fx),
             Control("reverb", "Reverb", 54, Switch, Fx),

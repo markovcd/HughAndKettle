@@ -38,6 +38,7 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
     <string name="theme_system">As the phone</string>
+    <string name="tap">Tap</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="section_switching">Switching</string>

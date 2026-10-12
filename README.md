@@ -48,7 +48,7 @@ Stdout carries one JSON object per line and nothing else; stderr carries usage, 
 it parsed to; `--keep-open N` holds the link N seconds after sending; `listen` runs until stdin closes
 or `--seconds` pass, and with `--reconnect` keeps the link up the way the app does, retrying with
 backoff when it drops and printing each state of the link as a JSON line of its own. `set` takes a
-control by its id (`gain 100`, `channel lead`, `boost on`) and prints a preset's bank and slot on an
+control by its id (`gain 100`, `channel lead`, `boost on`, `delay_time 520ms`) and prints a preset's bank and slot on an
 amp that has them; `state` listens for `--seconds` (2 by default) and asks the amp nothing. `tone`
 keeps tones in `--dir` (`~/.hk/tones` by default) in the same files the app keeps: `save` takes values
 as `set` does (`gain=100 channel=lead`), `recall` sends each value the tone holds, and `import` skips

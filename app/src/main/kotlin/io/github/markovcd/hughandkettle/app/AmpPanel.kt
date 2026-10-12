@@ -22,6 +22,7 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
 import io.github.markovcd.hughandkettle.wmi.LinkState
+import kotlin.time.Duration.Companion.nanoseconds
 
 /**
  * The whole screen: the amp's name and the theme button, the link card, the preset, the tones, then the controls by section. Knobs sit three to a
@@ -89,6 +90,14 @@ internal fun ControlRow(
                         enabled = enabled,
                         onValue = { panel.set(control, it) },
                         modifier = Modifier.weight(1f).testTag("control:${control.id}"),
+                        onTap =
+                            if (control.scale?.unit ==
+                                "ms"
+                            ) {
+                                ({ panel.tap(control, System.nanoTime().nanoseconds) })
+                            } else {
+                                null
+                            },
                     )
                 }
                 repeat(PanelRows.KNOBS_PER_ROW - row.size) { Box(Modifier.weight(1f)) }

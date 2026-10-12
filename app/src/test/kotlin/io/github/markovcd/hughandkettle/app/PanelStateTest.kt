@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -119,5 +120,14 @@ class PanelStateTest {
         fake.emit(ProgramChange(MidiChannel(1), 9))
         until("preset 10") { it.state.preset == 10 }
         assertEquals(emptyMap(), panel.state.values)
+    }
+
+    @Test
+    fun `Tapping a beat on delay time moves it to the beat, from the second tap`() {
+        val delay = AmpModels.blackSpirit200.control("delay_time")!!
+        panel.tap(delay, 10.seconds)
+        assertEquals(null, panel.state.values["delay_time"])
+        panel.tap(delay, 10.seconds + 500.milliseconds)
+        assertEquals(delay.scale!!.value(500), panel.state.values["delay_time"])
     }
 }

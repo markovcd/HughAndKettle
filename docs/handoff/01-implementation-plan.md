@@ -140,7 +140,7 @@ an unknown control reported.
 - [ ] Layout per amp from the table: sections (Amp, FX, Channel, Boost), big targets, a landscape
   layout for tablets, and the four-channel selector as four large buttons.
 - [x] Dark theme by default, with the user's choice persisted; large text for the current preset.
-- [ ] Knobs show the amp's scale where the manual gives one (delay time 51 ms to 1360 ms in 128
+- [x] Knobs show the amp's scale where the manual gives one (delay time 51 ms to 1360 ms in 128
   steps, tap tempo for it), the raw 0 to 127 elsewhere.
 - [x] Haptics on a sector change; no animation on the sliders (latency is the feature).
 - [x] Accessibility: every control has a content description from its name; tests find things by

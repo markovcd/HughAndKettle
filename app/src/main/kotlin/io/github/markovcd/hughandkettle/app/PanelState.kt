@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.LinkState
@@ -15,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
 
 /** What the panel shows and does: the link's state and the amp's state, as sent and heard. */
 class PanelState(
@@ -79,6 +81,22 @@ class PanelState(
         control: Control,
         value: Int,
     ) = send(control.set(value))
+
+    private var taps = TapTempo()
+
+    /**
+     * A tap on [control]'s beat at [at], from any fixed point; from the second tap on, the knob moves to
+     * the beat, as near as its scale reaches.
+     */
+    fun tap(
+        control: Control,
+        at: Duration,
+    ) {
+        val scale = control.scale ?: return
+        taps = taps.after(at)
+        val beat = taps.beat ?: return
+        set(control, scale.value(beat.inWholeMilliseconds.toInt()))
+    }
 
     /** Recalls [preset], counted from 1 as the amp shows it. */
     fun recall(preset: Int) = send(amp.recall(preset))

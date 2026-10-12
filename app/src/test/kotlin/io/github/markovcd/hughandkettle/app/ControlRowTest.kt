@@ -6,10 +6,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -64,5 +66,16 @@ class ControlRowTest {
                     }.map { "${amp.id}/${it.id}" }
             }
         assertEquals(emptyList(), undescribed.take(5))
+    }
+
+    @Test
+    fun `Delay time reads in milliseconds and has a tap button`() {
+        val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
+        val row = listOf("delay_time", "delay_feedback").map { panel.amp.control(it)!! }
+        compose.setContent { ControlRow(row, panel, enabled = true) }
+        compose.onNodeWithTag("value:delay_time").assertTextEquals("51 ms")
+        compose.onNodeWithTag("value:delay_feedback").assertTextEquals("0")
+        compose.onNodeWithTag("tap:delay_time").assertExists()
+        compose.onNodeWithTag("tap:delay_feedback").assertDoesNotExist()
     }
 }

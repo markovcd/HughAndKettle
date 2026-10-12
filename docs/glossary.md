@@ -26,6 +26,8 @@ Prefer the domain's words over the framework's.
 | **switch** | A control that is off or on. | `ControlKind.Switch` | toggle, button |
 | **selector** | A control whose 0 to 127 is cut into a few equal sectors, one per option. | `ControlKind.Selector` | enum, mode, picker |
 | **sector** | One slice of a selector's 0 to 127. | `Sectors` | range, bucket, zone |
+| **scale** | What a knob's 0 to 127 means on the amp, where the manual gives it: delay time from 51 ms to 1360 ms. | `Scale` | range, mapping, curve |
+| **tap tempo** | Setting a time knob by tapping its beat. | `TapTempo` | tap delay, BPM |
 | **controller** | The MIDI control change number a control moves on, 0 to 127. | `controller` | CC (fine in a table), parameter number |
 | **MIDI channel** | The 1 to 16 a message is addressed on. Always with the word MIDI, because the amp has channels too. | `MidiChannel` | channel (alone) |
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |

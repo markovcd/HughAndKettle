@@ -4,7 +4,10 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.midi.ControlChange
 
-/** How a value is typed for a control on the command line: 0..127, `on`/`off`, or an option's name. */
+/**
+ * How a value is typed for a control on the command line: 0..127, `on`/`off`, an option's name, or an
+ * amount in the knob's unit (`520ms`) where it has a scale.
+ */
 public object ControlValue {
     /** The message that sets [control] to [text]; a failure says what the control takes. */
     public fun parse(
@@ -15,7 +18,15 @@ public object ControlValue {
         val message =
             when (val kind = control.kind) {
                 ControlKind.Knob -> {
-                    number?.let(control::set)
+                    number?.let(control::set) ?: control.scale?.let { scale ->
+                        text
+                            .removeSuffix(scale.unit)
+                            .takeIf { text.endsWith(scale.unit) }
+                            ?.trim()
+                            ?.toIntOrNull()
+                            ?.takeIf { it in scale.lowest..scale.highest }
+                            ?.let { control.set(scale.value(it)) }
+                    }
                 }
 
                 ControlKind.Switch -> {
@@ -39,7 +50,7 @@ public object ControlValue {
 
     private fun takes(control: Control): String =
         when (val kind = control.kind) {
-            ControlKind.Knob -> "0..127"
+            ControlKind.Knob -> control.scale?.let { "0..127 or ${it.lowest}..${it.highest}${it.unit}" } ?: "0..127"
             ControlKind.Switch -> "on, off or 0..127"
             is ControlKind.Selector -> kind.options.joinToString(", ") { "'$it'" }
         }
