@@ -67,4 +67,31 @@ class AmpModelsTest {
             assertEquals("channel", bySection.getValue(Section.Switching).first().id, amp.name)
         }
     }
+
+    @Test
+    fun `Every effect control but a switch needs the switch of its effect`() {
+        // The FX loop is a switch of its own with no knobs behind it.
+        val loose =
+            AmpModels.all.flatMap { amp ->
+                amp.controls
+                    .filter { it.section == Section.Fx && it.kind != ControlKind.Switch }
+                    .filter { control -> control.needs == null || !control.id.startsWith(control.needs) }
+                    .map { "${amp.id}/${it.id} needs ${it.needs}" }
+            }
+        assertEquals(emptyList(), loose.take(5))
+    }
+
+    @Test
+    fun `A control that needs something other than a switch is refused`() {
+        val gain = Control("gain", "Gain", 20, ControlKind.Knob, Section.Amp)
+        val failure =
+            runCatching {
+                AmpModel(
+                    "test",
+                    "Test",
+                    listOf(gain, Control("bass", "Bass", 21, ControlKind.Knob, Section.Amp, needs = "gain")),
+                )
+            }.exceptionOrNull()
+        assertEquals("Test: 'bass' needs 'gain', which is not one of its switches", failure?.message)
+    }
 }

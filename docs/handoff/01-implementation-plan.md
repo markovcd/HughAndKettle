@@ -107,6 +107,8 @@ Shaped by what phase 0 heard.
 - No channel-dependent controls. Both manuals (Black Spirit 200 and GrandMeister Deluxe 40, chapters 2
   and 3) say all four channels share one set of knobs with "full access to all sound parameters on
   every channel", and the 8.3 charts mark nothing per channel, so the panel greys out nothing.
+- [x] An effect's knobs need its on-off switch (`Control.needs`), and the panel dims them while the
+  switch is known to be off.
 - [x] `hk set <host> <amp-id> <control-id> <value|on|off|option>` sets a control by name, and
   `hk state <host> <amp-id>` prints the snapshot as JSON (after a request, if the amp answers one).
 

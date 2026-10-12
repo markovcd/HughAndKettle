@@ -14,6 +14,13 @@ public data class AmpState(
     val values: Map<String, Int> = emptyMap(),
     val preset: Int? = null,
 ) {
+    /** Whether [control] is known to do nothing now: the effect switch it [needs][Control.needs] is off. */
+    public fun silent(control: Control): Boolean {
+        val switch = amp.control(control.needs ?: return false) ?: return false
+        val value = values[switch.id] ?: return false
+        return !switch.isOn(value)
+    }
+
     /**
      * The state after [message]. A control change sets its control; a program change recalls a preset,
      * whose stored values the app has not seen, so every value becomes unknown. Anything else changes nothing.

@@ -24,4 +24,5 @@ section becomes a version's section when `release.sh` ships it.
 - Delay time shows in milliseconds, takes a tapped beat in the app, and `hk set` takes `520ms`.
 - App: a tap on the preset opens a grid of all 128 to jump to.
 - App: a control the amp reports moving is outlined until it is set from the phone.
+- App: an effect's knobs are dimmed while the effect is switched off.
 - `hk fake-wmi --seconds N` runs the fake for N seconds, for scripts that hold no stdin open.

@@ -32,7 +32,7 @@ internal fun SwitchRow(
     onValue: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val on = value >= 64
+    val on = control.isOn(value)
     Row(
         modifier = modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,

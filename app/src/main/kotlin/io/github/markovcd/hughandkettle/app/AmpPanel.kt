@@ -118,7 +118,7 @@ private fun LazyListScope.controls(
 
 /**
  * One row of the panel: up to [knobsPerRow] knobs, or one switch or selector, each described by its
- * control's name and outlined while the amp has moved it.
+ * control's name, dimmed while its effect is off and outlined while the amp has moved it.
  */
 @Composable
 internal fun ControlRow(
@@ -131,8 +131,10 @@ internal fun ControlRow(
     val first = row.first()
     val markColor = MaterialTheme.colorScheme.tertiary
     val markWords = stringResource(R.string.moved_on_amp)
+    val offWords = stringResource(R.string.effect_off)
 
-    fun Modifier.marked(control: Control) = movedMark(control.id in panel.moved, markColor, markWords)
+    fun Modifier.marked(control: Control) =
+        effectOff(panel.state.silent(control), offWords).movedMark(control.id in panel.moved, markColor, markWords)
     when (val kind = first.kind) {
         ControlKind.Knob -> {
             Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {

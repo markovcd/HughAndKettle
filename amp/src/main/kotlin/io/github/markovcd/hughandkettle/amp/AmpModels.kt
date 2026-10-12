@@ -11,6 +11,9 @@ import io.github.markovcd.hughandkettle.amp.Section.Switching
 /**
  * The amps and their MIDI charts, as data.
  *
+ * An effect's knobs need its on-off switch: the manuals' FX section has them shape an effect that is
+ * heard only while switched on.
+ *
  * Controller numbers come from each manual's "MIDI implementation chart / controller list"
  * (Black Spirit 200 manual chapter 8.3; GrandMeister Deluxe 40 manual chapter 8.3). Selector
  * option names are the manual's where it gives them; TODO.md tracks the ones still to be read
@@ -35,15 +38,15 @@ public object AmpModels {
             Control("presence", "Presence", 25, Knob, Amp),
             Control("volume", "Volume", 7, Knob, Amp),
             Control("modulation", "Modulation", 52, Switch, Fx),
-            Control("modulation_type", "Modulation type", 12, modulationTypes, Fx),
-            Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx),
-            Control("modulation_speed", "Modulation speed", 26, Knob, Fx),
+            Control("modulation_type", "Modulation type", 12, modulationTypes, Fx, needs = "modulation"),
+            Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx, needs = "modulation"),
+            Control("modulation_speed", "Modulation speed", 26, Knob, Fx, needs = "modulation"),
             Control("delay", "Delay", 53, Switch, Fx),
-            Control("delay_time", "Delay time", 4, Knob, Fx, Scale(51, 1360, "ms")),
-            Control("delay_feedback", "Delay feedback", 27, Knob, Fx),
-            Control("delay_volume", "Delay volume", 28, Knob, Fx),
+            Control("delay_time", "Delay time", 4, Knob, Fx, Scale(51, 1360, "ms"), needs = "delay"),
+            Control("delay_feedback", "Delay feedback", 27, Knob, Fx, needs = "delay"),
+            Control("delay_volume", "Delay volume", 28, Knob, Fx, needs = "delay"),
             Control("reverb", "Reverb", 54, Switch, Fx),
-            Control("reverb_volume", "Reverb volume", 29, Knob, Fx),
+            Control("reverb_volume", "Reverb volume", 29, Knob, Fx, needs = "reverb"),
             Control("fx_loop", "FX loop", 55, Switch, Fx),
             Control("gain_hard", "Gain (hard)", 56, Knob, Extras),
             Control("volume_hard", "Volume (hard)", 57, Knob, Extras),

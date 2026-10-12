@@ -108,4 +108,24 @@ class ControlRowTest {
             assertEquals(emptyList(), unmarked)
         }
     }
+
+    @Test
+    fun `The delay's knobs are dimmed while the delay is off and not while it is on`() {
+        val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
+        val delay = panel.amp.control("delay")!!
+        val row = listOf("delay_time", "delay_feedback", "delay_volume").map { panel.amp.control(it)!! }
+        compose.setContent { ControlRow(row, panel, enabled = true) }
+
+        fun dimmed() =
+            row.map { it.id }.filter {
+                compose
+                    .onAllNodes(hasTestTag("control:$it") and SemanticsMatcher.expectValue(EffectOff, true))
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+        panel.set(delay, 0)
+        assertEquals(row.map { it.id }, dimmed())
+        panel.set(delay, 127)
+        assertEquals(emptyList(), dimmed())
+    }
 }

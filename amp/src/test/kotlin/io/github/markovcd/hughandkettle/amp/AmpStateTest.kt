@@ -57,4 +57,14 @@ class AmpStateTest {
             }
         assertEquals(emptyList(), wrong.take(5))
     }
+
+    @Test
+    fun `An effect knob is silent only while its effect is known to be off`() {
+        val time = amp.control("delay_time")!!
+        val delay = amp.control("delay")!!
+        assertEquals(false, start.silent(time), "switch unknown")
+        assertEquals(true, start.after(delay.switched(false)).silent(time), "switch off")
+        assertEquals(false, start.after(delay.switched(true)).silent(time), "switch on")
+        assertEquals(false, start.after(delay.switched(false)).silent(gain), "a control that needs nothing")
+    }
 }

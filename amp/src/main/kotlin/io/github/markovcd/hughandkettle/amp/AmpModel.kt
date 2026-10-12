@@ -19,6 +19,11 @@ public data class AmpModel(
         require(duplicateIds.isEmpty()) { "$name repeats control ids $duplicateIds" }
         val duplicateControllers = controls.groupBy(Control::controller).filterValues { it.size > 1 }.keys
         require(duplicateControllers.isEmpty()) { "$name repeats controller numbers $duplicateControllers" }
+        controls.filter { it.needs != null }.forEach { control ->
+            require(control(control.needs!!)?.kind == ControlKind.Switch) {
+                "$name: '${control.id}' needs '${control.needs}', which is not one of its switches"
+            }
+        }
         require(presetCount in 1..128) { "$name has $presetCount presets; a program change reaches 1..128" }
         require(presetsPerBank == null || (presetsPerBank > 0 && presetCount % presetsPerBank == 0)) {
             "$name cannot split $presetCount presets into banks of $presetsPerBank"
