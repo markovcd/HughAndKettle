@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "amp": "black_spirit_200",
+    "name": "Crunch rhythm",
+    "values": {
+        "channel": 47,
+        "boost": 0,
+        "gain": 72,
+        "bass": 64,
+        "mid": 80,
+        "treble": 70,
+        "volume": 90,
+        "modulation": 127,
+        "modulation_type": 16
+    }
+}

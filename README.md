@@ -37,6 +37,9 @@ hk listen <host[:port]> [--seconds N] [--reconnect] [--verbose]  # print every m
 hk set <host[:port]> <amp-id> <control-id> <0..127 | on | off | option>
 hk set <host[:port]> <amp-id> preset <1..128>
 hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
+hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
+hk tone rename <name> <new-name> | move <name> <position> | delete <name>
+hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast]
 ```
 
@@ -46,9 +49,12 @@ it parsed to; `--keep-open N` holds the link N seconds after sending; `listen` r
 or `--seconds` pass, and with `--reconnect` keeps the link up the way the app does, retrying with
 backoff when it drops and printing each state of the link as a JSON line of its own. `set` takes a
 control by its id (`gain 100`, `channel lead`, `boost on`) and prints a preset's bank and slot on an
-amp that has them; `state` listens for `--seconds` (2 by default) and asks the amp nothing. Amp ids:
-`black_spirit_200`, `grandmeister_deluxe_40`. Exit codes: 0 done, 2 bad arguments, 3 no link,
-4 nothing found.
+amp that has them; `state` listens for `--seconds` (2 by default) and asks the amp nothing. `tone`
+keeps tones in `--dir` (`~/.hk/tones` by default) in the same files the app keeps: `save` takes values
+as `set` does (`gain=100 channel=lead`), `recall` sends each value the tone holds, and `import` skips
+and reports a control the amp does not have. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`.
+Exit codes: 0 done, 2 bad arguments, 3 no link, 4 nothing found, 5 a file that could not be read or
+written, or is not a tone.
 
 Without an amp, run a fake one and point the app or `hk send` at it:
 

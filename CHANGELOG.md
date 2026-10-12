@@ -14,3 +14,4 @@ section becomes a version's section when `release.sh` ships it.
 - App: lists the WMI-1s on the network, the last one used first, and connects to one with a tap.
 - App: step through the amp's presets, shown as bank and slot on the GrandMeister.
 - App: the link stays up with the screen off, shown in a notification that can end it.
+- `hk tone` saves, recalls, lists, renames, reorders, deletes, exports and imports tones.

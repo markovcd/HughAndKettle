@@ -109,11 +109,13 @@ Shaped by what phase 0 heard.
 
 **Done when:** the panel shows what the amp has, and `hk state` prints the same.
 
-## Phase 3: presets on the phone
+## Phase 3: tones on the phone
+
+A sound kept on the phone is a **tone**, so "preset" keeps meaning one of the amp's 128 ([ADR 0008](../adr/0008-tones-are-files-of-raw-control-values-apart-from-the-amps-presets.md)).
 
 **Deliverables:**
 
-- [ ] A preset file format: JSON, with `"version": 1`, the amp model id, a name, and control ids to
+- [x] A tone file format: JSON, with `"version": 1`, the amp model id, a name, and control ids to
   values (the ids are forever; see ADR 0003). `kotlinx-serialization-json` is the one dependency this
   adds, in its own commit. The saved-data rule applies: a fixture of version 1 lives in the tests from
   the first commit, and every later version carries its step.
@@ -124,7 +126,7 @@ Shaped by what phase 0 heard.
   a control id the model does not have rather than failing.
 - [ ] Write a preset into one of the amp's 128 slots: recall it, then whatever the amp's store
   gesture is over MIDI (phase 0 or the manual says; if there is none, the UI says to press Store).
-- [ ] `hk preset save|load|list|export|import` over the same code.
+- [x] `hk tone list|save|recall|rename|move|delete|export|import` over the same code.
 
 **Tests:** round trip through the format; loading the version-1 fixture; a newer version refused;
 an unknown control reported.
