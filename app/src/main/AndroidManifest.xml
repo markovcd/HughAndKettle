@@ -21,6 +21,7 @@
         android:theme="@style/Theme.HughAndKettle">
         <activity
             android:name=".app.MainActivity"
+            android:theme="@style/Theme.HughAndKettle.Starting"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

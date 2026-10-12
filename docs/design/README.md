@@ -12,6 +12,7 @@ What lands where:
 | Design | In the app |
 |---|---|
 | Icon layers ([icon/](icon/)) | `app/src/main/res/drawable/ic_launcher_*.xml`, `drawable-anydpi/ic_launcher.xml` |
+| Splash: the icon's foreground on the dark surface | `Theme.HughAndKettle.Starting` in `res/values*/themes.xml`, `drawable/splash.xml` below Android 12 |
 | Colors ([colors.md](colors.md)) | `app/src/main/kotlin/.../app/theme/Palette.kt`, `HughAndKettleTheme.kt` |
 | Type ([type.md](type.md)), fonts under [fonts/](fonts/) | `app/src/main/res/font/`, `.../app/theme/Type.kt` |
 | Components and states | `.../app/AmpPanel.kt` and the row composables beside it |

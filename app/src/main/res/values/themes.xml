@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Compose draws everything; the platform theme removes the action bar and starts dark, as the app does. -->
-    <style name="Theme.HughAndKettle" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.HughAndKettle" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/stage</item>
+    </style>
+
+    <!-- Worn from launch until MainActivity swaps in Theme.HughAndKettle. -->
+    <style name="Theme.HughAndKettle.Starting">
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
 </resources>

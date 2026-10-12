@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.app.theme.HughAndKettleTheme
 import io.github.markovcd.hughandkettle.wmi.LinkState
@@ -28,6 +29,8 @@ import kotlinx.coroutines.launch
 /** The one window: a panel for the amp, over a link to its WMI-1. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The manifest's launch theme carries the splash; the panel's window wears the plain one.
+        setTheme(R.style.Theme_HughAndKettle)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {

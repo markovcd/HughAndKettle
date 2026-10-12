@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The system splash: the icon's mark, without its tile, on the stage. -->
+    <style name="Theme.HughAndKettle.Starting">
+        <item name="android:windowSplashScreenBackground">@color/stage</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+    </style>
+</resources>
