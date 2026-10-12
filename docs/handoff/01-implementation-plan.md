@@ -51,6 +51,9 @@ output.
 - [ ] The box's address in access-point mode.
 - [ ] What `hk listen` prints while a knob is turned, a channel is switched and a preset is changed on
   the amp, with the FSM footswitch and without. This is the single most valuable capture.
+- [ ] Whether switching the channel within a preset changes the gain, EQ and volume the amp plays.
+  The manuals say "your choice of channel determines the knob's assignment", which may mean each
+  channel keeps values of its own; if so, `AmpState` forgets those values on a channel switch.
 - [x] Which amp model it is: a GrandMeister Deluxe 40 (the user, 2026-10-12).
 
 **Done when:** every "inferred" row in `docs/wmi-1.md` is "confirmed" or replaced, `WmiDefaults` and
@@ -101,8 +104,9 @@ Shaped by what phase 0 heard.
   Built against the fake: a control the amp moves follows and stays outlined until the panel sets it.
   If presets come back as system exclusive: a `SysExPreset` codec in `amp` with a captured dump as
   the fixture, and `hk preset dump <n>`.
-- [ ] Channel-dependent controls: the manual's chart marks which controls apply per channel; the
-  table carries that, and the panel greys out what does not apply.
+- No channel-dependent controls. Both manuals (Black Spirit 200 and GrandMeister Deluxe 40, chapters 2
+  and 3) say all four channels share one set of knobs with "full access to all sound parameters on
+  every channel", and the 8.3 charts mark nothing per channel, so the panel greys out nothing.
 - [x] `hk set <host> <amp-id> <control-id> <value|on|off|option>` sets a control by name, and
   `hk state <host> <amp-id>` prints the snapshot as JSON (after a request, if the amp answers one).
 
