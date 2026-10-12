@@ -95,7 +95,8 @@ Shaped by what phase 0 heard.
   whole on every change (the "immutable, then swapped" rule). Sent controls update it optimistically;
   heard messages update it authoritatively.
 - [x] Preset selection: a program change for presets 1 to 128, shown as the amp shows them (bank and
-  slot if the amp does; the manual says 32 banks of 4 on the GrandMeister).
+  slot if the amp does; the manual says 32 banks of 4 on the GrandMeister). A tap on the preset opens a
+  grid of all of them.
 - [ ] If the amp reports state (phase 0 says): the panel follows the amp when a knob is turned on it.
   If presets come back as system exclusive: a `SysExPreset` codec in `amp` with a captured dump as
   the fixture, and `hk preset dump <n>`.

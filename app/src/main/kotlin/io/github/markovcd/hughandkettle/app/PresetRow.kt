@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -20,7 +25,8 @@ import io.github.markovcd.hughandkettle.R
 
 /**
  * The current preset in large type, as bank and slot where the amp numbers them that way, between a
- * step down and a step up that wrap around. Tests find it by `preset`, `preset_down` and `preset_up`.
+ * step down and a step up that wrap around. A tap on the preset opens the grid of all of them. Tests find
+ * it by `preset`, `preset_down` and `preset_up`.
  */
 @Composable
 internal fun PresetRow(
@@ -30,6 +36,7 @@ internal fun PresetRow(
 ) {
     val amp = panel.amp
     val preset = panel.state.preset
+    var picking by remember { mutableStateOf(false) }
     Row(
         modifier = modifier.fillMaxWidth().height(88.dp).padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -45,7 +52,7 @@ internal fun PresetRow(
             Text(
                 text = preset?.toString() ?: "–",
                 style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.testTag("preset"),
+                modifier = Modifier.clickable(enabled = enabled) { picking = true }.testTag("preset"),
             )
             Text(
                 text =
@@ -64,4 +71,5 @@ internal fun PresetRow(
             modifier = Modifier.size(64.dp).testTag("preset_up"),
         ) { Text("+", style = MaterialTheme.typography.headlineSmall) }
     }
+    if (picking) PresetGrid(panel, onClose = { picking = false })
 }

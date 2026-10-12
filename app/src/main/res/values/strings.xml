@@ -21,6 +21,7 @@
     <string name="link_channel">Link to the WMI-1</string>
     <string name="preset">Preset</string>
     <string name="preset_bank_slot">Bank %1$d, slot %2$d</string>
+    <string name="preset_pick">Presets</string>
     <string name="tones">Tones</string>
     <string name="tones_none">No tones yet. Set the controls, then Save.</string>
     <string name="tone_save">Save</string>
