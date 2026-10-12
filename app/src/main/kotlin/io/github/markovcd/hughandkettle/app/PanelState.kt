@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
@@ -82,11 +83,21 @@ class PanelState(
     /** Recalls [preset], counted from 1 as the amp shows it. */
     fun recall(preset: Int) = send(amp.recall(preset))
 
-    private fun send(message: MidiMessage) {
-        state = state.after(message)
+    /** Sends every value [tone] holds, in order, so a channel switch lands before the knobs it carries. */
+    fun recall(tone: Tone) = send(tone.recall())
+
+    private fun send(message: MidiMessage) = send(listOf(message))
+
+    private fun send(messages: List<MidiMessage>) {
+        state = messages.fold(state) { before, message -> before.after(message) }
         if (link !is LinkState.Connected) return
         scope.launch(Dispatchers.IO) {
-            holder.send(message).onFailure { failure = PanelFailure.SendFailed(it.message ?: "link lost") }
+            for (message in messages) {
+                holder.send(message).onFailure {
+                    failure = PanelFailure.SendFailed(it.message ?: "link lost")
+                    return@launch
+                }
+            }
         }
     }
 

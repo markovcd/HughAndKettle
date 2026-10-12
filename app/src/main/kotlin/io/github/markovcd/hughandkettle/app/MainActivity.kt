@@ -31,10 +31,11 @@ class MainActivity : ComponentActivity() {
             val app = application as HughAndKettleApplication
             val panel = remember { PanelState(AmpModels.blackSpirit200, app.link, scope, app.lastWmi.last) }
             val discovery = remember { DiscoveryState() }
+            val shelf = remember { ToneShelf(app.tones, panel, scope) }
             AskForNotifications(linked = panel.link != LinkState.Idle)
             HughAndKettleTheme {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
-                    AmpPanel(panel, discovery)
+                    AmpPanel(panel, discovery, shelf)
                 }
             }
         }

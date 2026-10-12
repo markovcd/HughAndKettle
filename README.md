@@ -72,10 +72,10 @@ the host machine's fake at `10.0.2.2`.
 | Module | Holds |
 |---|---|
 | `midi` | MIDI 1.0 messages, a stream parser that survives banners and split chunks, hex helpers |
-| `amp` | Amp models as tables of controls, and how a control becomes a message |
+| `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, and tones and their files |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |
-| `app` | The Compose screen (a link card with the WMI-1s heard, then one row per control) and the service that holds the link |
+| `app` | The Compose screen (a link card with the WMI-1s heard, the preset, the tones, then one row per control) and the service that holds the link |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 
 Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are the standing rules;

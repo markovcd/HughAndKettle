@@ -15,3 +15,4 @@ section becomes a version's section when `release.sh` ships it.
 - App: step through the amp's presets, shown as bank and slot on the GrandMeister.
 - App: the link stays up with the screen off, shown in a notification that can end it.
 - `hk tone` saves, recalls, lists, renames, reorders, deletes, exports and imports tones.
+- App: save the panel as a named tone, recall it with a tap, and move tones between phones as files.

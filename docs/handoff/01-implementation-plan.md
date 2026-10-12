@@ -119,10 +119,10 @@ A sound kept on the phone is a **tone**, so "preset" keeps meaning one of the am
   values (the ids are forever; see ADR 0003). `kotlinx-serialization-json` is the one dependency this
   adds, in its own commit. The saved-data rule applies: a fixture of version 1 lives in the tests from
   the first commit, and every later version carries its step.
-- [ ] Store the current state as a named preset on the phone; recall it (which sends every control);
-  rename, delete, reorder. The list is a file per preset in app storage.
-- [ ] Export and import as files (share sheet, file picker) so presets move between phones and to
-  the user's backup. Import checks the version, refuses a newer one whole with a message, and reports
+- [x] Store the current state as a named tone on the phone; recall it (which sends every control);
+  rename, delete, reorder. The list is a file per tone in app storage.
+- [x] Export and import as files (the system's save and open pickers, which reach Drive and other
+  providers) so tones move between phones and to the user's backup. Import checks the version, refuses a newer one whole with a message, and reports
   a control id the model does not have rather than failing.
 - [ ] Write a preset into one of the amp's 128 slots: recall it, then whatever the amp's store
   gesture is over MIDI (phase 0 or the manual says; if there is none, the UI says to press Store).

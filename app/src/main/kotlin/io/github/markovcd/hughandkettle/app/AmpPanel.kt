@@ -22,13 +22,14 @@ import io.github.markovcd.hughandkettle.amp.Section
 import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /**
- * The whole screen: the amp's name, the link card, then the controls by section. Knobs sit three to a
+ * The whole screen: the amp's name, the link card, the preset, the tones, then the controls by section. Knobs sit three to a
  * row, switches and selectors take a row each. Tests find a control's row by `control:<id>`.
  */
 @Composable
 fun AmpPanel(
     panel: PanelState,
     discovery: DiscoveryState,
+    shelf: ToneShelf,
 ) {
     // With no link there is nothing to turn; the rows dim to 38% and the link card keeps full contrast.
     val enabled = panel.link is LinkState.Connected
@@ -43,6 +44,7 @@ fun AmpPanel(
         }
         item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }
         item { PresetRow(panel, enabled, Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED)) }
+        item { ToneShelfCard(shelf, enabled, Modifier.padding(horizontal = 12.dp)) }
         Section.entries.forEach { section ->
             val controls = panel.amp.controls.filter { it.section == section }
             if (controls.isEmpty()) return@forEach
