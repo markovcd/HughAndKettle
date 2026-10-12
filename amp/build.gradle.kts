@@ -4,4 +4,5 @@ plugins {
 
 dependencies {
     api(project(":midi"))
+    implementation(libs.kotlinx.serialization.json)
 }
