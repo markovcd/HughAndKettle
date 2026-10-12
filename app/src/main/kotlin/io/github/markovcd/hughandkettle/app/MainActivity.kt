@@ -9,17 +9,21 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.app.theme.HughAndKettleTheme
 import io.github.markovcd.hughandkettle.wmi.LinkState
+import kotlinx.coroutines.launch
 
 /** The one window: a panel for the amp, over a link to its WMI-1. */
 class MainActivity : ComponentActivity() {
@@ -32,10 +36,14 @@ class MainActivity : ComponentActivity() {
             val panel = remember { PanelState(AmpModels.blackSpirit200, app.link, scope, app.lastWmi.last) }
             val discovery = remember { DiscoveryState() }
             val shelf = remember { ToneShelf(app.tones, panel, scope) }
+            val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)
             AskForNotifications(linked = panel.link != LinkState.Idle)
-            HughAndKettleTheme {
+            HughAndKettleTheme(
+                dark =
+                    theme == ThemeChoice.Dark || (theme == ThemeChoice.System && isSystemInDarkTheme()),
+            ) {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
-                    AmpPanel(panel, discovery, shelf)
+                    AmpPanel(panel, discovery, shelf, theme, onTheme = { scope.launch { app.theme.pick(it) } })
                 }
             }
         }

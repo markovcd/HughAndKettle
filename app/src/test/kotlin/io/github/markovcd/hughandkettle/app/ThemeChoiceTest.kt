@@ -1,0 +1,25 @@
+package io.github.markovcd.hughandkettle.app
+
+import org.junit.Test
+import kotlin.test.assertEquals
+
+class ThemeChoiceTest {
+    @Test
+    fun `Every choice reads back as itself`() {
+        assertEquals(ThemeChoice.entries.toList(), ThemeChoice.entries.map { ThemeChoice.read(it.write()) })
+    }
+
+    @Test
+    fun `Nothing saved, a damaged value or a newer version reads as dark`() {
+        val texts = listOf(null, "", "light", "1 sepia", "2 light", "x light")
+        assertEquals(texts.map { ThemeChoice.Dark }, texts.map(ThemeChoice::read))
+    }
+
+    @Test
+    fun `The theme button steps dark, light, as the phone, then dark again`() {
+        assertEquals(
+            listOf(ThemeChoice.Light, ThemeChoice.System, ThemeChoice.Dark),
+            generateSequence(ThemeChoice.Dark.next) { it.next }.take(3).toList(),
+        )
+    }
+}

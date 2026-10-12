@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
@@ -22,7 +24,7 @@ import io.github.markovcd.hughandkettle.amp.Section
 import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /**
- * The whole screen: the amp's name, the link card, the preset, the tones, then the controls by section. Knobs sit three to a
+ * The whole screen: the amp's name and the theme button, the link card, the preset, the tones, then the controls by section. Knobs sit three to a
  * row, switches and selectors take a row each. Tests find a control's row by `control:<id>`.
  */
 @Composable
@@ -30,16 +32,21 @@ fun AmpPanel(
     panel: PanelState,
     discovery: DiscoveryState,
     shelf: ToneShelf,
+    theme: ThemeChoice,
+    onTheme: (ThemeChoice) -> Unit,
 ) {
     // With no link there is nothing to turn; the rows dim to 38% and the link card keeps full contrast.
     val enabled = panel.link is LinkState.Connected
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
-            Box(
-                Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart,
+            Row(
+                Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(panel.amp.name, style = MaterialTheme.typography.titleLarge)
+                Text(panel.amp.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                TextButton(onClick = { onTheme(theme.next) }, modifier = Modifier.testTag("theme")) {
+                    Text(stringResource(theme.label))
+                }
             }
         }
         item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }

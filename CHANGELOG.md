@@ -16,3 +16,4 @@ section becomes a version's section when `release.sh` ships it.
 - App: the link stays up with the screen off, shown in a notification that can end it.
 - `hk tone` saves, recalls, lists, renames, reorders, deletes, exports and imports tones.
 - App: save the panel as a named tone, recall it with a tap, and move tones between phones as files.
+- App: dark by default, with light or the phone's own setting a tap away, and remembered.

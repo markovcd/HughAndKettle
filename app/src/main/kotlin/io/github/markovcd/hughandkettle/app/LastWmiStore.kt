@@ -1,11 +1,8 @@
 package io.github.markovcd.hughandkettle.app
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -30,6 +27,5 @@ class LastWmiStore(
     private companion object {
         // Persisted: never renamed.
         val KEY = stringPreferencesKey("last_wmi")
-        val Context.settings: DataStore<Preferences> by preferencesDataStore(name = "settings")
     }
 }
