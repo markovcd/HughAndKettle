@@ -31,6 +31,7 @@ Prefer the domain's words over the framework's.
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |
 | **preset** | One of the amp's 128 stored sounds, recalled by a program change. | `preset`; `program` for the MIDI number | patch, program (in prose), slot, bank entry |
 | **message** | One complete MIDI message. | `MidiMessage` | event, packet (a network word), command |
+| **amp state** | What the app knows the amp is set to: a value per control and the current preset, replaced whole on every message. | `AmpState` | status, settings, snapshot (fine in prose for one printed copy) |
 | **MIDI chart** | A manual's table of controllers per amp model. | the `AmpModels` tables | implementation chart, CC map |
 | **panel** | The app's screen for one amp: link row and one row per control. | `AmpPanel`, `PanelState` | dashboard, view, page |
 | **hk** | The command line, one command per thing the app can do. | `cli` module, `Cli` | tool, script |

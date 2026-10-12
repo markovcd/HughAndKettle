@@ -172,5 +172,65 @@ class CliTest {
         assertTrue(lines[1].contains(""""device":"WMI-1_FAKE""""), lines[1])
     }
 
+    @Test
+    fun `Setting a control by name sends its controller and names it in the JSON line`() {
+        val cases =
+            listOf(
+                listOf("gain", "100") to ControlChange(MidiChannel(1), 20, 100),
+                listOf("boost", "on") to ControlChange(MidiChannel(1), 64, 127),
+                listOf("channel", "lead") to ControlChange(MidiChannel(1), 31, 79),
+            )
+        cases.forEach { (setting, sent) ->
+            val run = run("set", "127.0.0.1:${fake.port}", "black_spirit_200", *setting.toTypedArray())
+            assertEquals(ExitCodes.OK, run.code, run.err)
+            assertTrue(run.out.contains(""""amp":"black_spirit_200","control":"${setting[0]}","""), run.out)
+            val events =
+                generateSequence {
+                    seen.poll(
+                        5,
+                        TimeUnit.SECONDS,
+                    )
+                }.takeWhile { it != FakeWmiEvent.Closed }.toList()
+            assertTrue(FakeWmiEvent.Received(sent) in events, "$setting: $events")
+        }
+    }
+
+    @Test
+    fun `Recalling a preset on an amp with banks prints its bank and slot`() {
+        val run = run("set", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "preset", "6")
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertTrue(run.out.contains(""""preset":6,"bank":2,"slot":2,"hex":"C0 05""""), run.out)
+    }
+
+    @Test
+    fun `A value a control does not take is refused with what it does take, before anything is sent`() {
+        val run = run("set", "127.0.0.1:${fake.port}", "black_spirit_200", "channel", "metal")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
+        assertEquals("'channel' takes 'Clean', 'Crunch', 'Lead', 'Ultra', got 'metal'", run.err.trim())
+        assertEquals(null, seen.poll(200, TimeUnit.MILLISECONDS), "a link was opened")
+    }
+
+    @Test
+    fun `An unknown amp or control is refused with the ids there are`() {
+        val noAmp = run("set", "127.0.0.1:${fake.port}", "plexi", "gain", "1")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, noAmp.code)
+        assertTrue(noAmp.err.startsWith("no amp 'plexi'; there are black_spirit_200"), noAmp.err)
+        val noControl = run("set", "127.0.0.1:${fake.port}", "black_spirit_200", "power_soak", "1")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, noControl.code)
+        assertTrue(noControl.err.contains("has no control 'power_soak'"), noControl.err)
+    }
+
+    @Test
+    fun `The state prints the preset and values the amp reported`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val listening = started("state", "127.0.0.1:${fake.port}", "black_spirit_200", "--seconds", "1")
+        assertTrue(next() is FakeWmiEvent.Opened)
+        fake.emit(ProgramChange(MidiChannel(1), 4))
+        fake.emit(ControlChange(MidiChannel(1), 20, 90))
+        val run = listening.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertEquals("""{"amp":"black_spirit_200","preset":5,"values":{"gain":90}}""", run.out.trim())
+    }
+
     private fun hex(port: Int): String = "%02X %02X".format(port shr 8, port and 0xFF)
 }

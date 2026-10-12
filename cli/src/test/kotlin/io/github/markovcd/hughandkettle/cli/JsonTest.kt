@@ -11,4 +11,12 @@ class JsonTest {
             Json.line("a" to "x\"y\\z\u0001", "n" to 5, "b" to true, "none" to null, "list" to listOf(1, "two")),
         )
     }
+
+    @Test
+    fun `A map is an object of its entries in order`() {
+        assertEquals(
+            """{"values":{"gain":100,"mid":3},"empty":{}}""",
+            Json.line("values" to mapOf("gain" to 100, "mid" to 3), "empty" to emptyMap<String, Int>()),
+        )
+    }
 }

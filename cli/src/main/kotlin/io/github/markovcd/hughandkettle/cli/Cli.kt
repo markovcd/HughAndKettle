@@ -4,7 +4,8 @@ import java.io.PrintWriter
 
 /** The `hk` command line: `hk <command> ...`. */
 public object Cli {
-    private val commands: List<Command> = listOf(SendCommand, ListenCommand, DiscoverCommand, FakeWmiCommand)
+    private val commands: List<Command> =
+        listOf(SendCommand, SetCommand, StateCommand, ListenCommand, DiscoverCommand, FakeWmiCommand)
     private val valuedOptions = setOf("channel", "seconds", "port", "name", "broadcast-to", "keep-open")
 
     public fun run(

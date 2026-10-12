@@ -7,10 +7,29 @@ public object Json {
 
     private fun render(value: Any?): String =
         when (value) {
-            null -> "null"
-            is Boolean, is Int, is Long -> value.toString()
-            is List<*> -> value.joinToString(",", "[", "]") { render(it) }
-            else -> quote(value.toString())
+            null -> {
+                "null"
+            }
+
+            is Boolean, is Int, is Long -> {
+                value.toString()
+            }
+
+            is List<*> -> {
+                value.joinToString(",", "[", "]") { render(it) }
+            }
+
+            is Map<*, *> -> {
+                value.entries.joinToString(
+                    ",",
+                    "{",
+                    "}",
+                ) { (key, item) -> "${quote(key.toString())}:${render(item)}" }
+            }
+
+            else -> {
+                quote(value.toString())
+            }
         }
 
     private fun quote(text: String): String =

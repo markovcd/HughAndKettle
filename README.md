@@ -34,6 +34,9 @@ hk send <host[:port]> cc <controller> <value> [--channel 1..16] [--keep-open N] 
 hk send <host[:port]> pc <program> [--channel 1..16] [--keep-open N] [--verbose]
 hk send <host[:port]> raw <hex bytes> [--keep-open N] [--verbose]
 hk listen <host[:port]> [--seconds N] [--reconnect] [--verbose]  # print every message the amp sends
+hk set <host[:port]> <amp-id> <control-id> <0..127 | on | off | option>
+hk set <host[:port]> <amp-id> preset <1..128>
+hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast]
 ```
 
@@ -41,8 +44,11 @@ Stdout carries one JSON object per line and nothing else; stderr carries usage, 
 `--verbose`, every byte the WMI-1 sends. `--raw` adds a line with each packet's hex ahead of the box
 it parsed to; `--keep-open N` holds the link N seconds after sending; `listen` runs until stdin closes
 or `--seconds` pass, and with `--reconnect` keeps the link up the way the app does, retrying with
-backoff when it drops and printing each state of the link as a JSON line of its own. Exit codes:
-0 done, 2 bad arguments, 3 no link, 4 nothing found.
+backoff when it drops and printing each state of the link as a JSON line of its own. `set` takes a
+control by its id (`gain 100`, `channel lead`, `boost on`) and prints a preset's bank and slot on an
+amp that has them; `state` listens for `--seconds` (2 by default) and asks the amp nothing. Amp ids:
+`black_spirit_200`, `grandmeister_deluxe_40`. Exit codes: 0 done, 2 bad arguments, 3 no link,
+4 nothing found.
 
 Without an amp, run a fake one and point the app or `hk send` at it:
 
