@@ -8,22 +8,29 @@ every "inferred" below into "confirmed" or replaces it.
 
 Hughes & Kettner's WMI-1 is a WiFi MIDI interface powered by the amp's 7-pin MIDI socket. It has MIDI
 In 1 (from the amp's Out), MIDI Out (to the amp's In) and MIDI In 2 (for a footswitch, merged). It runs
-either as its own access point (`WMI-1_Network_XXXXXX`, password `hknetwork`, XXXXXX from its MAC) or
-as a client on a home router joined by WPS. The iPad side is two apps: **WMI Connect**, which finds
-and configures the box, and an amp app (GM36 Remote, GrandMeister Deluxe 40, Black Spirit 200), which
-talks CoreMIDI.
+either as its own access point (`WMI-1_Network_XXXXXX`, password `hknetwork`, XXXXXX from its MAC, as
+it leaves the factory) or as a client on a home router joined by WPS. The iPad side is two apps: **WMI
+Connect** (bundle id `com.de.synergetik.HKMidiBridge`), which finds and configures the box and holds
+the link, and an amp app (GM36 Remote, GrandMeister Deluxe 40, Black Spirit 200), which talks CoreMIDI.
+
+WMI Connect's iOS binary cannot be read: the App Store serves it only to a signed-in Apple account,
+and its code is FairPlay-encrypted. There is no Android build. Its App Store screenshots (version
+1.2.0) are the source cited below as "WMI Connect screenshots".
 
 | Fact | Status | Source |
 |---|---|---|
 | The companion app talks to the box over TCP | confirmed by the manual | WMI-1 manual: "the WPS/TCP LED stays on when the WMI Connect app is connected to the WMI-1 via TCP" |
-| The box contains a Roving Networks RN-171 WiFly module | inferred, strong | Label text in the manual's drawing decodes to "Contains FCC ID: T9J-RN171"; T9J-RN171 is the RN-171's FCC ID |
+| The box contains a Roving Networks RN-171 WiFly module | inferred, strong | Label text in the manual's drawing decodes to "Contains FCC ID: T9J-RN171"; T9J-RN171 is the RN-171's FCC ID. WMI Connect screenshots show the box's MAC as `00:06:66:…`, the Roving Networks OUI |
+| WMI Connect is the bridge: it holds the TCP link and offers the box to amp apps as a CoreMIDI port | inferred | the bundle id `HKMidiBridge`; the App Store text says the box works with "any app for iPad that supports CoreMIDI" |
 | A raw TCP server on port 2000 bridges to the module's serial port, and the serial port is the MIDI port at 31250 baud | inferred from the RN-171 defaults | WiFly command reference DS50002230B, "set ip localport", default 2000; "set uart raw" allows 31250 |
 | The box broadcasts a 110-byte status packet to UDP 255.255.255.255:55555 every 7 s, carrying its device id and TCP port | inferred from the RN-171 defaults | WiFly command reference, 3.5.4.3 and figure 3-12 |
-| In access-point mode the box is at a fixed address | inferred, address unknown | the RN-171 soft AP serves DHCP; its own address is to be read off the phone's gateway |
+| In access-point mode the box is at 192.168.1.1 | seen in the vendor's screenshots | WMI Connect screenshots list the box at 192.168.1.1 in "Stand alone AP" mode, and at a DHCP address (192.168.80.43) as a home network client |
+| The box has a user-set name, shown in discovery and used as its access point's network name | seen in the vendor's screenshots | WMI Connect lists a found box as "GrandMeister 40" and shows the same as its wireless network; the broadcast's device id field is the likely carrier |
+| WMI Connect sets the box's name, access point channel, WPA2-PSK password and home network | seen in the vendor's screenshots; how is unknown | the Configuration screen. The WiFly module is configured in its `$$$` command mode, over TCP or serial |
 | The module sends `*HELLO*` to a new TCP client and `*OPEN*`/`*CLOS*` to the serial side unless configured not to | inferred | WiFly command reference, "set comm remote/open/close" |
 | Only one TCP client is served at a time | inferred from the module | RN-171 serves a single TCP connection |
 | The amps use MIDI control changes for every control and program changes for presets | confirmed by the manuals | Black Spirit 200 manual 8.3; GrandMeister Deluxe 40 manual 8.3 |
-| Whether the amp reports knob moves and preset changes on its MIDI Out, and whether presets are read back by system exclusive | unknown | the iPad apps display amp state, so something flows back; the manuals do not say what |
+| Whether the amp reports knob moves and preset changes on its MIDI Out, and whether presets are read back by system exclusive | unknown | the iPad apps display amp state, so something flows back, and a WMI Connect screenshot counts 42 messages in with none sent out; the manuals do not say what |
 | The RTP-MIDI / Apple network MIDI protocol is **not** what the box speaks | inferred, strong | TCP in the manual; no Bonjour or session wording anywhere; the module has no RTP-MIDI firmware |
 
 ## What the code assumes, and where
