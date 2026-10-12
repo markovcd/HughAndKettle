@@ -8,7 +8,9 @@ import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.Tone
+import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiMessage
+import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiDefaults
@@ -41,6 +43,10 @@ class PanelState(
     var failure by mutableStateOf<PanelFailure?>(null)
         private set
     var state by mutableStateOf(AmpState(amp))
+        private set
+
+    /** The ids of controls the amp last moved to a value the panel had not set, until the panel sets them. */
+    var moved by mutableStateOf(emptySet<String>())
         private set
 
     /** The last box a link reached, offered first. */
@@ -102,6 +108,7 @@ class PanelState(
         if (amp == this.amp) return
         this.amp = amp
         state = AmpState(amp)
+        moved = emptySet()
         taps = TapTempo()
     }
 
@@ -159,6 +166,12 @@ class PanelState(
 
     private fun send(messages: List<MidiMessage>) {
         state = messages.fold(state) { before, message -> before.after(message) }
+        moved =
+            if (messages.any { it is ProgramChange }) {
+                emptySet()
+            } else {
+                moved - messages.filterIsInstance<ControlChange>().mapNotNull { amp.controlFor(it) }.toSet()
+            }
         if (link !is LinkState.Connected) return
         scope.launch(Dispatchers.IO) {
             for (message in messages) {
@@ -171,6 +184,20 @@ class PanelState(
     }
 
     private fun heard(message: MidiMessage) {
-        state = state.after(message)
+        val before = state
+        state = before.after(message)
+        moved =
+            if (message is ProgramChange) {
+                emptySet()
+            } else {
+                moved + state.values.filter { (id, value) -> before.values[id] != value }.keys
+            }
     }
+
+    private fun AmpModel.controlFor(change: ControlChange): String? =
+        controls
+            .firstOrNull {
+                it.controller ==
+                    change.controller
+            }?.id
 }

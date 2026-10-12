@@ -22,4 +22,5 @@ section becomes a version's section when `release.sh` ships it.
 - `hk latency` measures how long a control change takes to reach a fake WMI-1 on the same machine.
 - Delay time shows in milliseconds, takes a tapped beat in the app, and `hk set` takes `520ms`.
 - App: a tap on the preset opens a grid of all 128 to jump to.
+- App: a control the amp reports moving is outlined until it is set from the phone.
 - `hk fake-wmi --seconds N` runs the fake for N seconds, for scripts that hold no stdin open.

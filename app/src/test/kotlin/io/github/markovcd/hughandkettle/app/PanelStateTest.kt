@@ -77,6 +77,35 @@ class PanelStateTest {
     }
 
     @Test
+    fun `A knob the amp moves is marked until the panel sets it`() {
+        connected()
+        fake.emit(ControlChange(MidiChannel(1), gain.controller, 42))
+        until("gain marked") { "gain" in it.moved }
+        panel.set(gain, 50)
+        assertEquals(emptySet(), panel.moved)
+    }
+
+    @Test
+    fun `The amp repeating a value the panel set marks nothing`() {
+        connected()
+        panel.set(gain, 42)
+        nextSeen()
+        fake.emit(ControlChange(MidiChannel(1), gain.controller, 42))
+        fake.emit(ProgramChange(MidiChannel(1), 3))
+        until("preset 4") { it.state.preset == 4 }
+        assertEquals(emptySet(), panel.moved)
+    }
+
+    @Test
+    fun `A preset changed on the amp clears the marks`() {
+        connected()
+        fake.emit(ControlChange(MidiChannel(1), gain.controller, 42))
+        until("gain marked") { "gain" in it.moved }
+        fake.emit(ProgramChange(MidiChannel(1), 3))
+        until("marks cleared") { it.moved.isEmpty() }
+    }
+
+    @Test
     fun `A box that drops is shown retrying, and disconnecting goes idle`() {
         connected()
         fake.close()

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
@@ -114,7 +116,10 @@ private fun LazyListScope.controls(
     }
 }
 
-/** One row of the panel: up to [knobsPerRow] knobs, or one switch or selector, each described by its control's name. */
+/**
+ * One row of the panel: up to [knobsPerRow] knobs, or one switch or selector, each described by its
+ * control's name and outlined while the amp has moved it.
+ */
 @Composable
 internal fun ControlRow(
     row: List<Control>,
@@ -124,6 +129,10 @@ internal fun ControlRow(
     knobsPerRow: Int = PanelRows.KNOBS_PER_ROW,
 ) {
     val first = row.first()
+    val markColor = MaterialTheme.colorScheme.tertiary
+    val markWords = stringResource(R.string.moved_on_amp)
+
+    fun Modifier.marked(control: Control) = movedMark(control.id in panel.moved, markColor, markWords)
     when (val kind = first.kind) {
         ControlKind.Knob -> {
             Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -133,7 +142,7 @@ internal fun ControlRow(
                         value = panel.state.values[control.id] ?: 0,
                         enabled = enabled,
                         onValue = { panel.set(control, it) },
-                        modifier = Modifier.weight(1f).testTag("control:${control.id}"),
+                        modifier = Modifier.weight(1f).marked(control).testTag("control:${control.id}"),
                         onTap =
                             if (control.scale?.unit ==
                                 "ms"
@@ -151,13 +160,13 @@ internal fun ControlRow(
         ControlKind.Switch -> {
             SwitchRow(first, panel.state.values[first.id] ?: 0, enabled, {
                 panel.set(first, it)
-            }, modifier.testTag("control:${first.id}"))
+            }, modifier.marked(first).testTag("control:${first.id}"))
         }
 
         is ControlKind.Selector -> {
             SelectorRow(first, kind, panel.state.values[first.id] ?: 0, enabled, {
                 panel.set(first, it)
-            }, modifier.testTag("control:${first.id}"))
+            }, modifier.marked(first).testTag("control:${first.id}"))
         }
     }
 }

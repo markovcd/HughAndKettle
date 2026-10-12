@@ -98,6 +98,7 @@ Shaped by what phase 0 heard.
   slot if the amp does; the manual says 32 banks of 4 on the GrandMeister). A tap on the preset opens a
   grid of all of them.
 - [ ] If the amp reports state (phase 0 says): the panel follows the amp when a knob is turned on it.
+  Built against the fake: a control the amp moves follows and stays outlined until the panel sets it.
   If presets come back as system exclusive: a `SysExPreset` codec in `amp` with a captured dump as
   the fixture, and `hk preset dump <n>`.
 - [ ] Channel-dependent controls: the manual's chart marks which controls apply per channel; the
