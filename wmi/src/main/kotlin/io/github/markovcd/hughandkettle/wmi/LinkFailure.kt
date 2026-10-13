@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.wmi
 
 import java.net.ConnectException
+import java.net.SocketTimeoutException
 
 /** Why there is no link, as a value a screen or `hk` turns into words. */
 public sealed interface LinkFailure {
@@ -19,10 +20,10 @@ public sealed interface LinkFailure {
     public companion object {
         /** What a failed [WmiLink.open] means. */
         public fun of(failure: Throwable): LinkFailure =
-            if (failure is ConnectException) {
-                Refused
-            } else {
-                Unreachable(failure.message ?: failure.javaClass.simpleName)
+            when (failure) {
+                is ConnectException -> Refused
+                is SocketTimeoutException -> Unreachable("no answer within ${WmiDefaults.ConnectTimeout}")
+                else -> Unreachable(failure.message ?: failure.javaClass.simpleName)
             }
     }
 }
