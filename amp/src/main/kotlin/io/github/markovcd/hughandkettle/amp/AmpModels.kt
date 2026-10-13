@@ -22,6 +22,7 @@ import io.github.markovcd.hughandkettle.amp.Section.Switching
  */
 public object AmpModels {
     private val modulationTypes = Selector(listOf("Chorus", "Flanger", "Phaser", "Tremolo"))
+    private val powerSoakSteps = Selector(listOf("Off", "1 W", "5 W", "20 W", "40 W"))
     private val channels = Selector(listOf("Clean", "Crunch", "Lead", "Ultra"))
 
     /** The controls both amps share, with the same numbers, in the order the panel shows them. */
@@ -39,7 +40,7 @@ public object AmpModels {
             Control("presence", "Presence", 25, Knob, Amp),
             Control("volume", "Volume", 7, Knob, Amp),
             Control("modulation", "Modulation", 52, Switch, Fx),
-            Control("modulation_type", "Modulation type", 12, modulationTypes, Fx, needs = "modulation"),
+            Control("modulation_type", "Modulation type", 12, modulationTypes, Fx, needs = "modulation", fine = true),
             Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx, needs = "modulation"),
             Control("modulation_speed", "Modulation speed", 26, Knob, Fx, needs = "modulation"),
             Control("delay", "Delay", 53, Switch, Fx),
@@ -73,7 +74,7 @@ public object AmpModels {
             controls =
                 common +
                     listOf(
-                        Control("power_soak", "Power soak", 30, Selector(List(5) { "Power soak ${it + 1}" }), Extras),
+                        Control("power_soak", "Power soak", 30, powerSoakSteps, Extras),
                     ),
             // The manual's 128 presets are 32 banks of 4.
             presetsPerBank = 4,

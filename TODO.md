@@ -14,6 +14,8 @@ that lands it.
 
 ## Code
 
-- Read the selector option names and their order off the hardware or the manual: modulation type (Chorus, Flanger, Phaser, Tremolo order), Black Spirit 200 cabinet and sagging names, GrandMeister Deluxe 40 and GrandMeister 36 power soak order. `AmpModels` carries numbered placeholders until then.
-- Check on the hardware that delay time's 51 ms to 1360 ms is spread evenly over 0..127; `Scale` takes it as even.
+- Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names, GrandMeister 36 power soak steps. `AmpModels` carries numbered placeholders until then.
+- Decode the block of current values the amp sends after a channel switch or preset recall ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)), so presets can be read back.
+- Decide whether the panel's Gain and Volume should send on 56 and 57, the controllers the amp reports them on ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
+- Time the delay at a few settings to confirm 51 ms to 1360 ms is spread evenly over 0..127; the amp's reports suggest it is, and `Scale` takes it as even.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.

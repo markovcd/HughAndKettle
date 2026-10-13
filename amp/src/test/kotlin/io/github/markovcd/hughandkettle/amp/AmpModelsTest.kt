@@ -41,6 +41,14 @@ class AmpModelsTest {
     }
 
     @Test
+    fun `The GrandMeister Deluxe 40 power soak steps run up from off as the amp reports them`() {
+        val soak = AmpModels.grandMeisterDeluxe40.control("power_soak")!!.kind as ControlKind.Selector
+        val heard = listOf(0, 32, 64, 95).map { soak.options[Sectors.index(it, soak.options.size)] }
+        assertEquals(listOf("Off", "1 W", "5 W", "20 W"), heard)
+        assertEquals("40 W", soak.options.last())
+    }
+
+    @Test
     fun `The GrandMeister 36 chart matches the manual`() {
         val chart = AmpModels.grandMeister36.controls.associate { it.id to it.controller }
         val fromManual =

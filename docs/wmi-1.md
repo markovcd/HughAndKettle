@@ -34,8 +34,30 @@ and its code is FairPlay-encrypted. There is no Android build. Its App Store scr
 | The module sends `*HELLO*` to a new TCP client and `*OPEN*`/`*CLOS*` to the serial side unless configured not to | ruled out for the TCP side | no banner arrived on any of a dozen connections |
 | Only one TCP client is served at a time | inferred from the module | RN-171 serves a single TCP connection |
 | The amps use MIDI control changes for every control and program changes for presets | confirmed by the manuals | Black Spirit 200 manual 8.3; GrandMeister Deluxe 40 manual 8.3 |
-| Whether the amp reports knob moves and preset changes on its MIDI Out, and whether presets are read back by system exclusive | unknown | the iPad apps display amp state, so something flows back, and a WMI Connect screenshot counts 42 messages in with none sent out; the manuals do not say what |
+| The amp reports every control it moves, by hand, footswitch or MIDI, as a system exclusive naming the controller | confirmed on hardware, GrandMeister Deluxe 40, firmware 1.16 | every knob, switch and selector turned on the panel came back; see [What the amp reports](#what-the-amp-reports) |
+| A channel switch or preset recall is followed by a 47-byte block of the amp's current values | seen on hardware; layout not yet decoded | the block is `F0 00 20 44 00 10 00 0A 00 40 ...`; decoding it is how presets would be read back |
 | The RTP-MIDI / Apple network MIDI protocol is **not** what the box speaks | inferred, strong | TCP in the manual; no Bonjour or session wording anywhere; the module has no RTP-MIDI firmware |
+
+## What the amp reports
+
+Read off a GrandMeister Deluxe 40 (amp firmware 1.16, identity reply family `10 00`, member `09 00`).
+A control the amp moves comes back as
+
+```text
+F0 00 20 44 00 10 00 0A 00 04 <controller> <hi> <lo> <check> F7
+```
+
+where the value is `hi * 128 + lo` and `check` is `0A xor controller xor hi xor lo`. Knobs and the
+modulation type report 0 to 255, twice MIDI's resolution; switches and the other selectors report
+0 to 127. `ControlReport` decodes it and `AmpState` takes it in, halving the 256-step ones.
+
+- The controllers are the MIDI chart's, with one exception: the panel's Gain and Volume report as
+  56 and 57 (the chart's "hard" variants), and so does a control change on 20 or 7. A change on 20
+  does not land where a change on 56 does (20 at 30 reported 8 of 255; 56 at 100 reported 201), so
+  the two are kept apart. Master is not on MIDI.
+- Modulation is one knob, 12, whose sweep runs chorus, flanger, phaser, tremolo from the bottom.
+- The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95).
+- Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, so the sweep looks even.
 
 Without a WMI-1, a USB MIDI cable reaches the amp directly; [cable.md](cable.md) says how, and how
 to find out what the amp sends.

@@ -3,6 +3,7 @@ package io.github.markovcd.hughandkettle.amp
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
+import io.github.markovcd.hughandkettle.midi.SystemExclusive
 
 /**
  * What an amp is set to, as far as the app knows: a value per control id and the current preset.
@@ -22,14 +23,19 @@ public data class AmpState(
     }
 
     /**
-     * The state after [message]. A control change sets its control; a program change recalls a preset,
-     * whose stored values the app has not seen, so every value becomes unknown. Anything else changes nothing.
+     * The state after [message]. A control change or the amp's [ControlReport] sets its control; a
+     * program change recalls a preset, whose stored values the app has not seen, so every value becomes
+     * unknown. Anything else changes nothing.
      */
     public fun after(message: MidiMessage): AmpState =
         when (message) {
             is ControlChange -> {
-                val control = amp.controls.firstOrNull { it.controller == message.controller }
-                if (control == null) this else copy(values = values + (control.id to message.value))
+                set(message.controller) { message.value }
+            }
+
+            is SystemExclusive -> {
+                val report = ControlReport.parse(message)
+                if (report == null) this else set(report.controller) { it.fromReport(report.value) }
             }
 
             is ProgramChange -> {
@@ -40,4 +46,12 @@ public data class AmpState(
                 this
             }
         }
+
+    private fun set(
+        controller: Int,
+        value: (Control) -> Int,
+    ): AmpState {
+        val control = amp.controls.firstOrNull { it.controller == controller } ?: return this
+        return copy(values = values + (control.id to value(control)))
+    }
 }

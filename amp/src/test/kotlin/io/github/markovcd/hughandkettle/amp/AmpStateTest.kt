@@ -3,6 +3,7 @@ package io.github.markovcd.hughandkettle.amp
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.ProgramChange
+import io.github.markovcd.hughandkettle.midi.SystemExclusive
 import io.github.markovcd.hughandkettle.midi.SystemRealtime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,6 +39,33 @@ class AmpStateTest {
         val small = AmpModel("small", "Small", amp.controls, presetCount = 4)
         val state = AmpState(small).after(ProgramChange(MidiChannel.Default, 4))
         assertEquals(AmpState(small), state)
+    }
+
+    private fun report(
+        controller: Int,
+        value: Int,
+    ): SystemExclusive {
+        val (high, low) = value shr 7 to (value and 0x7F)
+        val header = listOf(0x00, 0x20, 0x44, 0x00, 0x10, 0x00, 0x0A, 0x00, 0x04)
+        val payload = header + listOf(controller, high, low, 0x0A xor controller xor high xor low)
+        return SystemExclusive(payload.map { it.toByte() }.toByteArray())
+    }
+
+    @Test
+    fun `A knob the amp reports in 256 steps lands on 0 to 127`() {
+        assertEquals(mapOf("bass" to 103), start.after(report(21, 206)).values)
+    }
+
+    @Test
+    fun `A switch and a selector the amp reports keep their value`() {
+        val grandMeister = AmpState(AmpModels.grandMeisterDeluxe40)
+        assertEquals(mapOf("boost" to 127), start.after(report(64, 127)).values)
+        assertEquals(mapOf("power_soak" to 95), grandMeister.after(report(30, 95)).values)
+    }
+
+    @Test
+    fun `The modulation type is reported in 256 steps like a knob`() {
+        assertEquals(mapOf("modulation_type" to 127), start.after(report(12, 255)).values)
     }
 
     @Test

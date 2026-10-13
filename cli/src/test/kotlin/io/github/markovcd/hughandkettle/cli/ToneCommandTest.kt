@@ -126,7 +126,7 @@ class ToneCommandTest {
 
     @Test
     fun `An exported tone imports into another folder as the same tone`() {
-        ok("save", "grandmeister_deluxe_40", "Lead", "gain=100", "power_soak=power soak 3")
+        ok("save", "grandmeister_deluxe_40", "Lead", "gain=100", "power_soak=5 W")
         val file = folder.resolve("lead.json")
         ok("export", "Lead", file.toString())
         val other = folder.resolve("other").toString()

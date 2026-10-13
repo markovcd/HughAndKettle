@@ -36,6 +36,7 @@ Prefer the domain's words over the framework's.
 | **tone** | A named set of control values kept on the phone or by `hk`, apart from the amp's presets, and recalled by sending each value. | `Tone`, `ToneFile`, `ToneStore` | preset (the amp's), patch, sound, favorite |
 | **tone shelf** | The panel's list of tones, with save, recall, rename, move, delete, export and import. | `ToneShelf`, `ToneShelfCard` | library, bank (an amp word), favorites |
 | **message** | One complete MIDI message. | `MidiMessage` | event, packet (a network word), command |
+| **report** | The amp's system exclusive saying a control moved and to what. | `ControlReport` | notification, echo (the amp's copy of what it receives), feedback (a delay knob) |
 | **amp state** | What the app knows the amp is set to: a value per control and the current preset, replaced whole on every message. | `AmpState` | status, settings, snapshot (fine in prose for one printed copy) |
 | **MIDI chart** | A manual's table of controllers per amp model. | the `AmpModels` tables | implementation chart, CC map |
 | **panel** | The app's screen for one amp: link row and one row per control. | `AmpPanel`, `PanelState` | dashboard, view, page |
