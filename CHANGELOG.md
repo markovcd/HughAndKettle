@@ -30,6 +30,7 @@ section becomes a version's section when `release.sh` ships it.
 - App and `hk cable`: drive the amp over a USB MIDI cable, with no WMI-1.
 - The app and `hk state` follow the knobs, switches and selectors turned on the amp, as the amp reports them.
 - The GrandMeister Deluxe 40 power soak shows its steps by wattage.
+- After a preset recall or channel switch, the app and `hk state` show the knobs the amp reports it is set to.
 
 ### Fixes
 

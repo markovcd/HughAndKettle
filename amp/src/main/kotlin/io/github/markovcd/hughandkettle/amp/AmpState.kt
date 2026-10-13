@@ -23,9 +23,10 @@ public data class AmpState(
     }
 
     /**
-     * The state after [message]. A control change or the amp's [ControlReport] sets its control; a
-     * program change recalls a preset, whose stored values the app has not seen, so every value becomes
-     * unknown. Anything else changes nothing.
+     * The state after [message]. A control change or the amp's [ControlReport] sets its control, and
+     * the amp's [ValueBlock] sets every knob it carries. A program change recalls a preset, whose stored
+     * values the app has not seen until the amp's block arrives, so every value becomes unknown.
+     * Anything else changes nothing.
      */
     public fun after(message: MidiMessage): AmpState =
         when (message) {
@@ -35,7 +36,22 @@ public data class AmpState(
 
             is SystemExclusive -> {
                 val report = ControlReport.parse(message)
-                if (report == null) this else set(report.controller) { it.fromReport(report.value) }
+                val block = ValueBlock.parse(message)
+                when {
+                    report != null -> {
+                        set(report.controller) { it.fromReport(report.value) }
+                    }
+
+                    block != null -> {
+                        block.values.entries.fold(copy(preset = block.preset ?: preset)) { state, (controller, value) ->
+                            state.set(controller) { it.fromReport(value) }
+                        }
+                    }
+
+                    else -> {
+                        this
+                    }
+                }
             }
 
             is ProgramChange -> {

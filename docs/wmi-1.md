@@ -102,6 +102,8 @@ Read on 2026-10-13 by setting known values, switching to Crunch and back to Clea
 | 13 | modulation type (12) | 256 |
 | 14, 15 | not yet known, 0 in every capture | |
 
+`ValueBlock` decodes it and `AmpState` takes in its knobs and preset.
+
 - Pairs 1 to 7 belong to the channel: Crunch's came back as its own, and Clean's kept the values set
   on it before the switch. Pairs 8 to 13 are shared by every channel.
 - The low two bits of the flags byte are the channel (Clean `40`, Crunch `41`, Ultra seen as `47`);

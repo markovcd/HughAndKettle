@@ -69,6 +69,24 @@ class AmpStateTest {
     }
 
     @Test
+    fun `The amp's block after a recall fills in the preset's knobs`() {
+        val grandMeister = AmpModels.grandMeisterDeluxe40
+        val payload =
+            "00 20 44 00 10 00 0A 00 40 00 00 7C 00 1E 00 14 00 28 00 32 00 3C 00 50 00 7F " +
+                "01 34 00 00 01 5D 01 0C 00 00 00 0A 00 00 00 00 01 40 1E"
+        val block = SystemExclusive(payload.split(' ').map { it.toInt(16).toByte() }.toByteArray())
+        val state = AmpState(grandMeister).after(grandMeister.recall(125)).after(block)
+        assertEquals(125, state.preset)
+        assertEquals(
+            mapOf("gain_hard" to 15, "bass" to 10, "presence" to 63, "delay_time" to 110),
+            state.values.filterKeys {
+                it in
+                    setOf("gain_hard", "bass", "presence", "delay_time")
+            },
+        )
+    }
+
+    @Test
     fun `Other messages change nothing`() {
         assertEquals(start, start.after(SystemRealtime(0xF8)))
     }
