@@ -13,7 +13,13 @@ import android.net.NetworkRequest
 class WifiRoute(
     private val connectivity: ConnectivityManager,
 ) {
-    private val wifi = NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
+    // A request asks for internet unless told otherwise, and the box's network has none to promise.
+    private val wifi =
+        NetworkRequest
+            .Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
 
     private val callback =
         object : ConnectivityManager.NetworkCallback() {
