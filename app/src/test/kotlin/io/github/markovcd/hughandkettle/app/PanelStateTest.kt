@@ -193,11 +193,28 @@ class PanelStateTest {
                 remembered +=
                     at to amp.id
             })
+        picking.host = ""
         picking.choose(AmpModels.grandMeisterDeluxe40)
         assertEquals(emptyList(), remembered)
         picking.connect(box)
         until("remembered") { remembered.isNotEmpty() }
         assertEquals(box to "grandmeister_deluxe_40", remembered.first())
+    }
+
+    @Test
+    fun `Before any link the panel shows the amp picked for the address in the fields`() {
+        val box = WmiAddress("192.168.1.1", 1470)
+        val starting =
+            PanelState(
+                AmpModels.blackSpirit200,
+                holder,
+                scope,
+                last,
+                MutableStateFlow(
+                    mapOf(box to AmpModels.grandMeisterDeluxe40),
+                ),
+            )
+        assertEquals(AmpModels.grandMeisterDeluxe40, starting.amp)
     }
 
     @Test

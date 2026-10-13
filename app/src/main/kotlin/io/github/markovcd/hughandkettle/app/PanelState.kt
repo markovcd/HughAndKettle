@@ -97,11 +97,14 @@ class PanelState(
         }
     }
 
-    /** The box the panel is about: none over a cable, the one linked or being linked to, else the last one reached. */
+    /**
+     * The box the panel is about: none over a cable, the one linked or being linked to, else the last one reached,
+     * else the one the fields name.
+     */
     val box: WmiAddress?
         get() =
             when (val now = link) {
-                LinkState.Idle -> if (cable.active) null else last
+                LinkState.Idle -> if (cable.active) null else last ?: WmiAddress.parse("${host.trim()}:${port.trim()}")
                 is LinkState.Connecting -> now.address
                 is LinkState.Connected -> now.address
                 is LinkState.Retrying -> now.address
