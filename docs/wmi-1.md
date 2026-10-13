@@ -38,6 +38,12 @@ and its code is FairPlay-encrypted. There is no Android build. Its App Store scr
 | A channel switch or preset recall is followed by a 47-byte block of the amp's current values | seen on hardware; mostly decoded | see [The value block](#the-value-block) |
 | The RTP-MIDI / Apple network MIDI protocol is **not** what the box speaks | inferred, strong | TCP in the manual; no Bonjour or session wording anywhere; the module has no RTP-MIDI firmware |
 
+## After a full reset
+
+Holding SET for ten seconds while the amp powers up resets the box. Read off it on 2026-10-13: the
+access point stays at 192.168.1.1 and TCP 1470, its password is gone, and the status broadcast moves to
+UDP 55555, the RN-171's own default, still naming port 1470. The app listens on both ports.
+
 ## What the amp reports
 
 Read off a GrandMeister Deluxe 40 (amp firmware 1.16, identity reply family `10 00`, member `09 00`).

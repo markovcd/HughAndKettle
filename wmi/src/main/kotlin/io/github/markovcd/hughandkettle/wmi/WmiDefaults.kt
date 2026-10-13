@@ -20,6 +20,10 @@ public object WmiDefaults {
     public const val ACCESS_POINT_HOST: String = "192.168.1.1"
 
     public const val BROADCAST_PORT: Int = 48437
+
+    /** Where the box broadcasts after a full reset with SET held at power-up: the RN-171's own default. */
+    public const val FACTORY_BROADCAST_PORT: Int = 55555
+    public val BroadcastPorts: List<Int> = listOf(BROADCAST_PORT, FACTORY_BROADCAST_PORT)
     public val BroadcastInterval: Duration = 2.seconds
     public val ConnectTimeout: Duration = 5.seconds
     public val PingInterval: Duration = 1.seconds

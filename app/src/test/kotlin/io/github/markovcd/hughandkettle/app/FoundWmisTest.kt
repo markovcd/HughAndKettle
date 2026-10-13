@@ -42,6 +42,18 @@ class FoundWmisTest {
         assertEquals(WmiAddress("127.0.0.1", fake.port), picked)
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `A WMI-1 broadcasting to any of the ports listened on is listed`() {
+        val quiet = DatagramSocket(0).use { it.localPort }
+        val port = DatagramSocket(0).use { it.localPort }
+        fake.broadcast(InetAddress.getLoopbackAddress(), port, interval = 100.milliseconds)
+        val discovery = DiscoveryState(listOf(WmiDiscovery(quiet), WmiDiscovery(port)))
+        compose.setContent { FoundWmis(discovery, last = null, onPick = {}) }
+        // Capped at 5 s so a broken broadcaster fails rather than hangs; the first broadcast ends it.
+        compose.waitUntilExactlyOneExists(hasTestTag("found:WMI-1_A1B2C3"), timeoutMillis = 5_000)
+    }
+
     @Test
     fun `The last box used is offered first, ahead of anything heard`() {
         val last = WmiAddress("192.168.1.20", 2000)

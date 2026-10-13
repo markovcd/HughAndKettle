@@ -4,17 +4,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.wmi.WmiBroadcast
+import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import io.github.markovcd.hughandkettle.wmi.WmiDiscovery
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 
-/** The WMI-1s heard broadcasting on the network, newest broadcast per box, in the order first heard. */
+/**
+ * The WMI-1s heard broadcasting on the network, newest broadcast per box, in the order first heard. Every port a
+ * box may broadcast to is heard at once.
+ */
 class DiscoveryState(
-    private val discovery: WmiDiscovery = WmiDiscovery(),
+    private val discoveries: List<WmiDiscovery> = WmiDefaults.BroadcastPorts.map(::WmiDiscovery),
 ) {
+    constructor(discovery: WmiDiscovery) : this(listOf(discovery))
+
     var found by mutableStateOf<List<WmiBroadcast>>(emptyList())
         private set
     var failure by mutableStateOf<String?>(null)
@@ -23,16 +29,21 @@ class DiscoveryState(
     /** Listens until cancelled. */
     suspend fun listen() =
         withContext(Dispatchers.IO) {
-            while (true) {
-                // Short windows, so cancelling is noticed within one.
-                discovery
-                    .listen(1.seconds) { heard(it) }
-                    .onSuccess { failure = null }
-                    .onFailure { failure = it.message ?: it.javaClass.simpleName }
-                coroutineContext.ensureActive()
+            discoveries.forEach { discovery ->
+                launch {
+                    while (true) {
+                        // Short windows, so cancelling is noticed within one.
+                        discovery
+                            .listen(1.seconds) { heard(it) }
+                            .onSuccess { failure = null }
+                            .onFailure { failure = it.message ?: it.javaClass.simpleName }
+                        ensureActive()
+                    }
+                }
             }
         }
 
+    @Synchronized
     private fun heard(broadcast: WmiBroadcast): Boolean {
         val key = broadcast.key()
         val list = found
