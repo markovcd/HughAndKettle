@@ -185,6 +185,22 @@ class PanelStateTest {
     }
 
     @Test
+    fun `An amp picked before any box is remembered for the first box linked to`() {
+        val remembered = ArrayList<Pair<WmiAddress, String>>()
+        val box = WmiAddress("127.0.0.1", fake.port)
+        val picking =
+            PanelState(AmpModels.blackSpirit200, holder, scope, last, rememberAmp = { at, amp ->
+                remembered +=
+                    at to amp.id
+            })
+        picking.choose(AmpModels.grandMeisterDeluxe40)
+        assertEquals(emptyList(), remembered)
+        picking.connect(box)
+        until("remembered") { remembered.isNotEmpty() }
+        assertEquals(box to "grandmeister_deluxe_40", remembered.first())
+    }
+
+    @Test
     fun `Linking to a box shows the amp picked for it`() {
         val box = WmiAddress("127.0.0.1", fake.port)
         val following =

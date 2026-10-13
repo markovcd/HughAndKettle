@@ -60,6 +60,7 @@ class PanelState(
         private set
 
     private var choices: Map<WmiAddress, AmpModel> = emptyMap()
+    private var choicesRead = false
     private var taps = TapTempo()
 
     init {
@@ -72,6 +73,7 @@ class PanelState(
         scope.launch {
             ampChoices.collect {
                 choices = it
+                choicesRead = true
                 follow()
             }
         }
@@ -112,8 +114,14 @@ class PanelState(
         scope.launch { rememberAmp(box, amp) }
     }
 
+    /** Shows the amp picked for the box; a box linked to with none picked keeps the amp on the panel. */
     private fun follow() {
-        choices[box]?.let(::show)
+        val box = box ?: return
+        val chosen = choices[box]
+        when {
+            chosen != null -> show(chosen)
+            choicesRead && link != LinkState.Idle -> scope.launch { rememberAmp(box, amp) }
+        }
     }
 
     /** A different amp starts from knowing nothing about it. */
