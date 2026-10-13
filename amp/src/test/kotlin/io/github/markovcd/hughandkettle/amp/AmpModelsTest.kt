@@ -41,6 +41,27 @@ class AmpModelsTest {
     }
 
     @Test
+    fun `The GrandMeister 36 chart matches the manual`() {
+        val chart = AmpModels.grandMeister36.controls.associate { it.id to it.controller }
+        val fromManual =
+            mapOf(
+                "modulation_intensity" to 1,
+                "delay_time" to 4,
+                "mute" to 9,
+                "power_soak" to 30,
+                "channel" to 31,
+                "volume_hard" to 57,
+                "noise_gate" to 63,
+                "boost" to 64,
+            )
+        assertEquals(fromManual, chart.filterKeys { it in fromManual })
+        val manualControllers =
+            listOf(1, 4, 7, 9, 12, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 52, 53, 54, 55, 56, 57, 63, 64)
+        assertEquals(manualControllers, chart.values.sorted())
+        assertEquals(PresetSlot(32, 4), AmpModels.grandMeister36.slotOf(128))
+    }
+
+    @Test
     fun `Setting a knob sends its controller on the given channel`() {
         val gain = AmpModels.blackSpirit200.control("gain")!!
         assertEquals(ControlChange(MidiChannel(2), 20, 100), gain.set(100, MidiChannel(2)))

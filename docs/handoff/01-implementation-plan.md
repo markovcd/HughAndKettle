@@ -165,9 +165,9 @@ option; a disabled control is not clickable); screenshots retaken by a test, nev
 
 **Deliverables:**
 
-- [ ] GrandMeister 36 (and any other amp whose chart exists) as rows in `AmpModels`, from the manual,
-  with the same tests. Amp choice in the app, remembered per box (done: the amp's name on the panel
-  opens the list).
+- [x] GrandMeister 36 as rows in `AmpModels`, from its manual's chapter 8.2, with the same tests. No
+  other amp's chart was found: the TubeMeister Deluxe pages carry no manual with one (2026-10-13).
+  Amp choice in the app, remembered per box (done: the amp's name on the panel opens the list).
 - [ ] Selector option names and order read off the hardware (the TODO item).
 - [ ] WMI-1 configuration, replacing WMI Connect: read the module's settings and set access-point
   or client mode, the WiFi password and the device name. This speaks the RN-171 command mode (`$$$`

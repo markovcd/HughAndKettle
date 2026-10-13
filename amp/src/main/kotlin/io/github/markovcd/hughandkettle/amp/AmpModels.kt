@@ -15,7 +15,8 @@ import io.github.markovcd.hughandkettle.amp.Section.Switching
  * heard only while switched on.
  *
  * Controller numbers come from each manual's "MIDI implementation chart / controller list"
- * (Black Spirit 200 manual chapter 8.3; GrandMeister Deluxe 40 manual chapter 8.3). Selector
+ * (Black Spirit 200 manual chapter 8.3; GrandMeister Deluxe 40 manual chapter 8.3; GrandMeister 36
+ * manual chapter 8.2). Selector
  * option names are the manual's where it gives them; TODO.md tracks the ones still to be read
  * off the hardware.
  */
@@ -78,7 +79,21 @@ public object AmpModels {
             presetsPerBank = 4,
         )
 
-    public val all: List<AmpModel> = listOf(blackSpirit200, grandMeisterDeluxe40)
+    /** The GrandMeister Deluxe 40's chart, row for row, with the power soak's top step at 36 watts. */
+    public val grandMeister36: AmpModel =
+        AmpModel(
+            id = "grandmeister_36",
+            name = "GrandMeister 36",
+            controls =
+                common +
+                    listOf(
+                        Control("power_soak", "Power soak", 30, Selector(List(5) { "Power soak ${it + 1}" }), Extras),
+                    ),
+            // The manual's 128 presets are 32 banks of 4.
+            presetsPerBank = 4,
+        )
+
+    public val all: List<AmpModel> = listOf(blackSpirit200, grandMeisterDeluxe40, grandMeister36)
 
     public fun byId(id: String): AmpModel? = all.firstOrNull { it.id == id }
 }

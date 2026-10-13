@@ -1,8 +1,8 @@
 # Hugh & Kettle
 
-An Android app that drives a Hughes & Kettner amp (Black Spirit 200, GrandMeister Deluxe 40, more to
-come) over the WMI-1 WiFi MIDI interface, the way the iPad apps do, plus `hk`, a command line that
-can do everything the app can.
+An Android app that drives a Hughes & Kettner amp (Black Spirit 200, GrandMeister Deluxe 40,
+GrandMeister 36, more to come) over the WMI-1 WiFi MIDI interface, the way the iPad apps do, plus
+`hk`, a command line that can do everything the app can.
 
 **Status: foundations.** The toolchain, the gate, the MIDI codec, the amp tables, the link code and
 the fake WMI-1 exist and are tested; the link has not yet been tried against a real WMI-1. Phase 0 of
@@ -53,7 +53,8 @@ control by its id (`gain 100`, `channel lead`, `boost on`, `delay_time 520ms`) a
 amp that has them; `state` listens for `--seconds` (2 by default) and asks the amp nothing. `tone`
 keeps tones in `--dir` (`~/.hk/tones` by default) in the same files the app keeps: `save` takes values
 as `set` does (`gain=100 channel=lead`), `recall` sends each value the tone holds, and `import` skips
-and reports a control the amp does not have. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`.
+and reports a control the amp does not have. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
+`grandmeister_36`.
 Exit codes: 0 done, 2 bad arguments, 3 no link, 4 nothing found, 5 a file that could not be read or
 written, or is not a tone.
 

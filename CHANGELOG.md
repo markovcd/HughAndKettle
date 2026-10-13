@@ -25,4 +25,5 @@ section becomes a version's section when `release.sh` ships it.
 - App: a tap on the preset opens a grid of all 128 to jump to.
 - App: a control the amp reports moving is outlined until it is set from the phone.
 - App: an effect's knobs are dimmed while the effect is switched off.
+- The GrandMeister 36 can be picked in the app and named in `hk` as `grandmeister_36`.
 - `hk fake-wmi --seconds N` runs the fake for N seconds, for scripts that hold no stdin open.

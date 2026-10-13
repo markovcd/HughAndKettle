@@ -13,7 +13,6 @@ that lands it.
 
 ## Code
 
-- Read the selector option names and their order off the hardware or the manual: modulation type (Chorus, Flanger, Phaser, Tremolo order), Black Spirit 200 cabinet and sagging names, GrandMeister Deluxe 40 power soak order. `AmpModels` carries numbered placeholders until then.
+- Read the selector option names and their order off the hardware or the manual: modulation type (Chorus, Flanger, Phaser, Tremolo order), Black Spirit 200 cabinet and sagging names, GrandMeister Deluxe 40 and GrandMeister 36 power soak order. `AmpModels` carries numbered placeholders until then.
 - Check on the hardware that delay time's 51 ms to 1360 ms is spread evenly over 0..127; `Scale` takes it as even.
-- Add the GrandMeister 36 MIDI chart to `AmpModels` from its manual, and TubeMeister Deluxe if its chart exists.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.

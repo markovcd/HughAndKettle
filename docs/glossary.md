@@ -15,7 +15,7 @@ Prefer the domain's words over the framework's.
 | Say | Means | Code | Not |
 |---|---|---|---|
 | **amp** | The Hughes & Kettner amplifier being driven. | `AmpModel` for the kind of amp, `amp` for one | amplifier, head, device, unit |
-| **amp model** | One kind of amp and its MIDI chart: Black Spirit 200, GrandMeister Deluxe 40. | `AmpModel`, `AmpModels` | profile, product |
+| **amp model** | One kind of amp and its MIDI chart: Black Spirit 200, GrandMeister Deluxe 40, GrandMeister 36. | `AmpModel`, `AmpModels` | profile, product |
 | **WMI-1** | Hughes & Kettner's WiFi MIDI interface box that plugs into the amp's MIDI ports. Always spelled `WMI-1`. | `Wmi*` | dongle, wifi thingy, interface box, adapter, the wireless |
 | **link** | An open TCP connection between the app (or `hk`) and a WMI-1. | `WmiLink` | connection, session (a MIDI word), socket |
 | **link state** | Where the link stands: idle, connecting, connected, or retrying after a failure. | `LinkState`, kept by `LinkKeeper` | status (the WMI-1's broadcast), connection state |
