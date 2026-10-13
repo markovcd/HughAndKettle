@@ -15,7 +15,7 @@ import kotlin.time.Duration
 
 /**
  * A stand-in for a WMI-1 with an amp behind it: accepts one TCP client at a time, reports every MIDI
- * message it receives, and, when asked, broadcasts a module-style status packet so discovery finds it.
+ * message it receives but the link's ping, which the amp ignores, and, when asked, broadcasts a module-style status packet so discovery finds it.
  * It lets the app and the CLI be driven end to end on a machine with no amp.
  */
 public class FakeWmi(
@@ -96,7 +96,10 @@ public class FakeWmi(
             while (true) {
                 val read = input.read(buffer)
                 if (read < 0) break
-                parser.feed(buffer.copyOf(read)).forEach { onEvent(FakeWmiEvent.Received(it)) }
+                parser
+                    .feed(buffer.copyOf(read))
+                    .filter { it != WmiDefaults.Ping }
+                    .forEach { onEvent(FakeWmiEvent.Received(it)) }
             }
         } catch (_: IOException) {
             // The client went away; the acceptor waits for the next one.

@@ -33,6 +33,14 @@ No MIDI or networking dependency is added. Until the hardware confirms the ports
 the plan's phase 0 is a verification step with the `hk` command line, and anything it disproves is
 changed in `WmiDefaults` and `WmiBroadcast` only.
 
+## Amendment, 2026-10-13: what the hardware does
+
+Phase 0 confirmed the transport and corrected the defaults. The box serves the bridge on TCP 1470 and
+broadcasts to UDP 48437 every two seconds. It drops a client that has sent nothing for about 30
+seconds, and passes on the amp's messages only while the client keeps sending, so `WmiLink` pings it
+with one `FD` byte a second, an undefined real-time byte MIDI receivers ignore. The amp echoes the
+ping, and the link drops the echo. [docs/wmi-1.md](../wmi-1.md) has the captures.
+
 ## Consequences
 
 - A few hundred lines replace a library that would not have fit anyway, and every byte on the wire is

@@ -5,6 +5,7 @@ import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.OtherMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
+import java.net.ServerSocket
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
@@ -54,6 +55,37 @@ class WmiLinkTest {
             assertEquals(ProgramChange(MidiChannel(1), 3), heard.poll(5, TimeUnit.SECONDS))
             val raw = generateSequence { chunks.poll() }.fold(ByteArray(0)) { all, chunk -> all + chunk }
             assertEquals("*HELLO*\u00C0\u0003", String(raw, Charsets.ISO_8859_1))
+        }
+    }
+
+    @Test
+    fun `An open link pings the WMI-1 without being asked`() {
+        ServerSocket(0).use { box ->
+            WmiLink.open("127.0.0.1", box.localPort, pingInterval = 20.milliseconds).getOrThrow().use {
+                box.accept().use { client ->
+                    client.soTimeout = 5_000
+                    assertEquals(0xFD, client.getInputStream().read())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `The ping the amp echoes back is not handed to the app`() {
+        val heard = LinkedBlockingQueue<MidiMessage>()
+        opened(heard::put).use {
+            assertTrue(fake.emit(WmiDefaults.Ping))
+            assertTrue(fake.emit(ProgramChange(MidiChannel(1), 3)))
+            assertEquals(ProgramChange(MidiChannel(1), 3), heard.poll(5, TimeUnit.SECONDS))
+        }
+    }
+
+    @Test
+    fun `The fake WMI-1 does not report the link's pings as messages`() {
+        opened().use { link ->
+            link.send(WmiDefaults.Ping).getOrThrow()
+            link.send(ControlChange(MidiChannel(1), 9, 127)).getOrThrow()
+            assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 9, 127)), next())
         }
     }
 

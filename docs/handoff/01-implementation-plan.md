@@ -49,9 +49,11 @@ output.
 
 **The user records,** in the table in `docs/wmi-1.md`:
 
-- [ ] Whether `discover` hears the box, and the exact JSON line (device id, port, firmware).
-- [ ] Whether `send ... cc 9 127` mutes the amp on port 2000; if not, the port or the failure.
-- [ ] The box's address in access-point mode.
+- [x] Whether `discover` hears the box, and the exact JSON line (device id, port, firmware): on UDP
+  48437, not 55555; `WMI-1_Network_a724e7`, port 1470, `wifly-EZX Ver: 4.41`.
+- [x] Whether `send ... cc 9 127` mutes the amp on port 2000; if not, the port or the failure: it mutes
+  on 1470; 2000 refuses.
+- [x] The box's address in access-point mode: 192.168.1.1.
 - [ ] What `hk listen` prints while a knob is turned, a channel is switched and a preset is changed on
   the amp, with the FSM footswitch and without. This is the single most valuable capture.
 - [ ] Whether switching the channel within a preset changes the gain, EQ and volume the amp plays.

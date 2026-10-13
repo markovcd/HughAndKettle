@@ -28,3 +28,7 @@ section becomes a version's section when `release.sh` ships it.
 - The GrandMeister 36 can be picked in the app and named in `hk` as `grandmeister_36`.
 - `hk fake-wmi --seconds N` runs the fake for N seconds, for scripts that hold no stdin open.
 - App and `hk cable`: drive the amp over a USB MIDI cable, with no WMI-1.
+
+### Fixes
+
+- A real WMI-1 is found and reached: its ports are 48437 and 1470, and the link pings it so it stays up and passes on what the amp says.

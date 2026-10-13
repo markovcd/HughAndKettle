@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 class WmiAddressTest {
     @Test
     fun `A bare host gets the WMI-1 default port`() {
-        assertEquals(WmiAddress("1.2.3.4", 2000), WmiAddress.parse("1.2.3.4"))
+        assertEquals(WmiAddress("1.2.3.4", 1470), WmiAddress.parse("1.2.3.4"))
     }
 
     @Test

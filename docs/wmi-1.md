@@ -20,14 +20,18 @@ and its code is FairPlay-encrypted. There is no Android build. Its App Store scr
 | Fact | Status | Source |
 |---|---|---|
 | The companion app talks to the box over TCP | confirmed by the manual | WMI-1 manual: "the WPS/TCP LED stays on when the WMI Connect app is connected to the WMI-1 via TCP" |
-| The box contains a Roving Networks RN-171 WiFly module | inferred, strong | Label text in the manual's drawing decodes to "Contains FCC ID: T9J-RN171"; T9J-RN171 is the RN-171's FCC ID. WMI Connect screenshots show the box's MAC as `00:06:66:…`, the Roving Networks OUI |
+| The box contains a Roving Networks RN-171 WiFly module | confirmed | its broadcast names its firmware, `wifly-EZX Ver: 4.41`; the label carries FCC ID T9J-RN171 |
 | WMI Connect is the bridge: it holds the TCP link and offers the box to amp apps as a CoreMIDI port | inferred | the bundle id `HKMidiBridge`; the App Store text says the box works with "any app for iPad that supports CoreMIDI" |
-| A raw TCP server on port 2000 bridges to the module's serial port, and the serial port is the MIDI port at 31250 baud | inferred from the RN-171 defaults | WiFly command reference DS50002230B, "set ip localport", default 2000; "set uart raw" allows 31250 |
-| The box broadcasts a 110-byte status packet to UDP 255.255.255.255:55555 every 7 s, carrying its device id and TCP port | inferred from the RN-171 defaults | WiFly command reference, 3.5.4.3 and figure 3-12 |
-| In access-point mode the box is at 192.168.1.1 | seen in the vendor's screenshots | WMI Connect screenshots list the box at 192.168.1.1 in "Stand alone AP" mode, and at a DHCP address (192.168.80.43) as a home network client |
+| A raw TCP server on port **1470** bridges to the module's serial port, which is the MIDI port | confirmed on hardware, 2026-10-13 | `hk send 192.168.1.1:1470 cc 9 127` muted a GrandMeister; port 2000 refused the connection |
+| The box broadcasts a 110-byte status packet to UDP 255.255.255.255:**48437** every **2 s**, from port 1470, carrying its device id and TCP port | confirmed on hardware, 2026-10-13 | packet capture on the laptop; `hk discover --port 48437 --raw` decoded `WMI-1_Network_a724e7`, port 1470. The packet: `44 B7 D0 A7 24 E7 01 00 05 BE 00 00 00 CD 0B DD 0D 16 54 69 6D 65 20 4E 4F 54 20 53 45 54 00 00 77 69 66 6C 79 2D 45 5A 58 20 56 65 72 3A 20 34 2E 34 31 20 42 75 69 6C 64 3A 20 72 57 4D 49 2D 31 5F 4E 65 74 77 6F 72 6B 5F 61 37 32 34 65 37 00 32 33 3A 35 36 00 …` |
+| In access-point mode the box is at 192.168.1.1 and hands out addresses in 192.168.1.0/24 | confirmed on hardware | the laptop got 192.168.1.11 with 192.168.1.1 as its gateway |
 | The box has a user-set name, shown in discovery and used as its access point's network name | seen in the vendor's screenshots | WMI Connect lists a found box as "GrandMeister 40" and shows the same as its wireless network; the broadcast's device id field is the likely carrier |
+| The box drops a client that has sent nothing for about 30 s | confirmed on hardware | `hk listen --reconnect` lost the link every 29 to 30 s; a client sending a byte a second kept it for minutes |
+| The box passes what the amp sends to the client only while the client keeps sending; what arrives in between is held and delivered in a burst on the client's next byte | confirmed on hardware | a 28 s listen heard nothing while knobs were turned; the next `hk send` received every turn at once. With a one-byte ping each second the reports arrived live |
+| The amp echoes everything it receives on its MIDI Out/Thru, including a lone `FD` | confirmed on hardware | every `hk send` got its own message back, and every ping came back |
+| A byte goes laptop to box to amp and back in about 11 ms | measured, 2026-10-13 | 100 `FD` echoes over the box's own access point, Windows laptop: min 8.7, median 11.1, p95 13.6, max 31.8 ms |
 | WMI Connect sets the box's name, access point channel, WPA2-PSK password and home network | seen in the vendor's screenshots; how is unknown | the Configuration screen. The WiFly module is configured in its `$$$` command mode, over TCP or serial |
-| The module sends `*HELLO*` to a new TCP client and `*OPEN*`/`*CLOS*` to the serial side unless configured not to | inferred | WiFly command reference, "set comm remote/open/close" |
+| The module sends `*HELLO*` to a new TCP client and `*OPEN*`/`*CLOS*` to the serial side unless configured not to | ruled out for the TCP side | no banner arrived on any of a dozen connections |
 | Only one TCP client is served at a time | inferred from the module | RN-171 serves a single TCP connection |
 | The amps use MIDI control changes for every control and program changes for presets | confirmed by the manuals | Black Spirit 200 manual 8.3; GrandMeister Deluxe 40 manual 8.3 |
 | Whether the amp reports knob moves and preset changes on its MIDI Out, and whether presets are read back by system exclusive | unknown | the iPad apps display amp state, so something flows back, and a WMI Connect screenshot counts 42 messages in with none sent out; the manuals do not say what |
@@ -38,7 +42,8 @@ to find out what the amp sends.
 
 ## What the code assumes, and where
 
-- `WmiDefaults`: TCP port 2000, UDP port 55555, 7-second interval, 5-second connect timeout.
+- `WmiDefaults`: TCP port 1470, UDP port 48437, 2-second interval, 5-second connect timeout, a one-byte
+  ping (`FD`, an undefined real-time byte every receiver ignores) every second.
 - `WmiBroadcast`: the 110/120-byte layout (AP MAC at 0, RSSI at 7, port at 8 big-endian, firmware
   string at 32, device id at 60).
 - `MidiStreamParser`: text banners and any other stray data bytes are dropped; running status and
@@ -57,7 +62,7 @@ cli/build/install/hk/bin/hk discover --seconds 20
 ```
 
 Expected: one JSON line naming the box, its address and the TCP port. If a line looks wrong (an
-empty device id, a port that is not 2000), run it again with `--raw` and paste the packet's hex. Then,
+empty device id, a port that is not 1470), run it again with `--raw` and paste the packet's hex. Then,
 with that address:
 
 ```sh
@@ -69,7 +74,7 @@ cli/build/install/hk/bin/hk send <address>:<port> pc 3         # preset 4
 Expected: the amp mutes, unmutes and changes preset. The first command holds the link three seconds
 and prints on stderr every byte the box sends, hex and text, so a `*HELLO*` banner shows up there if
 the module sends one. If `discover` hears nothing, read the laptop's
-gateway address in access-point mode and try `send` against it on 2000; if that is refused, the port
+gateway address in access-point mode and try `send` against it on 1470; if that is refused, the port
 has been changed or the transport is not what is inferred, and a packet capture of the iPad app
 (`tcpdump` on a Mac with the iPad's traffic mirrored by `rvictl`) is the next step. Record the outcome
 in the table above, in the same commit as any constant it changes.
