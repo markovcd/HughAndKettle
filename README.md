@@ -93,3 +93,7 @@ Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are 
 the gate on the exact commit, signs the APK and a `SHA256SUMS` file, and with `--publish` tags and
 creates the GitHub release. The `Release` workflow runs it with the real keys. Verify a download with
 the two lines in [release/README.md](release/README.md).
+
+## License
+
+MIT, in [LICENSE](LICENSE). Hugh & Kettle is not made or endorsed by Hughes & Kettner.
