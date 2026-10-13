@@ -87,7 +87,7 @@ public object ListenCommand : Command {
     }
 
     /** Waits for [ended], [seconds] if given, or else stdin closing. */
-    private fun await(
+    internal fun await(
         ended: CountDownLatch,
         seconds: Int?,
     ) {

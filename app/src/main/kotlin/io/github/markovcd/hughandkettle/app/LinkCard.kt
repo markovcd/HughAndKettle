@@ -38,8 +38,8 @@ import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /**
- * A status line that is never hidden, the WMI-1s heard on the network while there is no link, then
- * address, port and one button for a box discovery does not find.
+ * A status line that is never hidden, the USB MIDI cables plugged in and the WMI-1s heard on the
+ * network while there is no link, then address, port and one button for a box discovery does not find.
  */
 @Composable
 internal fun LinkCard(
@@ -54,7 +54,10 @@ internal fun LinkCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             StatusLine(panel)
-            if (panel.idle) FoundWmis(discovery, panel.last, onPick = panel::connect)
+            if (panel.idle) {
+                FoundCables(panel.cables, onPick = panel::connect)
+                FoundWmis(discovery, panel.last, onPick = panel::connect)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                 OutlinedTextField(
                     value = panel.host,
@@ -97,11 +100,12 @@ internal fun LinkCard(
 private fun StatusLine(panel: PanelState) {
     val failure = panel.failure
     val link = panel.link
+    val cable = panel.cable
     val colors = MaterialTheme.colorScheme
-    val warning = failure != null || link is LinkState.Retrying
+    val warning = failure != null || link is LinkState.Retrying || cable is CableState.Failed
     val band = if (warning) Modifier.background(colors.errorContainer, RoundedCornerShape(8.dp)) else Modifier
     val resources = LocalResources.current
-    val text = if (failure != null) LinkWords.of(failure, resources) else LinkWords.of(link, resources)
+    val text = if (failure != null) LinkWords.of(failure, resources) else LinkWords.of(link, cable, resources)
     Row(
         modifier = band.defaultMinSize(minHeight = 36.dp).padding(horizontal = 10.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -112,11 +116,11 @@ private fun StatusLine(panel: PanelState) {
                 WarningTriangle(colors.error)
             }
 
-            link is LinkState.Connected -> {
+            panel.linked -> {
                 Box(Modifier.size(14.dp).background(colors.primary, CircleShape))
             }
 
-            link is LinkState.Connecting -> {
+            link is LinkState.Connecting || cable is CableState.Opening -> {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.4.dp,

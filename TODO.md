@@ -7,6 +7,7 @@ that lands it.
 ## Needs the user
 
 - Run phase 0 of the [implementation plan](docs/handoff/01-implementation-plan.md#phase-0-confirm-the-link-on-hardware) on the hardware and paste the output; everything after it waits on this.
+- While the WMI-1 is missing, run the [cable test](docs/cable.md#the-test) instead and paste what it asks for.
 - Try phase 1 on a phone with the real box: it finds the box, connects, survives screen-off and recovers from a power cycle ([plan, phase 1](docs/handoff/01-implementation-plan.md#phase-1-the-link-on-the-phone)).
 - Pick a license for the repository.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).

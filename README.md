@@ -34,6 +34,7 @@ hk send <host[:port]> cc <controller> <value> [--channel 1..16] [--keep-open N] 
 hk send <host[:port]> pc <program> [--channel 1..16] [--keep-open N] [--verbose]
 hk send <host[:port]> raw <hex bytes> [--keep-open N] [--verbose]
 hk listen <host[:port]> [--seconds N] [--reconnect] [--verbose]  # print every message the amp sends
+hk cable list | send <name> cc|pc|raw ... [--channel 1..16] | listen <name> [--seconds N]  # a USB MIDI cable, no WMI-1
 hk set <host[:port]> <amp-id> <control-id> <0..127 | on | off | option>
 hk set <host[:port]> <amp-id> preset <1..128>
 hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot

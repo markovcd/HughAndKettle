@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- A USB MIDI cable to the amp is the way in without a WMI-1; a phone without MIDI still runs the app. -->
+    <uses-feature android:name="android.software.midi" android:required="false" />
 
     <application
         android:name=".app.HughAndKettleApplication"

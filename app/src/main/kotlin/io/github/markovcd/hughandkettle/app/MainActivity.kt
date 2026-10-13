@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.app.theme.HughAndKettleTheme
-import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlinx.coroutines.launch
 
 /** The one window: a panel for the amp, over a link to its WMI-1. */
@@ -50,7 +49,7 @@ class MainActivity : ComponentActivity() {
             val discovery = remember { DiscoveryState() }
             val shelf = remember { ToneShelf(app.tones, panel, scope) }
             val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)
-            AskForNotifications(linked = panel.link != LinkState.Idle)
+            AskForNotifications(linked = !panel.idle)
             HughAndKettleTheme(
                 dark =
                     theme == ThemeChoice.Dark || (theme == ThemeChoice.System && isSystemInDarkTheme()),

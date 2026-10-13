@@ -18,6 +18,10 @@
     <string name="discovery_found">WMI-1s on this network</string>
     <string name="last_used">Last used</string>
     <string name="discovery_failed">Cannot listen for WMI-1s: %1$s</string>
+    <string name="cables_found">USB MIDI cables plugged in</string>
+    <string name="cable_opening">Opening %1$s…</string>
+    <string name="cable_open">Connected over USB to %1$s</string>
+    <string name="cable_failed">%1$s: %2$s. Plug it in and pick it again.</string>
     <string name="link_channel">Link to the WMI-1</string>
     <string name="preset">Preset</string>
     <string name="preset_bank_slot">Bank %1$d, slot %2$d</string>

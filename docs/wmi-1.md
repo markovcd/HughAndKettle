@@ -33,6 +33,9 @@ and its code is FairPlay-encrypted. There is no Android build. Its App Store scr
 | Whether the amp reports knob moves and preset changes on its MIDI Out, and whether presets are read back by system exclusive | unknown | the iPad apps display amp state, so something flows back, and a WMI Connect screenshot counts 42 messages in with none sent out; the manuals do not say what |
 | The RTP-MIDI / Apple network MIDI protocol is **not** what the box speaks | inferred, strong | TCP in the manual; no Bonjour or session wording anywhere; the module has no RTP-MIDI firmware |
 
+Without a WMI-1, a USB MIDI cable reaches the amp directly; [cable.md](cable.md) says how, and how
+to find out what the amp sends.
+
 ## What the code assumes, and where
 
 - `WmiDefaults`: TCP port 2000, UDP port 55555, 7-second interval, 5-second connect timeout.

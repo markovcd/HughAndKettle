@@ -13,3 +13,4 @@ sentence stating the decision. Check here before proposing a change of shape (th
 | [0006](0006-releases-are-signed-apks-on-github-releases.md) | A release is a signed APK and a CLI zip on GitHub Releases, versioned from a tag and signed with an SSH key |
 | [0007](0007-the-link-is-held-by-the-process-and-kept-alive-by-a-foreground-service.md) | The link is held by the process and kept alive by a foreground service while it is up |
 | [0008](0008-tones-are-files-of-raw-control-values-apart-from-the-amps-presets.md) | A tone is a file of raw control values, kept apart from the amp's presets |
+| [0009](0009-a-usb-midi-cable-reaches-the-amp-without-a-wmi-1.md) | A USB MIDI cable reaches the amp without a WMI-1 |

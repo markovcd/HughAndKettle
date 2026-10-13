@@ -22,8 +22,8 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration
 
 /**
- * What the panel shows and does: the link's state, which amp is behind the box, and the amp's state,
- * as sent and heard. The amp picked for a box is remembered through [rememberAmp] and taken up again
+ * What the panel shows and does: the link's state or the cable's, which amp is behind the box, and the
+ * amp's state, as sent and heard. The amp picked for a box is remembered through [rememberAmp] and taken up again
  * from [ampChoices] whenever the panel turns to that box.
  */
 class PanelState(
@@ -39,6 +39,12 @@ class PanelState(
     var host by mutableStateOf("")
     var port by mutableStateOf(WmiDefaults.MIDI_PORT.toString())
     var link by mutableStateOf(holder.state.value)
+        private set
+    var cable by mutableStateOf(holder.cable.value)
+        private set
+
+    /** The USB MIDI cables plugged into the phone, offered while there is no link. */
+    var cables by mutableStateOf(holder.cables.value)
         private set
     var failure by mutableStateOf<PanelFailure?>(null)
         private set
@@ -69,6 +75,13 @@ class PanelState(
                 follow()
             }
         }
+        scope.launch {
+            holder.cable.collect {
+                cable = it
+                follow()
+            }
+        }
+        scope.launch { holder.cables.collect { cables = it } }
         scope.launch { holder.heard.collect(::heard) }
         scope.launch {
             lastWmi.collect {
@@ -82,11 +95,11 @@ class PanelState(
         }
     }
 
-    /** The box the panel is about: the one linked or being linked to, else the last one reached. */
+    /** The box the panel is about: none over a cable, the one linked or being linked to, else the last one reached. */
     val box: WmiAddress?
         get() =
             when (val now = link) {
-                LinkState.Idle -> last
+                LinkState.Idle -> if (cable.active) null else last
                 is LinkState.Connecting -> now.address
                 is LinkState.Connected -> now.address
                 is LinkState.Retrying -> now.address
@@ -113,7 +126,10 @@ class PanelState(
     }
 
     /** The fields are editable only while there is nothing to protect. */
-    val idle: Boolean get() = link == LinkState.Idle
+    val idle: Boolean get() = link == LinkState.Idle && !cable.active
+
+    /** True while messages reach the amp, over a WMI-1 or a cable. */
+    val linked: Boolean get() = link is LinkState.Connected || cable is CableState.Open
 
     fun connect() {
         val address = WmiAddress.parse("${host.trim()}:${port.trim()}")
@@ -130,6 +146,12 @@ class PanelState(
         port = address.port.toString()
         failure = null
         holder.connect(address)
+    }
+
+    /** Opens [cable] in place of any WMI-1. */
+    fun connect(cable: Cable) {
+        failure = null
+        holder.connect(cable)
     }
 
     fun disconnect() {
@@ -172,7 +194,7 @@ class PanelState(
             } else {
                 moved - messages.filterIsInstance<ControlChange>().mapNotNull { amp.controlFor(it) }.toSet()
             }
-        if (link !is LinkState.Connected) return
+        if (!linked) return
         scope.launch(Dispatchers.IO) {
             for (message in messages) {
                 holder.send(message).onFailure {

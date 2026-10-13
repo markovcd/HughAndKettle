@@ -27,3 +27,4 @@ section becomes a version's section when `release.sh` ships it.
 - App: an effect's knobs are dimmed while the effect is switched off.
 - The GrandMeister 36 can be picked in the app and named in `hk` as `grandmeister_36`.
 - `hk fake-wmi --seconds N` runs the fake for N seconds, for scripts that hold no stdin open.
+- App and `hk cable`: drive the amp over a USB MIDI cable, with no WMI-1.

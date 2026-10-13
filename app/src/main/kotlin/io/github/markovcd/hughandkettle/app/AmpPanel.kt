@@ -25,7 +25,6 @@ import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
-import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
@@ -43,7 +42,7 @@ fun AmpPanel(
     onTheme: (ThemeChoice) -> Unit,
 ) {
     // With no link there is nothing to turn; the rows dim to 38% and the link card keeps full contrast.
-    val enabled = panel.link is LinkState.Connected
+    val enabled = panel.linked
     BoxWithConstraints {
         if (maxWidth < TWO_PANES_FROM) {
             LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), modifier = Modifier.testTag("panel")) {

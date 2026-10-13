@@ -32,7 +32,7 @@ public object SendCommand : Command {
         err: PrintWriter,
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
-        val message = target?.let { message(args, err) }
+        val message = target?.let { message(args.positional.drop(1), args, err) }
         val keepOpen =
             args.int("keep-open", 0).getOrElse {
                 err.println(it.message)
@@ -72,7 +72,9 @@ public object SendCommand : Command {
         return ExitCodes.OK
     }
 
-    private fun message(
+    /** The message [words] spell: `cc <controller> <value>`, `pc <program>` or `raw <hex>`; null for anything else. */
+    internal fun message(
+        words: List<String>,
         args: Options,
         err: PrintWriter,
     ): MidiMessage? {
@@ -85,8 +87,8 @@ public object SendCommand : Command {
             err.println("--channel must be 1..16, got $channel")
             return null
         }
-        val kind = args.positional.getOrNull(1)
-        val numbers = args.positional.drop(2).map { it.toIntOrNull() }
+        val kind = words.firstOrNull()
+        val numbers = words.drop(1).map { it.toIntOrNull() }
         return when {
             kind == "cc" && numbers.size == 2 && numbers.all { it in 0..127 } -> {
                 ControlChange(MidiChannel(channel), numbers[0]!!, numbers[1]!!)
@@ -97,8 +99,8 @@ public object SendCommand : Command {
             }
 
             kind == "raw" -> {
-                args.positional
-                    .drop(2)
+                words
+                    .drop(1)
                     .joinToString(" ")
                     .hexToBytes()
                     ?.let(::OtherMessage)

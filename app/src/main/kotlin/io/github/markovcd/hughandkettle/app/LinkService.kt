@@ -15,11 +15,12 @@ import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
- * Keeps the process, and so the link, alive while the screen is off: a foreground service that runs
- * for as long as the link is not idle, with a notification that says where it stands and can end it.
+ * Keeps the process, and so the link or the cable, alive while the screen is off: a foreground service
+ * that runs for as long as either is in use, with a notification that says where it stands and can end it.
  * The link itself lives in [LinkHolder]; ADR 0007 says why it is held this way.
  */
 class LinkService : Service() {
@@ -36,16 +37,16 @@ class LinkService : Service() {
     ): Int {
         if (intent?.action == ACTION_DISCONNECT) holder.stop()
         // A started foreground service must show its notification at once, whatever happens next.
-        show(holder.state.value)
+        show(holder.state.value, holder.cable.value)
         if (watching == null) {
             watching =
                 scope.launch {
-                    holder.state.collect { state ->
-                        if (state == LinkState.Idle) {
+                    combine(holder.state, holder.cable) { state, cable -> state to cable }.collect { (state, cable) ->
+                        if (state == LinkState.Idle && !cable.active) {
                             stopForeground(STOP_FOREGROUND_REMOVE)
                             stopSelf()
                         } else {
-                            show(state)
+                            show(state, cable)
                         }
                     }
                 }
@@ -58,7 +59,10 @@ class LinkService : Service() {
         super.onDestroy()
     }
 
-    private fun show(state: LinkState) {
+    private fun show(
+        state: LinkState,
+        cable: CableState,
+    ) {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.link_channel), NotificationManager.IMPORTANCE_LOW),
@@ -82,7 +86,7 @@ class LinkService : Service() {
                 .Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
                 .setContentTitle(getString(R.string.app_name))
-                .setContentText(LinkWords.of(state, resources))
+                .setContentText(LinkWords.of(state, cable, resources))
                 .setContentIntent(open)
                 .setOngoing(true)
                 .addAction(
@@ -102,7 +106,7 @@ class LinkService : Service() {
         private const val NOTIFICATION = 1
         private const val ACTION_DISCONNECT = "io.github.markovcd.hughandkettle.DISCONNECT"
 
-        /** Starts the service; it stops itself when the link goes idle. */
+        /** Starts the service; it stops itself when neither the link nor the cable is in use. */
         fun start(context: Context) {
             context.startForegroundService(Intent(context, LinkService::class.java))
         }

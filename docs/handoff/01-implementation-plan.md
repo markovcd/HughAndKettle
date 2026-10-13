@@ -32,6 +32,9 @@ amp reports knob moves and preset changes on its MIDI Out, and how (if at all) p
 
 ## Phase 0: confirm the link on hardware
 
+While the WMI-1 is missing, [the cable test](../cable.md#the-test) stands in for this phase: it
+answers every question below about the amp, and none about the box.
+
 **Who:** the user, with a laptop on the WMI-1's network, following the commands in
 [docs/wmi-1.md](../wmi-1.md#how-to-confirm-it-phase-0). An agent prepares the build and reads the
 output.

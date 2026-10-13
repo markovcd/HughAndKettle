@@ -265,4 +265,19 @@ class CliTest {
     }
 
     private fun hex(port: Int): String = "%02X %02X".format(port shr 8, port and 0xFF)
+
+    @Test
+    fun `A cable named like nothing plugged in exits with the nothing-found code and sends nothing`() {
+        val run = run("cable", "send", "no-such-cable-0f9e", "cc", "9", "127")
+        assertEquals(ExitCodes.NOTHING_FOUND, run.code, run.err)
+        assertEquals("", run.out)
+        assertTrue(run.err.contains("hk cable list"))
+    }
+
+    @Test
+    fun `A cable command with no cable named prints its usage`() {
+        val run = run("cable", "listen")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
+        assertTrue(run.err.contains("hk cable listen"))
+    }
 }

@@ -11,6 +11,7 @@ public object Cli {
             StateCommand,
             ToneCommand,
             ListenCommand,
+            CableCommand,
             DiscoverCommand,
             FakeWmiCommand,
             LatencyCommand,

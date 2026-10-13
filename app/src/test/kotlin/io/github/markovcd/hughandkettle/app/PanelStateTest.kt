@@ -3,6 +3,7 @@ package io.github.markovcd.hughandkettle.app
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
+import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.wmi.FakeWmi
 import io.github.markovcd.hughandkettle.wmi.FakeWmiEvent
@@ -13,10 +14,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.junit.After
 import org.junit.Test
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -27,7 +30,8 @@ import kotlin.time.TimeSource
 class PanelStateTest {
     private val seen = LinkedBlockingQueue<FakeWmiEvent>()
     private val fake = FakeWmi(onEvent = seen::put)
-    private val holder = LinkHolder()
+    private val jack = PluggedJack()
+    private val holder = LinkHolder(jack)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val last = MutableStateFlow<WmiAddress?>(null)
     private val panel = PanelState(AmpModels.blackSpirit200, holder, scope, last)
@@ -192,5 +196,61 @@ class PanelStateTest {
         following.connect(box)
         until("connected") { it.link == LinkState.Connected(box) }
         assertEquals(AmpModels.grandMeisterDeluxe40, following.amp)
+    }
+
+    @Test
+    fun `A control moved with the cable open goes out on the cable`() {
+        panel.connect(jack.doremidi)
+        until("cable open") { it.linked }
+        panel.set(gain, 100)
+        val sent = assertNotNull(jack.sent.poll(5, TimeUnit.SECONDS), "nothing went out on the cable within 5 s")
+        assertContentEquals(ControlChange(MidiChannel(1), gain.controller, 100).encode(), sent)
+    }
+
+    @Test
+    fun `A knob the amp reports on the cable moves on the panel`() {
+        panel.connect(jack.doremidi)
+        until("cable open") { it.linked }
+        jack.hear(ControlChange(MidiChannel(1), gain.controller, 42))
+        until("gain at 42") { it.state.values["gain"] == 42 }
+    }
+
+    @Test
+    fun `An unplugged cable is shown failed and leaves the panel idle with nothing sent`() {
+        panel.connect(jack.doremidi)
+        until("cable open") { it.linked }
+        jack.unplug("unplugged")
+        until("cable failed") { it.cable == CableState.Failed(jack.doremidi, "unplugged") }
+        assertEquals(true, panel.idle)
+        panel.set(gain, 100)
+        assertEquals(null, jack.sent.poll())
+    }
+
+    @Test
+    fun `Picking a cable drops the link to a WMI-1`() {
+        connected()
+        panel.connect(jack.doremidi)
+        until("only the cable") { it.link == LinkState.Idle && it.cable == CableState.Open(jack.doremidi) }
+    }
+
+    /** One cable, always plugged in, that opens at once and keeps what it is sent. */
+    private class PluggedJack : CableJack {
+        val doremidi = Cable(7, "DOREMIDI")
+        val sent = LinkedBlockingQueue<ByteArray>()
+        var hear: (MidiMessage) -> Unit = {}
+        var unplug: (String) -> Unit = {}
+
+        override val cables: StateFlow<List<Cable>> = MutableStateFlow(listOf(doremidi))
+
+        override fun open(
+            cable: Cable,
+            onMessage: (MidiMessage) -> Unit,
+            onLost: (reason: String) -> Unit,
+            onOpened: (Result<CableLink>) -> Unit,
+        ) {
+            hear = onMessage
+            unplug = onLost
+            onOpened(Result.success(CableLink(cable, write = sent::put, release = {})))
+        }
     }
 }
