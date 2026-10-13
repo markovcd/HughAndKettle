@@ -16,28 +16,38 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.R
 
 /**
- * Every preset of the panel's amp, eight to a row, the current one filled. A tap recalls it and
- * closes the grid. Tests find the grid by `preset_grid` and each preset by `preset:<n>`.
+ * Every preset of the panel's amp, eight to a row, the current one filled, each with the name given
+ * to it. A tap recalls it and closes the grid; while naming, a tap asks for its name instead. Tests
+ * find the grid by `preset_grid`, each preset by `preset:<n>` and the naming switch by `preset_naming`.
  */
 @Composable
 internal fun PresetGrid(
     panel: PanelState,
+    names: PresetNamesState,
     onClose: () -> Unit,
 ) {
     val amp = panel.amp
     val current = panel.state.preset
+    var naming by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf<Int?>(null) }
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text(stringResource(R.string.preset_pick)) },
+        title = { Text(stringResource(if (naming) R.string.preset_naming_title else R.string.preset_pick)) },
         text = {
+            names.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(PER_ROW),
                 state = rememberLazyGridState(initialFirstVisibleItemIndex = ((current ?: 1) - 1)),
@@ -47,18 +57,24 @@ internal fun PresetGrid(
             ) {
                 items((1..amp.presetCount).toList()) { preset ->
                     val pick = {
-                        panel.recall(preset)
-                        onClose()
+                        if (naming) {
+                            renaming = preset
+                        } else {
+                            panel.recall(preset)
+                            onClose()
+                        }
                     }
                     val tag = Modifier.heightIn(min = 48.dp).testTag("preset:$preset")
                     val label: @Composable () -> Unit = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("$preset", style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                            amp.slotOf(preset)?.let { slot ->
+                            val under = names.names[preset] ?: amp.slotOf(preset)?.let { "${it.bank}-${it.slot}" }
+                            under?.let {
                                 Text(
-                                    "${slot.bank}-${slot.slot}",
+                                    it,
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
@@ -73,8 +89,26 @@ internal fun PresetGrid(
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = {
+            TextButton(onClick = { naming = !naming }, modifier = Modifier.testTag("preset_naming")) {
+                Text(stringResource(if (naming) R.string.preset_naming_done else R.string.preset_naming))
+            }
+        },
         modifier = Modifier.padding(8.dp),
     )
+    renaming?.let { preset ->
+        NameDialog(
+            title = stringResource(R.string.preset_name_title, preset),
+            label = stringResource(R.string.tone_name),
+            initial = names.names[preset] ?: "",
+            onDone = { name ->
+                renaming = null
+                names.name(preset, name)
+            },
+            onCancel = { renaming = null },
+            needsName = false,
+        )
+    }
 }
 
 private const val PER_ROW = 8

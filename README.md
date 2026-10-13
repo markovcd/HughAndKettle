@@ -41,6 +41,8 @@ hk state <host[:port]> <amp-id> [--seconds N]                # what the amp repo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
 hk tone rename <name> <new-name> | move <name> <position> | delete <name>
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
+hk tone read <host[:port]> <amp-id> [<preset>[-<preset>]] [--replace] [--names D]  # the amp's presets into tones
+hk preset list <amp-id> | name <amp-id> <preset> <name> | unname <amp-id> <preset>  # takes --dir D
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast] [--seconds N]
 hk latency [--count N]                                      # send-to-parsed time against a local fake WMI-1
 ```
@@ -54,7 +56,11 @@ control by its id (`gain 100`, `channel lead`, `boost on`, `delay_time 520ms`) a
 amp that has them; `state` listens for `--seconds` (2 by default) and asks the amp nothing. `tone`
 keeps tones in `--dir` (`~/.hk/tones` by default) in the same files the app keeps: `save` takes values
 as `set` does (`gain=100 channel=lead`), `recall` sends each value the tone holds, and `import` skips
-and reports a control the amp does not have. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
+and reports a control the amp does not have. `tone read` recalls each preset and saves the knobs the
+amp reports for it as a tone named after the preset; it reads every preset unless given one or a
+range, and a preset that sends nothing within 2 s is skipped and said on stderr. `preset` names the
+amp's presets in `--dir` (`~/.hk/preset-names` by default), the way the app does; `tone read` finds
+them there or in `--names`. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
 `grandmeister_36`.
 Exit codes: 0 done, 2 bad arguments, 3 no link, 4 nothing found, 5 a file that could not be read or
 written, or is not a tone.
@@ -76,7 +82,7 @@ the host machine's fake at `10.0.2.2`.
 | Module | Holds |
 |---|---|
 | `midi` | MIDI 1.0 messages, a stream parser that survives banners and split chunks, hex helpers |
-| `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, and tones and their files |
+| `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, tones and their files, preset names, and reading presets into tones |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |
 | `app` | The Compose screen (a link card with the WMI-1s heard, the preset, the tones, then one row per control) and the service that holds the link |

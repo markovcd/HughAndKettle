@@ -1,7 +1,9 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
+import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.wmi.FakeWmi
 import io.github.markovcd.hughandkettle.wmi.FakeWmiEvent
 import java.io.PrintWriter
@@ -168,5 +170,49 @@ class ToneCommandTest {
         val run = run("move", "A")
         assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
         assertTrue("hk tone import" in run.err)
+    }
+
+    @Test
+    fun `Reading presets saves each as a tone named after it and says which sent nothing`() {
+        lateinit var amp: FakeWmi
+        // A stand-in amp that answers a recall with its value block, but has nothing in preset 3.
+        amp =
+            FakeWmi(onEvent = { event ->
+                val program = ((event as? FakeWmiEvent.Received)?.message as? ProgramChange)?.program ?: return@FakeWmi
+                if (program != 2) amp.emit(ValueBlock(mapOf(56 to 2 * program, 21 to 100), program + 1).message())
+            })
+        amp.use {
+            val names = folder.resolve("names").toString()
+            Cli.run(
+                listOf("preset", "name", "grandmeister_deluxe_40", "2", "Lead", "--dir", names),
+                PrintWriter(StringWriter()),
+                PrintWriter(StringWriter()),
+            )
+            val run = run("read", "127.0.0.1:${amp.port}", "grandmeister_deluxe_40", "1-3", "--names", names)
+            assertEquals(ExitCodes.OK, run.code, run.err)
+            assertEquals(
+                """{"read":2,"missed":[3]}""",
+                run.out
+                    .trim()
+                    .lines()
+                    .last(),
+            )
+            assertTrue("preset 3: the amp sent no values" in run.err, run.err)
+        }
+        assertEquals(listOf("Preset 1", "2 Lead"), names())
+        val lead = ok("list").lines().last()
+        assertTrue(""""bass":50""" in lead && """"gain_hard":1""" in lead, lead)
+    }
+
+    @Test
+    fun `Reading presets outside the amp's range is a bad argument`() {
+        assertEquals(
+            ExitCodes.BAD_ARGUMENTS,
+            run("read", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "120-129").code,
+        )
+        assertEquals(
+            ExitCodes.BAD_ARGUMENTS,
+            run("read", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "5-2").code,
+        )
     }
 }

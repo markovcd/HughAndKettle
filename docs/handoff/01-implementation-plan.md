@@ -140,6 +140,10 @@ A sound kept on the phone is a **tone**, so "preset" keeps meaning one of the am
 - [ ] Write a preset into one of the amp's 128 slots: recall it, then whatever the amp's store
   gesture is over MIDI (phase 0 or the manual says; if there is none, the UI says to press Store).
 - [x] `hk tone list|save|recall|rename|move|delete|export|import` over the same code.
+- [x] Names for the amp's presets, kept on the phone and by `hk preset`, shown in the preset grid and
+  under the current preset ([ADR 0010](../adr/0010-preset-names-live-on-the-phone-and-presets-read-into-tones.md)).
+- [x] Read the amp's presets into tones named after them: in the app from the tones card, and
+  `hk tone read`.
 
 **Tests:** round trip through the format; loading the version-1 fixture; a newer version refused;
 an unknown control reported.

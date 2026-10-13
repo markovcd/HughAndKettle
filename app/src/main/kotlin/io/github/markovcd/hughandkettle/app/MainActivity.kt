@@ -47,7 +47,9 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             val discovery = remember { DiscoveryState() }
-            val shelf = remember { ToneShelf(app.tones, panel, scope) }
+            val presetNames = remember { PresetNamesState(app.presetNames, panel, scope) }
+            val shelf =
+                remember { ToneShelf(app.tones, panel, scope, heard = app.link.heard, names = { presetNames.names }) }
             val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)
             AskForLocalNetwork()
             AskForNotifications(linked = !panel.idle)
@@ -56,7 +58,14 @@ class MainActivity : ComponentActivity() {
                     theme == ThemeChoice.Dark || (theme == ThemeChoice.System && isSystemInDarkTheme()),
             ) {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
-                    AmpPanel(panel, discovery, shelf, theme, onTheme = { scope.launch { app.theme.pick(it) } })
+                    AmpPanel(
+                        panel,
+                        discovery,
+                        shelf,
+                        presetNames,
+                        theme,
+                        onTheme = { scope.launch { app.theme.pick(it) } },
+                    )
                 }
             }
         }

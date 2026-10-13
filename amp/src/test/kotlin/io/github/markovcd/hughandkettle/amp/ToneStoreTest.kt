@@ -55,6 +55,15 @@ class ToneStoreTest {
     }
 
     @Test
+    fun `Tones saved together are refused together when one name is taken`() {
+        saved("Rhythm")
+        assertTrue(store.save(listOf(tone("Verse"), tone("RHYTHM", 7))).isFailure)
+        assertEquals(listOf("Rhythm"), names())
+        store.save(listOf(tone("Verse"), tone("RHYTHM", 7), tone("Lead")), replace = true).getOrThrow()
+        assertEquals(listOf(tone("RHYTHM", 7), tone("Verse"), tone("Lead")), store.list().tones)
+    }
+
+    @Test
     fun `A renamed tone keeps its place and its values`() {
         saved("Rhythm", "Lead")
         store.rename("rhythm", "Verse").getOrThrow()

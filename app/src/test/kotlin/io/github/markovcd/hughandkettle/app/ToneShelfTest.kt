@@ -1,11 +1,14 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.PresetNames
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneStore
+import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
+import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.wmi.FakeWmi
 import io.github.markovcd.hughandkettle.wmi.FakeWmiEvent
 import io.github.markovcd.hughandkettle.wmi.LinkState
@@ -51,6 +54,17 @@ class ToneShelfTest {
     }
 
     private fun names() = shelf.tones.map { it.name }
+
+    private fun connect(port: Int) {
+        panel.host = "127.0.0.1"
+        panel.port = "$port"
+        panel.connect()
+        val started = TimeSource.Monotonic.markNow()
+        while (panel.link != LinkState.Connected(WmiAddress("127.0.0.1", port))) {
+            if (started.elapsedNow() > 5.seconds) fail("never connected: ${panel.link}")
+            Thread.sleep(5)
+        }
+    }
 
     private fun set(vararg values: Pair<String, Int>) =
         values.forEach { (id, value) -> panel.set(amp.control(id)!!, value) }
@@ -142,5 +156,53 @@ class ToneShelfTest {
         shelf.import { ByteArrayInputStream(ByteArray(1 shl 20) { ' '.code.toByte() }) }
         assertTrue((shelf.notice as ToneNotice.Failed).reason.contains("larger than a tone file"), "${shelf.notice}")
         assertEquals(listOf("Odd"), names())
+    }
+
+    @Test
+    fun `Reading the presets keeps each as a tone named after it and returns to the preset the amp was on`() {
+        lateinit var amp: FakeWmi
+        lateinit var reader: ToneShelf
+        val recalled = LinkedBlockingQueue<Int>()
+        // A stand-in amp that answers a recall with its value block but sends nothing for preset 3;
+        // the reading is stopped as preset 4 is recalled, so it ends after reading that one.
+        amp =
+            FakeWmi(onEvent = { event ->
+                val program = ((event as? FakeWmiEvent.Received)?.message as? ProgramChange)?.program ?: return@FakeWmi
+                recalled.put(program + 1)
+                if (program == 3) reader.stopReading()
+                if (program != 2) amp.emit(ValueBlock(mapOf(21 to 2 * program), program + 1).message())
+            })
+        amp.use {
+            reader =
+                ToneShelf(
+                    ToneStore(folder.resolve("read")),
+                    panel,
+                    scope,
+                    Dispatchers.Unconfined,
+                    holder.heard,
+                    names = { PresetNames(this.amp, mapOf(2 to "Lead")) },
+                )
+            connect(amp.port)
+            panel.recall(7)
+            assertEquals(7, recalled.poll(5, TimeUnit.SECONDS))
+            assertEquals(true, reader.canRead)
+            reader.readPresets()
+            val started = TimeSource.Monotonic.markNow()
+            while (reader.reading != null || reader.notice == null || reader.tones.size < 3) {
+                if (started.elapsedNow() >
+                    10.seconds
+                ) {
+                    fail("never finished: at ${reader.reading?.preset}, heard $recalled, kept ${reader.tones}")
+                }
+                Thread.sleep(5)
+            }
+            assertEquals(
+                listOf(1, 2, 3, 4, 7),
+                generateSequence { recalled.poll(5, TimeUnit.SECONDS) }.take(5).toList(),
+            )
+            assertEquals(listOf("Preset 1", "2 Lead", "Preset 4"), reader.tones.map { it.name })
+            assertEquals(listOf(0, 1, 3), reader.tones.map { it.values["bass"] })
+            assertEquals(ToneNotice.Read(3, listOf(3)), reader.notice)
+        }
     }
 }

@@ -14,14 +14,32 @@ public data class ValueBlock(
     val values: Map<Int, Int>,
     val preset: Int?,
 ) {
+    /**
+     * The block as the amp sends it, for a stand-in amp. A controller the block has no pair for is left
+     * out, the pairs nobody has decoded are 0, and the flags name the Clean channel.
+     */
+    public fun message(): SystemExclusive {
+        val mark = if (preset == null) listOf(0x7F, 0x7F, 0) else listOf(0, 0, preset - 1)
+        val pairs =
+            (controllers.map { values[it] ?: 0 } + List(PAIRS - controllers.size) { 0 }).flatMap {
+                listOf(it shr 7, it and 0x7F)
+            }
+        val body = mark + pairs + listOf(0, CLEAN_FLAGS)
+        val check = body.fold(0x4E) { check, byte -> check xor byte }
+        return SystemExclusive((header.toList() + (body + check).map { it.toByte() }).toByteArray())
+    }
+
     public companion object {
         private val header = byteArrayOf(0x00, 0x20, 0x44, 0x00, 0x10, 0x00, 0x0A, 0x00, 0x40)
 
         /** The controller each value pair holds, in order. */
         private val controllers = listOf(56, 21, 22, 57, 23, 24, 25, 29, 28, 4, 27, 1, 12)
 
+        private const val PAIRS = 15
+        private const val CLEAN_FLAGS = 0x40
+
         // Preset marker (two bytes) and preset, 15 value pairs, a high byte and flags, and the check.
-        private const val SIZE = 9 + 3 + 30 + 2 + 1
+        private const val SIZE = 9 + 3 + 2 * PAIRS + 2 + 1
 
         /** The block [message] carries, or null when it is some other message or its check fails. */
         public fun parse(message: SystemExclusive): ValueBlock? {

@@ -33,6 +33,7 @@ Prefer the domain's words over the framework's.
 | **MIDI channel** | The 1 to 16 a message is addressed on. Always with the word MIDI, because the amp has channels too. | `MidiChannel` | channel (alone) |
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |
 | **preset** | One of the amp's 128 stored sounds, recalled by a program change. | `preset`; `program` for the MIDI number | patch, program (in prose), slot, bank entry |
+| **preset name** | A name given to one of the amp's presets, kept on the phone or by `hk`; the amp itself names none. | `PresetNames`, `PresetNameStore` | preset title, label, tag |
 | **tone** | A named set of control values kept on the phone or by `hk`, apart from the amp's presets, and recalled by sending each value. | `Tone`, `ToneFile`, `ToneStore` | preset (the amp's), patch, sound, favorite |
 | **tone shelf** | The panel's list of tones, with save, recall, rename, move, delete, export and import. | `ToneShelf`, `ToneShelfCard` | library, bank (an amp word), favorites |
 | **message** | One complete MIDI message. | `MidiMessage` | event, packet (a network word), command |

@@ -64,4 +64,10 @@ class ToneShelfCardTest {
         compose.onNodeWithTag("tone_delete_confirm").performClick()
         compose.onNodeWithTag("tone:Lead").assertDoesNotExist()
     }
+
+    @Test
+    fun `Reading presets cannot start without a link`() {
+        compose.setContent { ToneShelfCard(shelf, enabled = false) }
+        compose.onNodeWithTag("tone_read").assertIsNotEnabled()
+    }
 }

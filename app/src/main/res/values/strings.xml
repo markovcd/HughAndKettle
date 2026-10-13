@@ -26,6 +26,10 @@
     <string name="preset">Preset</string>
     <string name="preset_bank_slot">Bank %1$d, slot %2$d</string>
     <string name="preset_pick">Presets</string>
+    <string name="preset_naming">Name</string>
+    <string name="preset_naming_done">Done naming</string>
+    <string name="preset_naming_title">Tap a preset to name it</string>
+    <string name="preset_name_title">Name preset %1$d</string>
     <string name="moved_on_amp">Moved on the amp</string>
     <string name="effect_off">Effect off</string>
     <string name="tones">Tones</string>
@@ -42,6 +46,12 @@
     <string name="tone_imported">Imported “%1$s”</string>
     <string name="tone_imported_skipped">Imported “%1$s”, leaving out: %2$s</string>
     <string name="tone_failed">Tones: %1$s</string>
+    <string name="tone_read">Read presets</string>
+    <string name="tone_read_explain">Recalls every preset on the amp in turn and saves each as a tone named after it, replacing tones of the same name. The amp\'s sound changes while it runs. Only the knobs are read, not the channel or the switches.</string>
+    <string name="tone_reading">Reading preset %1$d of %2$d</string>
+    <string name="tone_read_stop">Stop</string>
+    <string name="tone_read_done">Presets read into tones: %1$d</string>
+    <string name="tone_read_missed">Presets read into tones: %1$d. No answer from: %2$s</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
     <string name="theme_system">As the phone</string>

@@ -38,6 +38,7 @@ fun AmpPanel(
     panel: PanelState,
     discovery: DiscoveryState,
     shelf: ToneShelf,
+    presetNames: PresetNamesState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
 ) {
@@ -46,7 +47,7 @@ fun AmpPanel(
     BoxWithConstraints {
         if (maxWidth < TWO_PANES_FROM) {
             LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), modifier = Modifier.testTag("panel")) {
-                head(panel, discovery, shelf, theme, onTheme, enabled)
+                head(panel, discovery, shelf, presetNames, theme, onTheme, enabled)
                 controls(panel, enabled, PanelRows.KNOBS_PER_ROW)
             }
         } else {
@@ -55,7 +56,7 @@ fun AmpPanel(
                     contentPadding = PaddingValues(bottom = 24.dp),
                     modifier = Modifier.width(HEAD_PANE_WIDTH).testTag("panel"),
                 ) {
-                    head(panel, discovery, shelf, theme, onTheme, enabled)
+                    head(panel, discovery, shelf, presetNames, theme, onTheme, enabled)
                 }
                 LazyColumn(
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
@@ -72,6 +73,7 @@ private fun LazyListScope.head(
     panel: PanelState,
     discovery: DiscoveryState,
     shelf: ToneShelf,
+    presetNames: PresetNamesState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
     enabled: Boolean,
@@ -88,7 +90,14 @@ private fun LazyListScope.head(
         }
     }
     item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }
-    item { PresetRow(panel, enabled, Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED)) }
+    item {
+        PresetRow(
+            panel,
+            presetNames,
+            enabled,
+            Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED),
+        )
+    }
     item { ToneShelfCard(shelf, enabled, Modifier.padding(horizontal = 12.dp)) }
 }
 

@@ -3,14 +3,22 @@ package io.github.markovcd.hughandkettle.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.markovcd.hughandkettle.amp.PresetNames
+import io.github.markovcd.hughandkettle.amp.PresetReading
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneStore
+import io.github.markovcd.hughandkettle.midi.MidiMessage
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -18,19 +26,27 @@ import java.io.OutputStream
 
 /**
  * The tones kept on the phone, in their order, and what the panel can do with them: save the amp's
- * state as one, recall, rename, move, delete, export and import. The folder is read and written off
- * the main thread; the list is replaced whole after every change.
+ * state as one, read the amp's presets into them, recall, rename, move, delete, export and import.
+ * The folder is read and written off the main thread; the list is replaced whole after every change.
+ * Reading listens to what the amp says through [heard] and names each tone after [names].
  */
 class ToneShelf(
     private val store: ToneStore,
     private val panel: PanelState,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    private val heard: Flow<MidiMessage> = emptyFlow(),
+    private val names: () -> PresetNames = { PresetNames(panel.amp) },
 ) {
     var tones by mutableStateOf<List<Tone>>(emptyList())
         private set
     var notice by mutableStateOf<ToneNotice?>(null)
         private set
+
+    /** The reading of the amp's presets under way, or null. */
+    var reading by mutableStateOf<PresetReading?>(null)
+        private set
+    private var stopping = false
 
     init {
         refresh()
@@ -44,6 +60,45 @@ class ToneShelf(
 
     fun save(name: String) {
         if (name.isNotBlank() && canSave) change { store.save(Tone.of(name.trim(), panel.state)) }
+    }
+
+    /** Whether the amp's presets can be read now: it is linked, and no reading is under way. */
+    val canRead: Boolean get() = panel.linked && reading == null
+
+    /**
+     * Recalls every preset of the panel's amp in turn and keeps what the amp reports of each as a tone
+     * named after it, in place of a tone of the same name. The preset the amp was on is recalled after.
+     */
+    fun readPresets() {
+        if (!canRead) return
+        val back = panel.state.preset
+        stopping = false
+        reading = PresetReading.of(names())
+        scope.launch {
+            val inbox = Channel<MidiMessage>(Channel.UNLIMITED)
+            val listening = launch(start = CoroutineStart.UNDISPATCHED) { heard.collect { inbox.send(it) } }
+            var now = reading ?: return@launch
+            while (!stopping && panel.linked) {
+                val preset = now.preset ?: break
+                panel.recall(preset)
+                now = withTimeoutOrNull(PER_PRESET_MILLIS) {
+                    var next = now
+                    while (next.preset == preset) next = next.after(inbox.receive())
+                    next
+                } ?: now.skip()
+                reading = now
+            }
+            listening.cancel()
+            back?.let(panel::recall)
+            val read = now
+            reading = null
+            change { store.save(read.tones, replace = true).map { ToneNotice.Read(read.tones.size, read.missed) } }
+        }
+    }
+
+    /** Ends a reading after the preset being read, keeping the tones read so far. */
+    fun stopReading() {
+        stopping = true
     }
 
     fun recall(tone: Tone) {
@@ -113,6 +168,9 @@ class ToneShelf(
     }
 
     private companion object {
+        // The amp answers a recall in tens of milliseconds over the WMI-1; this leaves room for a busy network.
+        const val PER_PRESET_MILLIS = 2000L
+
         // A tone file of every control of the largest amp is a few kilobytes; anything past this is not one.
         const val MAX_FILE_BYTES = 64 * 1024
 

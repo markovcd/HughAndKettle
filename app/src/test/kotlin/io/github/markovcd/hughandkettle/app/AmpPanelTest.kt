@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.wmi.WmiDiscovery
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +36,8 @@ class AmpPanelTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
     private val shelf = ToneShelf(ToneStore(folder.resolve("tones")), panel, scope, Dispatchers.Unconfined)
+    private val presetNames =
+        PresetNamesState(PresetNameStore(folder.resolve("preset-names")), panel, scope, Dispatchers.Unconfined)
 
     @After
     @OptIn(ExperimentalPathApi::class)
@@ -46,7 +49,7 @@ class AmpPanelTest {
 
     private fun shown() =
         compose.setContent {
-            AmpPanel(panel, DiscoveryState(WmiDiscovery(0)), shelf, ThemeChoice.Dark, onTheme = {})
+            AmpPanel(panel, DiscoveryState(WmiDiscovery(0)), shelf, presetNames, ThemeChoice.Dark, onTheme = {})
         }
 
     @Test

@@ -43,4 +43,11 @@ class ValueBlockTest {
     fun `A control report is no block`() {
         assertNull(heard("00 20 44 00 10 00 0A 00 04 09 00 7F 7C"))
     }
+
+    @Test
+    fun `A block written for a stand-in amp reads back as itself`() {
+        val block = heard(stored)!!
+        assertEquals(block, ValueBlock.parse(block.message()))
+        assertEquals(block.copy(preset = null), ValueBlock.parse(block.copy(preset = null).message()))
+    }
 }

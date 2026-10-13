@@ -20,17 +20,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.R
 
 /**
- * The current preset in large type, as bank and slot where the amp numbers them that way, between a
- * step down and a step up that wrap around. A tap on the preset opens the grid of all of them. Tests find
- * it by `preset`, `preset_down` and `preset_up`.
+ * The current preset in large type, under it the name given to it or else its bank and slot where the
+ * amp numbers them that way, between a step down and a step up that wrap around. A tap on the preset
+ * opens the grid of all of them. Tests find it by `preset`, `preset_label`, `preset_down` and `preset_up`.
  */
 @Composable
 internal fun PresetRow(
     panel: PanelState,
+    names: PresetNamesState,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -49,6 +51,7 @@ internal fun PresetRow(
         ) { Text("−", style = MaterialTheme.typography.headlineSmall) }
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             val slot = preset?.let(amp::slotOf)
+            val name = preset?.let { names.names[it] }
             Text(
                 text = preset?.toString() ?: "–",
                 style = MaterialTheme.typography.displaySmall,
@@ -56,13 +59,18 @@ internal fun PresetRow(
             )
             Text(
                 text =
-                    if (slot != null) {
+                    if (name != null) {
+                        name
+                    } else if (slot != null) {
                         stringResource(R.string.preset_bank_slot, slot.bank, slot.slot)
                     } else {
                         stringResource(R.string.preset)
                     },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("preset_label"),
             )
         }
         FilledTonalButton(
@@ -71,5 +79,5 @@ internal fun PresetRow(
             modifier = Modifier.size(64.dp).testTag("preset_up"),
         ) { Text("+", style = MaterialTheme.typography.headlineSmall) }
     }
-    if (picking) PresetGrid(panel, onClose = { picking = false })
+    if (picking) PresetGrid(panel, names, onClose = { picking = false })
 }

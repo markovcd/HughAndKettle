@@ -28,6 +28,8 @@ section becomes a version's section when `release.sh` ships it.
 - The GrandMeister 36 can be picked in the app and named in `hk` as `grandmeister_36`.
 - `hk fake-wmi --seconds N` runs the fake for N seconds, for scripts that hold no stdin open.
 - App and `hk cable`: drive the amp over a USB MIDI cable, with no WMI-1.
+- App and `hk preset`: name the amp's presets, shown in the preset grid and under the current preset.
+- App and `hk tone read`: read the amp's presets into tones named after them.
 - The app and `hk state` follow the knobs, switches and selectors turned on the amp, as the amp reports them.
 - The GrandMeister Deluxe 40 power soak shows its steps by wattage.
 - After a preset recall or channel switch, the app and `hk state` show the knobs the amp reports it is set to.

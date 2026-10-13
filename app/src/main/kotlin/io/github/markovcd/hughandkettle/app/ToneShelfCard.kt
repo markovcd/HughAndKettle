@@ -16,7 +16,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,9 +34,10 @@ import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Tone
 
 /**
- * The tones on the phone: save the panel as one, tap one to recall it, and a menu per tone to move,
- * rename, export or delete it. Tests find the parts by `tone_save`, `tone_import`, `tone:<name>`,
- * `tone_menu:<name>` and the menu's `tone_delete` and kin, and the dialog's field by `tone_name`.
+ * The tones on the phone: save the panel as one, read the amp's presets into them, tap one to recall
+ * it, and a menu per tone to move, rename, export or delete it. Tests find the parts by `tone_save`,
+ * `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tone:<name>`, `tone_menu:<name>`
+ * and the menu's `tone_delete` and kin, and the dialog's field by `tone_name`.
  */
 @Composable
 internal fun ToneShelfCard(
@@ -50,6 +50,7 @@ internal fun ToneShelfCard(
     var naming by remember { mutableStateOf<ToneNaming?>(null) }
     var deleting by remember { mutableStateOf<Tone?>(null) }
     var exporting by remember { mutableStateOf<Tone?>(null) }
+    var confirmingRead by remember { mutableStateOf(false) }
     val export =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TONE_FILE_TYPE)) { uri ->
             val tone = exporting
@@ -80,6 +81,29 @@ internal fun ToneShelfCard(
                     enabled = shelf.canSave,
                     modifier = Modifier.testTag("tone_save"),
                 ) { Text(stringResource(R.string.tone_save)) }
+            }
+            val reading = shelf.reading
+            if (reading == null) {
+                TextButton(
+                    onClick = { confirmingRead = true },
+                    enabled = enabled && shelf.canRead,
+                    modifier = Modifier.testTag("tone_read"),
+                ) { Text(stringResource(R.string.tone_read)) }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(
+                            R.string.tone_reading,
+                            reading.preset ?: reading.amp.presetCount,
+                            reading.amp.presetCount,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = shelf::stopReading, modifier = Modifier.testTag("tone_read_stop")) {
+                        Text(stringResource(R.string.tone_read_stop))
+                    }
+                }
             }
             shelf.notice?.let { notice ->
                 Text(
@@ -114,12 +138,30 @@ internal fun ToneShelfCard(
     naming?.let { current ->
         NameDialog(
             title = stringResource(if (current is ToneNaming.Existing) R.string.tone_rename else R.string.tone_save),
+            label = stringResource(R.string.tone_name),
             initial = (current as? ToneNaming.Existing)?.tone?.name ?: "",
             onDone = { name ->
                 naming = null
                 if (current is ToneNaming.Existing) shelf.rename(current.tone, name) else shelf.save(name)
             },
             onCancel = { naming = null },
+        )
+    }
+    if (confirmingRead) {
+        AlertDialog(
+            onDismissRequest = { confirmingRead = false },
+            text = { Text(stringResource(R.string.tone_read_explain)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingRead = false
+                    shelf.readPresets()
+                }, modifier = Modifier.testTag("tone_read_confirm")) { Text(stringResource(R.string.tone_read)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmingRead = false },
+                ) { Text(stringResource(R.string.cancel)) }
+            },
         )
     }
     deleting?.let { tone ->
@@ -196,43 +238,18 @@ private fun ToneRow(
 }
 
 @Composable
-private fun NameDialog(
-    title: String,
-    initial: String,
-    onDone: (String) -> Unit,
-    onCancel: () -> Unit,
-) {
-    var name by remember { mutableStateOf(initial) }
-    AlertDialog(
-        onDismissRequest = onCancel,
-        title = { Text(title) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(stringResource(R.string.tone_name)) },
-                singleLine = true,
-                modifier = Modifier.testTag("tone_name"),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onDone(name) },
-                enabled = name.isNotBlank(),
-                modifier = Modifier.testTag("tone_name_done"),
-            ) {
-                Text(stringResource(R.string.ok))
-            }
-        },
-        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
-    )
-}
-
-@Composable
 private fun words(notice: ToneNotice): String =
     when (notice) {
         is ToneNotice.Failed -> {
             stringResource(R.string.tone_failed, notice.reason)
+        }
+
+        is ToneNotice.Read -> {
+            if (notice.missed.isEmpty()) {
+                stringResource(R.string.tone_read_done, notice.count)
+            } else {
+                stringResource(R.string.tone_read_missed, notice.count, notice.missed.joinToString(", "))
+            }
         }
 
         is ToneNotice.Imported -> {

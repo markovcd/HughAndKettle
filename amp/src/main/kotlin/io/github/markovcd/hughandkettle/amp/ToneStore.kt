@@ -37,13 +37,22 @@ public class ToneStore(
     public fun save(
         tone: Tone,
         replace: Boolean = false,
+    ): Result<Unit> = save(listOf(tone), replace)
+
+    /** Saves [tones] in one change, each as [save] would; one refused refuses them all. */
+    public fun save(
+        tones: List<Tone>,
+        replace: Boolean = false,
     ): Result<Unit> =
-        change { entries ->
-            val index = entries.indexOfName(tone.name)
-            when {
-                index < 0 -> Result.success(entries + Entry(nextFile(entries), tone))
-                replace -> Result.success(entries.replaced(index, tone))
-                else -> refused("a tone named '${entries[index].tone.name}' exists")
+        change { before ->
+            tones.fold(Result.success(before)) { result, tone ->
+                val entries = result.getOrElse { return@fold result }
+                val index = entries.indexOfName(tone.name)
+                when {
+                    index < 0 -> Result.success(entries + Entry(nextFile(entries), tone))
+                    replace -> Result.success(entries.replaced(index, tone))
+                    else -> refused("a tone named '${entries[index].tone.name}' exists")
+                }
             }
         }
 

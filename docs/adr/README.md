@@ -14,3 +14,4 @@ sentence stating the decision. Check here before proposing a change of shape (th
 | [0007](0007-the-link-is-held-by-the-process-and-kept-alive-by-a-foreground-service.md) | The link is held by the process and kept alive by a foreground service while it is up |
 | [0008](0008-tones-are-files-of-raw-control-values-apart-from-the-amps-presets.md) | A tone is a file of raw control values, kept apart from the amp's presets |
 | [0009](0009-a-usb-midi-cable-reaches-the-amp-without-a-wmi-1.md) | A USB MIDI cable reaches the amp without a WMI-1 |
+| [0010](0010-preset-names-live-on-the-phone-and-presets-read-into-tones.md) | Preset names live on the phone, per amp model, and the amp's presets are read into tones |
