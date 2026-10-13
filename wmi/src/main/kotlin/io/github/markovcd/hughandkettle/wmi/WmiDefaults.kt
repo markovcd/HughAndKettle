@@ -15,6 +15,10 @@ import kotlin.time.Duration.Companion.seconds
  */
 public object WmiDefaults {
     public const val MIDI_PORT: Int = 1470
+
+    /** The box's own address on the network it makes in access point mode. */
+    public const val ACCESS_POINT_HOST: String = "192.168.1.1"
+
     public const val BROADCAST_PORT: Int = 48437
     public val BroadcastInterval: Duration = 2.seconds
     public val ConnectTimeout: Duration = 5.seconds

@@ -37,3 +37,4 @@ section becomes a version's section when `release.sh` ships it.
 
 - A real WMI-1 is found and reached: its ports are 48437 and 1470, and the link pings it so it stays up and passes on what the amp says.
 - App: a phone on the WMI-1's own WiFi finds and reaches it while mobile data is on.
+- App: the address starts as 192.168.1.1, where a WMI-1 sits on its own WiFi.

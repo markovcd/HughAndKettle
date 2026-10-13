@@ -36,7 +36,7 @@ class PanelState(
 ) {
     var amp by mutableStateOf(amp)
         private set
-    var host by mutableStateOf("")
+    var host by mutableStateOf(WmiDefaults.ACCESS_POINT_HOST)
     var port by mutableStateOf(WmiDefaults.MIDI_PORT.toString())
     var link by mutableStateOf(holder.state.value)
         private set
@@ -86,7 +86,7 @@ class PanelState(
         scope.launch {
             lastWmi.collect {
                 last = it
-                if (it != null && host.isBlank()) {
+                if (it != null && (host.isBlank() || host == WmiDefaults.ACCESS_POINT_HOST)) {
                     host = it.host
                     port = it.port.toString()
                 }

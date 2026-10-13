@@ -128,6 +128,11 @@ class PanelStateTest {
     }
 
     @Test
+    fun `The address starts as the WMI-1's own access point`() {
+        assertEquals("192.168.1.1" to "1470", panel.host to panel.port)
+    }
+
+    @Test
     fun `The last box fills empty fields and leaves typed ones alone`() {
         last.value = WmiAddress("192.168.1.20", 2001)
         assertEquals("192.168.1.20" to "2001", panel.host to panel.port)
