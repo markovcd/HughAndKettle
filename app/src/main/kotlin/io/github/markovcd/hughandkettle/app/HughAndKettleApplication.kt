@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
 import android.app.Application
+import android.net.ConnectivityManager
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlinx.coroutines.MainScope
@@ -11,7 +12,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
 
 /**
- * Holds what outlives a screen: the link to the WMI-1 or the cable, the service that keeps it while it is up, the
+ * Holds what outlives a screen: the route over WiFi, the link to the WMI-1 or the cable, the service that keeps it while it is up, the
  * last box it reached, the amp picked for each box, the folder of tones, and the theme picked.
  */
 class HughAndKettleApplication : Application() {
@@ -23,6 +24,7 @@ class HughAndKettleApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        getSystemService(ConnectivityManager::class.java)?.let { WifiRoute(it).start() }
         MainScope().launch {
             combine(link.state, link.cable) { state, cable -> state != LinkState.Idle || cable.active }
                 .distinctUntilChanged()
