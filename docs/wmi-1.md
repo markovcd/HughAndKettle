@@ -58,6 +58,11 @@ modulation type report 0 to 255, twice MIDI's resolution; switches and the other
 - Modulation is one knob, 12, whose sweep runs chorus, flanger, phaser, tremolo from the bottom.
 - The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95).
 - Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, so the sweep looks even.
+- Noise gate (63) and FX loop (55) report as their switches. Turning the noise gate's intensity
+  knob reports nothing, so like Master it is not on MIDI.
+- The footswitch's switches send the chart's controllers (modulation 52, delay 53, boost 64), and the
+  box passes them on to the client ahead of the amp's report. Tap tempo sends delay time (4) with
+  controller 36 at 0 or 64, which the manual does not list.
 
 Without a WMI-1, a USB MIDI cable reaches the amp directly; [cable.md](cable.md) says how, and how
 to find out what the amp sends.
