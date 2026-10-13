@@ -16,7 +16,9 @@ import io.github.markovcd.hughandkettle.amp.Section.Switching
  *
  * Controller numbers come from each manual's "MIDI implementation chart / controller list"
  * (Black Spirit 200 manual chapter 8.3; GrandMeister Deluxe 40 manual chapter 8.3; GrandMeister 36
- * manual chapter 8.2). Selector
+ * manual chapter 8.2). The charts list Gain and Volume twice, "soft" on 20 and 7 and "hard" on 56 and
+ * 57; only the hard ones are here, since the amp reports its own knobs on them and lands where they say.
+ * Selector
  * option names are the manual's where it gives them; TODO.md tracks the ones still to be read
  * off the hardware.
  */
@@ -32,13 +34,13 @@ public object AmpModels {
             Control("boost", "Boost", 64, Switch, Switching),
             Control("noise_gate", "Noise gate", 63, Switch, Switching),
             Control("mute", "Mute", 9, Switch, Switching),
-            Control("gain", "Gain", 20, Knob, Amp),
-            Control("bass", "Bass", 21, Knob, Amp),
+            Control("gain", "Gain", 56, Knob, Amp),
+            Control("volume", "Volume", 57, Knob, Amp),
+            Control("bass", "Bass", 21, Knob, Amp, startsGroup = true),
             Control("mid", "Mid", 22, Knob, Amp),
             Control("treble", "Treble", 23, Knob, Amp),
-            Control("resonance", "Resonance", 24, Knob, Amp),
+            Control("resonance", "Resonance", 24, Knob, Amp, startsGroup = true),
             Control("presence", "Presence", 25, Knob, Amp),
-            Control("volume", "Volume", 7, Knob, Amp),
             Control("modulation", "Modulation", 52, Switch, Fx),
             Control("modulation_type", "Modulation type", 12, modulationTypes, Fx, needs = "modulation", fine = true),
             Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx, needs = "modulation"),
@@ -50,8 +52,6 @@ public object AmpModels {
             Control("reverb", "Reverb", 54, Switch, Fx),
             Control("reverb_volume", "Reverb volume", 29, Knob, Fx, needs = "reverb"),
             Control("fx_loop", "FX loop", 55, Switch, Fx),
-            Control("gain_hard", "Gain (hard)", 56, Knob, Extras),
-            Control("volume_hard", "Volume (hard)", 57, Knob, Extras),
         )
 
     public val blackSpirit200: AmpModel =

@@ -22,7 +22,7 @@ class AmpModelsTest {
         val chart = AmpModels.blackSpirit200.controls.associate { it.id to it.controller }
         val fromManual =
             mapOf(
-                "gain" to 20,
+                "gain" to 56,
                 "channel" to 31,
                 "cabinet" to 58,
                 "sagging" to 59,
@@ -58,21 +58,31 @@ class AmpModelsTest {
                 "mute" to 9,
                 "power_soak" to 30,
                 "channel" to 31,
-                "volume_hard" to 57,
+                "volume" to 57,
                 "noise_gate" to 63,
                 "boost" to 64,
             )
         assertEquals(fromManual, chart.filterKeys { it in fromManual })
+        // The manual's soft Gain and Volume, 20 and 7, are left out for the hard ones.
         val manualControllers =
-            listOf(1, 4, 7, 9, 12, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 52, 53, 54, 55, 56, 57, 63, 64)
+            listOf(1, 4, 9, 12, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 52, 53, 54, 55, 56, 57, 63, 64)
         assertEquals(manualControllers, chart.values.sorted())
         assertEquals(PresetSlot(32, 4), AmpModels.grandMeister36.slotOf(128))
     }
 
     @Test
+    fun `Gain and Volume are the controllers the amp reports its own knobs on`() {
+        AmpModels.all.forEach { amp ->
+            assertEquals(56, amp.control("gain")?.controller, amp.name)
+            assertEquals(57, amp.control("volume")?.controller, amp.name)
+            assertTrue(amp.controls.none { it.controller == 20 || it.controller == 7 }, amp.name)
+        }
+    }
+
+    @Test
     fun `Setting a knob sends its controller on the given channel`() {
         val gain = AmpModels.blackSpirit200.control("gain")!!
-        assertEquals(ControlChange(MidiChannel(2), 20, 100), gain.set(100, MidiChannel(2)))
+        assertEquals(ControlChange(MidiChannel(2), 56, 100), gain.set(100, MidiChannel(2)))
     }
 
     @Test

@@ -60,7 +60,7 @@ modulation type report 0 to 255, twice MIDI's resolution; switches and the other
 - The controllers are the MIDI chart's, with one exception: the panel's Gain and Volume report as
   56 and 57 (the chart's "hard" variants), and so does a control change on 20 or 7. A change on 20
   does not land where a change on 56 does (20 at 30 reported 8 of 255; 56 at 100 reported 201), so
-  the two are kept apart. Master is not on MIDI.
+  the app's Gain and Volume send on 56 and 57 and leave 20 and 7 alone. Master is not on MIDI.
 - Modulation is one knob, 12, whose sweep runs chorus, flanger, phaser, tremolo from the bottom.
 - The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95).
 - Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, so the sweep looks even.

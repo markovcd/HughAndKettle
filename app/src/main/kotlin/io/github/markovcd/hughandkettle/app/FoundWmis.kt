@@ -90,4 +90,4 @@ private fun WmiRow(
     }
 }
 
-private fun WmiBroadcast.wmiAddress(): WmiAddress = WmiAddress(address.hostAddress ?: "$address", midiPort)
+internal fun WmiBroadcast.wmiAddress(): WmiAddress = WmiAddress(address.hostAddress ?: "$address", midiPort)

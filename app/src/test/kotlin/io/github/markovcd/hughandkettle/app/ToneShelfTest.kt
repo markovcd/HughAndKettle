@@ -107,7 +107,7 @@ class ToneShelfTest {
             generateSequence {
                 seen.poll(5, TimeUnit.SECONDS)
             }.filterIsInstance<FakeWmiEvent.Received>().take(3).toList()
-        assertEquals(listOf(31, 20, 7), received.map { (it.message as ControlChange).controller })
+        assertEquals(listOf(31, 56, 57), received.map { (it.message as ControlChange).controller })
         assertEquals(mapOf("volume" to 90, "gain" to 100, "channel" to 79), panel.state.values)
     }
 

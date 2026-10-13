@@ -1,45 +1,40 @@
 package io.github.markovcd.hughandkettle.app
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.R
-import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /**
- * A status line that is never hidden, the USB MIDI cables plugged in and the WMI-1s heard on the
- * network while there is no link, then address, port and one button for a box discovery does not find.
+ * A status line, then, while there is no link, the USB MIDI cables plugged in, the WMI-1s heard on the
+ * network, and address and port behind "Enter address" for a box discovery does not find. A box heard
+ * is [offered][PanelState.offered] to the panel, which may link to it by itself.
  */
 @Composable
 internal fun LinkCard(
@@ -47,6 +42,7 @@ internal fun LinkCard(
     discovery: DiscoveryState,
     modifier: Modifier = Modifier,
 ) {
+    var typing by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -57,32 +53,19 @@ internal fun LinkCard(
             if (panel.idle) {
                 FoundCables(panel.cables, onPick = panel::connect)
                 FoundWmis(discovery, panel.last, onPick = panel::connect)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
-                OutlinedTextField(
-                    value = panel.host,
-                    onValueChange = { panel.host = it },
-                    label = { Text(stringResource(R.string.host)) },
-                    singleLine = true,
-                    enabled = panel.idle,
-                    textStyle = MaterialTheme.typography.bodyLarge,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).testTag("host"),
-                )
-                OutlinedTextField(
-                    value = panel.port,
-                    onValueChange = { panel.port = it },
-                    label = { Text(stringResource(R.string.port)) },
-                    singleLine = true,
-                    enabled = panel.idle,
-                    textStyle = MaterialTheme.typography.bodyLarge,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.width(96.dp).testTag("port"),
-                )
-            }
-            if (panel.idle) {
-                Button(onClick = panel::connect, modifier = Modifier.fillMaxWidth().height(48.dp).testTag("connect")) {
-                    Text(stringResource(R.string.connect))
+                LaunchedEffect(discovery.found) { panel.offered(discovery.found.map { it.wmiAddress() }) }
+                if (typing) {
+                    AddressFields(panel)
+                    Button(
+                        onClick = panel::connect,
+                        modifier = Modifier.fillMaxWidth().height(48.dp).testTag("connect"),
+                    ) {
+                        Text(stringResource(R.string.connect))
+                    }
+                } else {
+                    TextButton(onClick = { typing = true }, modifier = Modifier.testTag("enter_address")) {
+                        Text(stringResource(R.string.enter_address))
+                    }
                 }
             } else {
                 OutlinedButton(
@@ -99,38 +82,24 @@ internal fun LinkCard(
 @Composable
 private fun StatusLine(panel: PanelState) {
     val failure = panel.failure
-    val link = panel.link
-    val cable = panel.cable
     val colors = MaterialTheme.colorScheme
-    val warning = failure != null || link is LinkState.Retrying || cable is CableState.Failed
+    val warning = panel.warning
     val band = if (warning) Modifier.background(colors.errorContainer, RoundedCornerShape(8.dp)) else Modifier
     val resources = LocalResources.current
-    val text = if (failure != null) LinkWords.of(failure, resources) else LinkWords.of(link, cable, resources)
+    val text =
+        if (failure !=
+            null
+        ) {
+            LinkWords.of(failure, resources)
+        } else {
+            LinkWords.of(panel.link, panel.cable, resources)
+        }
     Row(
         modifier = band.defaultMinSize(minHeight = 36.dp).padding(horizontal = 10.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        when {
-            warning -> {
-                WarningTriangle(colors.error)
-            }
-
-            panel.linked -> {
-                Box(Modifier.size(14.dp).background(colors.primary, CircleShape))
-            }
-
-            link is LinkState.Connecting || cable is CableState.Opening -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.4.dp,
-                )
-            }
-
-            else -> {
-                Box(Modifier.size(14.dp).border(2.dp, colors.outline, CircleShape))
-            }
-        }
+        LinkGlyph(panel)
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
@@ -141,20 +110,27 @@ private fun StatusLine(panel: PanelState) {
 }
 
 @Composable
-private fun WarningTriangle(color: Color) {
-    Canvas(Modifier.size(18.dp, 16.dp)) {
-        val w = size.width
-        val h = size.height
-        val stroke = 2.dp.toPx()
-        val outline =
-            Path().apply {
-                moveTo(w / 2, stroke / 2)
-                lineTo(w - stroke / 2, h - stroke / 2)
-                lineTo(stroke / 2, h - stroke / 2)
-                close()
-            }
-        drawPath(outline, color, style = Stroke(stroke, join = StrokeJoin.Round))
-        drawLine(color, Offset(w / 2, h * 0.4f), Offset(w / 2, h * 0.62f), strokeWidth = stroke)
-        drawCircle(color, radius = stroke * 0.55f, center = Offset(w / 2, h * 0.77f))
+private fun AddressFields(panel: PanelState) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+        OutlinedTextField(
+            value = panel.host,
+            onValueChange = { panel.host = it },
+            label = { Text(stringResource(R.string.host)) },
+            singleLine = true,
+            enabled = panel.idle,
+            textStyle = MaterialTheme.typography.bodyLarge,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.weight(1f).testTag("host"),
+        )
+        OutlinedTextField(
+            value = panel.port,
+            onValueChange = { panel.port = it },
+            label = { Text(stringResource(R.string.port)) },
+            singleLine = true,
+            enabled = panel.idle,
+            textStyle = MaterialTheme.typography.bodyLarge,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.width(96.dp).testTag("port"),
+        )
     }
 }

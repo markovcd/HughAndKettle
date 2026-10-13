@@ -36,9 +36,11 @@ class LinkCardTest {
     }
 
     @Test
-    fun `Connecting with no address says what is missing and leaves the fields editable`() {
+    fun `The address hides behind Enter address, and connecting with none says what is missing`() {
         val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
         compose.setContent { LinkCard(panel, DiscoveryState(WmiDiscovery(0))) }
+        compose.onNodeWithTag("host").assertDoesNotExist()
+        compose.onNodeWithTag("enter_address").performClick()
         compose.onNodeWithTag("host").performTextClearance()
         compose.onNodeWithTag("connect").performClick()
         compose.onNodeWithTag("status").assertTextContains("Enter the WMI-1 address", substring = true)

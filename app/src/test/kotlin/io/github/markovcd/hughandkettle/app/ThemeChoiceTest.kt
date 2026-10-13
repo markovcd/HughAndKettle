@@ -14,12 +14,4 @@ class ThemeChoiceTest {
         val texts = listOf(null, "", "light", "1 sepia", "2 light", "x light")
         assertEquals(texts.map { ThemeChoice.Dark }, texts.map(ThemeChoice::read))
     }
-
-    @Test
-    fun `The theme button steps dark, light, as the phone, then dark again`() {
-        assertEquals(
-            listOf(ThemeChoice.Light, ThemeChoice.System, ThemeChoice.Dark),
-            generateSequence(ThemeChoice.Dark.next) { it.next }.take(3).toList(),
-        )
-    }
 }

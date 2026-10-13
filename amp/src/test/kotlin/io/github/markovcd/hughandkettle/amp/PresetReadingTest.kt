@@ -25,7 +25,7 @@ class PresetReadingTest {
         reading = reading.after(block(2, 200))
         assertNull(reading.next)
         assertEquals(listOf("Preset 1", "2 Lead"), reading.tones.map { it.name })
-        assertEquals(listOf(30 to 50, 100 to 50), reading.tones.map { it.values["gain_hard"] to it.values["bass"] })
+        assertEquals(listOf(30 to 50, 100 to 50), reading.tones.map { it.values["gain"] to it.values["bass"] })
     }
 
     @Test

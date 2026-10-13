@@ -59,6 +59,9 @@ class PanelState(
     var last by mutableStateOf<WmiAddress?>(null)
         private set
 
+    /** Whether a box heard is linked to without a tap; off from a disconnect until the next connect. */
+    private var linksByItself = true
+
     private var choices: Map<WmiAddress, AmpModel> = emptyMap()
     private var choicesRead = false
     private var taps = TapTempo()
@@ -142,6 +145,19 @@ class PanelState(
     /** True while messages reach the amp, over a WMI-1 or a cable. */
     val linked: Boolean get() = link is LinkState.Connected || cable is CableState.Open
 
+    /** True while something is wrong that the person should look at. */
+    val warning: Boolean
+        get() = failure != null || link is LinkState.Retrying || cable is CableState.Failed
+
+    /**
+     * The boxes heard on the network. While idle, the panel links by itself to the last box used when it is
+     * among them, else to the only one heard.
+     */
+    fun offered(boxes: List<WmiAddress>) {
+        if (!idle || !linksByItself) return
+        connect(last?.takeIf { it in boxes } ?: boxes.singleOrNull() ?: return)
+    }
+
     fun connect() {
         val address = WmiAddress.parse("${host.trim()}:${port.trim()}")
         if (address == null) {
@@ -156,6 +172,7 @@ class PanelState(
         host = address.host
         port = address.port.toString()
         failure = null
+        linksByItself = true
         holder.connect(address)
     }
 
@@ -166,6 +183,7 @@ class PanelState(
     }
 
     fun disconnect() {
+        linksByItself = false
         failure = null
         holder.stop()
     }

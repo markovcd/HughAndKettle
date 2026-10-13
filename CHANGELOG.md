@@ -16,13 +16,15 @@ section becomes a version's section when `release.sh` ships it.
 - App: the link stays up with the screen off, shown in a notification that can end it.
 - `hk tone` saves, recalls, lists, renames, reorders, deletes, exports and imports tones.
 - App: save the panel as a named tone, recall it with a tap, and move tones between phones as files.
-- App: dark by default, with light or the phone's own setting a tap away, and remembered.
-- App: a tablet in landscape shows the controls in a pane of their own, six knobs to a row.
+- App: dark by default, with light or the phone's own setting in the settings menu, and remembered.
+- App: in landscape the effects get a column of their own beside the amp.
 - App: opens on a splash of its kettle mark on the dark stage.
 - App: pick the amp from its name on the panel; the pick is remembered for each WMI-1.
 - `hk latency` measures how long a control change takes to reach a fake WMI-1 on the same machine.
 - Delay time shows in milliseconds, takes a tapped beat in the app, and `hk set` takes `520ms`.
 - App: a tap on the preset opens a grid of all 128 to jump to.
+- App: connects by itself to the last WMI-1 used or the only one heard, and once linked the connection folds into a status glyph.
+- Gain and Volume move the amp's own knobs, landing where the amp reports them.
 - App: a control the amp reports moving is outlined until it is set from the phone.
 - App: an effect's knobs are dimmed while the effect is switched off.
 - The GrandMeister 36 can be picked in the app and named in `hk` as `grandmeister_36`.

@@ -119,6 +119,34 @@ class PanelStateTest {
     }
 
     @Test
+    fun `The only box heard while idle is linked to without a tap`() {
+        val box = WmiAddress("127.0.0.1", fake.port)
+        panel.offered(listOf(box))
+        until("connected") { it.link == LinkState.Connected(box) }
+    }
+
+    @Test
+    fun `Of several boxes heard, the last one used is linked to and none is when it is not among them`() {
+        val box = WmiAddress("127.0.0.1", fake.port)
+        val other = WmiAddress("127.0.0.2", fake.port)
+        last.value = WmiAddress("127.0.0.3", fake.port)
+        panel.offered(listOf(other, box))
+        assertEquals(LinkState.Idle, panel.link)
+        last.value = box
+        panel.offered(listOf(other, box))
+        until("connected") { it.link == LinkState.Connected(box) }
+    }
+
+    @Test
+    fun `After a disconnect a box heard waits for a tap`() {
+        connected()
+        panel.disconnect()
+        until("idle") { it.link == LinkState.Idle }
+        panel.offered(listOf(WmiAddress("127.0.0.1", fake.port)))
+        assertEquals(LinkState.Idle, panel.link)
+    }
+
+    @Test
     fun `A port that is not a number asks for an address and starts nothing`() {
         panel.host = "127.0.0.1"
         panel.port = "twenty"

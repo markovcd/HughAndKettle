@@ -9,7 +9,8 @@ import io.github.markovcd.hughandkettle.midi.MidiChannel
  * [id] is written into tone files and is never renamed once shipped; [name] is what a person reads.
  * [scale] is what the knob's value means on the amp, where the manual gives it. [needs] is the id of
  * the effect switch this control is heard through, so it does nothing while that switch is off.
- * [fine] says the amp [reports][ControlReport] it in 256 steps rather than 128.
+ * [fine] says the amp [reports][ControlReport] it in 256 steps rather than 128. [startsGroup] says
+ * this knob and the ones after it belong together, as the EQ does, and are kept on one row.
  */
 public data class Control(
     val id: String,
@@ -20,6 +21,7 @@ public data class Control(
     val scale: Scale? = null,
     val needs: String? = null,
     val fine: Boolean = kind == ControlKind.Knob,
+    val startsGroup: Boolean = false,
 ) {
     init {
         require(id.matches(Regex("[a-z][a-z0-9_]*"))) { "control id must be snake_case, got '$id'" }

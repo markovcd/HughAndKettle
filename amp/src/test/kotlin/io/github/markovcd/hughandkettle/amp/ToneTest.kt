@@ -13,13 +13,13 @@ class ToneTest {
     fun `A tone recalls its values in the amp's panel order and nothing else`() {
         val tone = Tone("Lead", amp, mapOf("volume" to 90, "gain" to 100, "channel" to 79))
         val sent = tone.recall().map { it.controller }
-        assertEquals(listOf(31, 20, 7), sent)
+        assertEquals(listOf(31, 56, 57), sent)
     }
 
     @Test
     fun `A tone recalls on the MIDI channel it is asked to`() {
         val tone = Tone("Lead", amp, mapOf("gain" to 100))
-        assertEquals(listOf(ControlChange(MidiChannel(5), 20, 100)), tone.recall(MidiChannel(5)))
+        assertEquals(listOf(ControlChange(MidiChannel(5), 56, 100)), tone.recall(MidiChannel(5)))
     }
 
     @Test

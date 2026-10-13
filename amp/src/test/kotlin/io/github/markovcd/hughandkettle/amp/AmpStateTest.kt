@@ -78,10 +78,10 @@ class AmpStateTest {
         val state = AmpState(grandMeister).after(grandMeister.recall(125)).after(block)
         assertEquals(125, state.preset)
         assertEquals(
-            mapOf("gain_hard" to 15, "bass" to 10, "presence" to 63, "delay_time" to 110),
+            mapOf("gain" to 15, "bass" to 10, "presence" to 63, "delay_time" to 110),
             state.values.filterKeys {
                 it in
-                    setOf("gain_hard", "bass", "presence", "delay_time")
+                    setOf("gain", "bass", "presence", "delay_time")
             },
         )
     }

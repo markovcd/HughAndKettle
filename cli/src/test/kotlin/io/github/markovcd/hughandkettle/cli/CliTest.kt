@@ -176,7 +176,7 @@ class CliTest {
     fun `Setting a control by name sends its controller and names it in the JSON line`() {
         val cases =
             listOf(
-                listOf("gain", "100") to ControlChange(MidiChannel(1), 20, 100),
+                listOf("gain", "100") to ControlChange(MidiChannel(1), 56, 100),
                 listOf("boost", "on") to ControlChange(MidiChannel(1), 64, 127),
                 listOf("channel", "lead") to ControlChange(MidiChannel(1), 31, 79),
             )
@@ -226,7 +226,7 @@ class CliTest {
         val listening = started("state", "127.0.0.1:${fake.port}", "black_spirit_200", "--seconds", "1")
         assertTrue(next() is FakeWmiEvent.Opened)
         fake.emit(ProgramChange(MidiChannel(1), 4))
-        fake.emit(ControlChange(MidiChannel(1), 20, 90))
+        fake.emit(ControlChange(MidiChannel(1), 56, 90))
         val run = listening.get(10, TimeUnit.SECONDS)
         assertEquals(ExitCodes.OK, run.code, run.err)
         assertEquals("""{"amp":"black_spirit_200","preset":5,"values":{"gain":90}}""", run.out.trim())

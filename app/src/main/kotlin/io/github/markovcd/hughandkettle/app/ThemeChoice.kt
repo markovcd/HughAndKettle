@@ -16,9 +16,6 @@ enum class ThemeChoice(
     System("system", R.string.theme_system),
     ;
 
-    /** The choice a tap on the theme button moves to. */
-    val next: ThemeChoice get() = entries[(ordinal + 1) % entries.size]
-
     fun write(): String = "$VERSION $id"
 
     companion object {

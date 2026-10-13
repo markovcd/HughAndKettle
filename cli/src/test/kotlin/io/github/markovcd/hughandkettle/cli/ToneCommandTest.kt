@@ -101,8 +101,8 @@ class ToneCommandTest {
         val events = generateSequence { seen.poll(5, TimeUnit.SECONDS) }.take(3).toList()
         assertEquals(
             listOf(
-                FakeWmiEvent.Received(ControlChange(MidiChannel(1), 20, 40)),
-                FakeWmiEvent.Received(ControlChange(MidiChannel(1), 7, 90)),
+                FakeWmiEvent.Received(ControlChange(MidiChannel(1), 56, 40)),
+                FakeWmiEvent.Received(ControlChange(MidiChannel(1), 57, 90)),
             ),
             events.filterIsInstance<FakeWmiEvent.Received>(),
         )
@@ -201,7 +201,7 @@ class ToneCommandTest {
         }
         assertEquals(listOf("Preset 1", "2 Lead"), names())
         val lead = ok("list").lines().last()
-        assertTrue(""""bass":50""" in lead && """"gain_hard":1""" in lead, lead)
+        assertTrue(""""bass":50""" in lead && """"gain":1""" in lead, lead)
     }
 
     @Test

@@ -8,12 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,10 +26,10 @@ import io.github.markovcd.hughandkettle.amp.Section
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * The whole screen: the amp picker and the theme button, the link card, the preset and the tones, then
- * the controls by section, knobs several to a row and switches and selectors a row each. Wider than
- * [TWO_PANES_FROM], as a tablet in landscape, the controls get a pane of their own to the right with
- * six knobs to a row. Tests find the panes by `panel` and `controls`, and a control's row by `control:<id>`.
+ * The whole screen: the amp picker, the link's glyph and the settings, the link card while there is no
+ * link, the preset and the tones, then the controls by section, knobs several to a row and switches and
+ * selectors a row each. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the effects
+ * and extras get a pane of their own to the right. Tests find the panes by `panel` and `controls`, and a control's row by `control:<id>`.
  */
 @Composable
 fun AmpPanel(
@@ -48,21 +46,22 @@ fun AmpPanel(
         if (maxWidth < TWO_PANES_FROM) {
             LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), modifier = Modifier.testTag("panel")) {
                 head(panel, discovery, shelf, presetNames, theme, onTheme, enabled)
-                controls(panel, enabled, PanelRows.KNOBS_PER_ROW)
+                controls(panel, enabled, Section.entries)
             }
         } else {
             Row {
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 24.dp),
-                    modifier = Modifier.width(HEAD_PANE_WIDTH).testTag("panel"),
+                    modifier = Modifier.weight(1f).testTag("panel"),
                 ) {
                     head(panel, discovery, shelf, presetNames, theme, onTheme, enabled)
+                    controls(panel, enabled, Section.entries - EFFECTS_PANE)
                 }
                 LazyColumn(
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                     modifier = Modifier.weight(1f).testTag("controls"),
                 ) {
-                    controls(panel, enabled, WIDE_KNOBS_PER_ROW)
+                    controls(panel, enabled, EFFECTS_PANE)
                 }
             }
         }
@@ -84,12 +83,11 @@ private fun LazyListScope.head(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AmpPicker(panel, Modifier.weight(1f))
-            TextButton(onClick = { onTheme(theme.next) }, modifier = Modifier.testTag("theme")) {
-                Text(stringResource(theme.label))
-            }
+            LinkButton(panel, discovery)
+            SettingsMenu(theme, onTheme)
         }
     }
-    item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }
+    if (panel.idle) item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }
     item {
         PresetRow(
             panel,
@@ -104,20 +102,19 @@ private fun LazyListScope.head(
 private fun LazyListScope.controls(
     panel: PanelState,
     enabled: Boolean,
-    knobsPerRow: Int,
+    sections: List<Section>,
 ) {
-    Section.entries.forEach { section ->
+    sections.forEach { section ->
         val controls = panel.amp.controls.filter { it.section == section }
         if (controls.isEmpty()) return@forEach
         item(key = "section:$section") { SectionLabel(section) }
-        PanelRows.of(controls, knobsPerRow).forEach { row ->
+        PanelRows.of(controls).forEach { row ->
             item(key = row.joinToString(",") { it.id }) {
                 ControlRow(
                     row,
                     panel,
                     enabled,
                     Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED),
-                    knobsPerRow,
                 )
             }
         }
@@ -125,7 +122,7 @@ private fun LazyListScope.controls(
 }
 
 /**
- * One row of the panel: up to [knobsPerRow] knobs, or one switch or selector, each described by its
+ * One row of the panel: up to [PanelRows.KNOBS_PER_ROW] knobs, or one switch or selector, each described by its
  * control's name, dimmed while its effect is off and outlined while the amp has moved it.
  */
 @Composable
@@ -134,7 +131,6 @@ internal fun ControlRow(
     panel: PanelState,
     enabled: Boolean,
     modifier: Modifier = Modifier,
-    knobsPerRow: Int = PanelRows.KNOBS_PER_ROW,
 ) {
     val first = row.first()
     val markColor = MaterialTheme.colorScheme.tertiary
@@ -163,7 +159,7 @@ internal fun ControlRow(
                             },
                     )
                 }
-                repeat(knobsPerRow - row.size) { Box(Modifier.weight(1f)) }
+                repeat(PanelRows.KNOBS_PER_ROW - row.size) { Box(Modifier.weight(1f)) }
             }
         }
 
@@ -183,7 +179,6 @@ internal fun ControlRow(
 
 private const val DIMMED = 0.38f
 
-// Material's expanded width: a tablet in landscape, or an unfolded phone.
+// Material's expanded width: a phone or a tablet in landscape, or an unfolded phone.
 private val TWO_PANES_FROM = 840.dp
-private val HEAD_PANE_WIDTH = 400.dp
-private const val WIDE_KNOBS_PER_ROW = 6
+private val EFFECTS_PANE = listOf(Section.Fx, Section.Extras)
