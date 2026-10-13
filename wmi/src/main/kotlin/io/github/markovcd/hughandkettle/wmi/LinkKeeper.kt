@@ -33,6 +33,9 @@ public class LinkKeeper(
     private var openers = 0
     private var closing = false
 
+    // A link's reader can hear it close before this thread hears it open; that loss waits for the open.
+    private var lostEarly: LinkFailure? = null
+
     private val worker = thread(name = "wmi-link-keeper", isDaemon = true) { run() }
 
     public fun connect(address: WmiAddress) {
@@ -78,6 +81,7 @@ public class LinkKeeper(
                     if (input.generation == generation && !closing) {
                         link = input.link
                         move(LinkEvent.Opened)
+                        lostEarly?.let { move(LinkEvent.Failed(it)) }
                     } else {
                         input.link.close()
                     }
@@ -89,7 +93,13 @@ public class LinkKeeper(
                 }
 
                 is Input.Lost -> {
-                    if (input.generation == generation && !closing) move(LinkEvent.Failed(input.failure))
+                    if (input.generation == generation && !closing) {
+                        if (state is LinkState.Connecting) {
+                            lostEarly = input.failure
+                        } else {
+                            move(LinkEvent.Failed(input.failure))
+                        }
+                    }
                 }
 
                 Input.Close -> {
@@ -107,6 +117,7 @@ public class LinkKeeper(
         if (after !is LinkState.Connected) {
             // Anything but the step to connected ends the attempt in hand; late news from it is ignored.
             generation++
+            lostEarly = null
             link?.close()
             link = null
         }

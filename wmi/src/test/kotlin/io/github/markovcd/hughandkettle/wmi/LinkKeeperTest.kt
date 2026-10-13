@@ -7,6 +7,7 @@ import io.github.markovcd.hughandkettle.midi.ProgramChange
 import java.net.ServerSocket
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -106,5 +107,32 @@ class LinkKeeperTest {
         keeper.close()
         assertTrue(keeper.awaitClosed(5.seconds))
         assertEquals(LinkState.Idle, keeper.state)
+    }
+
+    @Test
+    fun `A box that hangs up the moment it answers was still connected before the link was lost`() {
+        val box = ServerSocket(0)
+        val hangingUp =
+            thread(isDaemon = true) {
+                runCatching { while (true) box.accept().close() }
+            }
+        val address = WmiAddress("127.0.0.1", box.localPort)
+        // The hang-up races the keeper's own news of the open, so it is run enough times to lose the race.
+        val wrong =
+            (1..ROUNDS).mapNotNull { round ->
+                keeper.connect(address)
+                assertEquals(LinkState.Connecting(address, 1), nextState())
+                val after = nextState()
+                keeper.stop()
+                generateSequence { nextState() }.first { it == LinkState.Idle }
+                after.takeIf { it != LinkState.Connected(address) }?.let { "round $round: $it" }
+            }
+        box.close()
+        hangingUp.join(5_000)
+        assertEquals(emptyList(), wrong.take(3))
+    }
+
+    private companion object {
+        const val ROUNDS = 300
     }
 }
