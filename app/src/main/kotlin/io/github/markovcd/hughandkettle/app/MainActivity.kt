@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
             val discovery = remember { DiscoveryState() }
             val shelf = remember { ToneShelf(app.tones, panel, scope) }
             val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)
+            AskForLocalNetwork()
             AskForNotifications(linked = !panel.idle)
             HughAndKettleTheme(
                 dark =
@@ -58,6 +59,18 @@ class MainActivity : ComponentActivity() {
                     AmpPanel(panel, discovery, shelf, theme, onTheme = { scope.launch { app.theme.pick(it) } })
                 }
             }
+        }
+    }
+
+    /** Without the grant, Android 17 silently drops every packet to and from the WMI-1, so ask before anything else. */
+    @Composable
+    private fun AskForLocalNetwork() {
+        if (Build.VERSION.SDK_INT < LOCAL_NETWORK_GRANTED_SINCE) return
+        val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+        LaunchedEffect(Unit) {
+            val granted =
+                checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
+            if (!granted) ask.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
         }
     }
 
@@ -71,5 +84,10 @@ class MainActivity : ComponentActivity() {
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
             if (linked && !granted) ask.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    private companion object {
+        // Android 17, the first release that gates the local network behind a grant.
+        const val LOCAL_NETWORK_GRANTED_SINCE = 37
     }
 }

@@ -37,6 +37,7 @@ section becomes a version's section when `release.sh` ships it.
 
 - A real WMI-1 is found and reached: its ports are 48437 and 1470, and the link pings it so it stays up and passes on what the amp says.
 - App: a phone on the WMI-1's own WiFi finds and reaches it while mobile data is on.
+- App: asks for Android 17's local network access, without which it cannot reach the WMI-1.
 - App: the address starts as 192.168.1.1, where a WMI-1 sits on its own WiFi.
 - App: the amp picked before connecting is kept for the box the app then connects to.
 - A WMI-1 that never answers is reported as such, with a hint to check the phone's WiFi.
