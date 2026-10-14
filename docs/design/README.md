@@ -5,7 +5,9 @@ compared against it. The source is the canvas at
 <https://claude.ai/artifact/YVnSyknwXv1ipS6gtUE85n> (twelve artboards: icon, colors, type, the panel
 on a phone in both schemes and on a tablet, the link row in six states, the knob, switch and selector
 rows, the discovery list, the preset strip, and notes). It answers the brief in
-[docs/handoff/02-design-brief.md](../handoff/02-design-brief.md).
+[docs/handoff/02-design-brief.md](../handoff/02-design-brief.md). The panel's layout on a phone (tabs
+for the amp, its effects and the tones; the effects as cards that open one at a time) comes from a
+later canvas, <https://claude.ai/artifact/GKDcRqbYY7phHbe3Nj91ZU>, drawn in this record's colors and type.
 
 What lands where:
 
@@ -15,7 +17,7 @@ What lands where:
 | Splash: the icon's foreground on the dark surface | `Theme.HughAndKettle.Starting` in `res/values*/themes.xml`, `drawable/splash.xml` below Android 12 |
 | Colors ([colors.md](colors.md)) | `app/src/main/kotlin/.../app/theme/Palette.kt`, `HughAndKettleTheme.kt` |
 | Type ([type.md](type.md)), fonts under [fonts/](fonts/) | `app/src/main/res/font/`, `.../app/theme/Type.kt` |
-| Components and states | `.../app/AmpPanel.kt` and the row composables beside it |
+| Components and states | `.../app/AmpPanel.kt`, its tabs `AmpTab.kt` and `FxTab.kt`, and the composables beside them |
 
 ## The idea
 
@@ -73,8 +75,8 @@ surfaceContainerHighest, the value arc and the cap in primary, a notch cut from 
 |---|---|
 | Knob | `Canvas` plus `Modifier.pointerInput` for the drag; `progressBarRangeInfo` semantics. No sliders anywhere. |
 | Switch row | Material 3 `Switch` with a check icon as thumb content when on; row 56 tall |
-| Selector, 2 to 4 options | `SingleChoiceSegmentedButtonRow`, 56 tall on a phone, 64 on a tablet |
-| Selector, 5 to 8 options | `FlowRow` of toggleable buttons, 3 per row on a phone, 48 tall |
+| Selector, 2 to 5 options | `SingleChoiceSegmentedButtonRow`, 48 tall |
+| Selector, 6 to 8 options | `FlowRow` of toggleable buttons, 3 per row on a phone, 48 tall |
 | Link row | two `OutlinedTextField` in Plex Mono 16, one `Button` (Connect, filled) or `OutlinedButton` (Disconnect) |
 
 Every existing `testTag` stays; the redesign changes themes and modifiers only.

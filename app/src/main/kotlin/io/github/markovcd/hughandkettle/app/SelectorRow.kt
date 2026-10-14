@@ -26,7 +26,7 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Sectors
 
-/** Up to four options as one row of large segments, as the channels; more as chips, three to a row. A sector change ticks. */
+/** Up to five options as one row of large segments, as the power soak; more as chips, three to a row. A sector change ticks. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SelectorRow(
@@ -56,12 +56,12 @@ internal fun SelectorRow(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(control.name, style = MaterialTheme.typography.labelLarge)
-            Text(selector.options[picked], style = MaterialTheme.typography.headlineSmall)
+            Text(selector.options[picked], style = MaterialTheme.typography.titleMedium)
         }
         if (count <= SEGMENTS_AT_MOST) {
             SingleChoiceSegmentedButtonRow(
                 modifier =
-                    Modifier.fillMaxWidth().height(56.dp).semantics {
+                    Modifier.fillMaxWidth().height(48.dp).semantics {
                         contentDescription =
                             control.name
                     },
@@ -104,4 +104,4 @@ internal fun SelectorRow(
     }
 }
 
-private const val SEGMENTS_AT_MOST = 4
+private const val SEGMENTS_AT_MOST = 5

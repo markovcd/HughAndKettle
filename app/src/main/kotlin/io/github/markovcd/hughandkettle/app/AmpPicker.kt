@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import io.github.markovcd.hughandkettle.amp.AmpModels
 
 /** The amp's name, which opens the list of amps to pick from. Tests find it by `amp` and the items by `amp:<id>`. */
@@ -26,8 +27,10 @@ internal fun AmpPicker(
         TextButton(onClick = { open = true }, modifier = Modifier.testTag("amp")) {
             Text(
                 "${panel.amp.name} ▾",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

@@ -9,19 +9,16 @@ import kotlin.test.assertEquals
 
 class PanelRowsTest {
     @Test
-    fun `A group of knobs that does not fit what is left of a row starts the next one`() {
-        val amp = AmpModels.blackSpirit200.controls.filter { it.section == Section.Amp }
-        val rows = PanelRows.of(amp).map { row -> row.map(Control::id) }
-        assertEquals(
-            listOf(listOf("gain", "volume"), listOf("bass", "mid", "treble"), listOf("resonance", "presence")),
-            rows,
-        )
+    fun `The preamp's four knobs share one row`() {
+        val preamp = AmpModels.grandMeisterDeluxe40.controls.filter { it.section == Section.Preamp }
+        val rows = PanelRows.of(preamp).map { row -> row.map(Control::id) }
+        assertEquals(listOf(listOf("gain", "bass", "mid", "treble")), rows)
     }
 
     @Test
-    fun `Knobs with no groups fill rows of three`() {
-        val knobs = List(7) { Control("k$it", "K$it", it, ControlKind.Knob, Section.Amp) }
-        assertEquals(listOf(3, 3, 1), PanelRows.of(knobs).map { it.size })
+    fun `Knobs fill rows of four`() {
+        val knobs = List(7) { Control("k$it", "K$it", it, ControlKind.Knob, Section.Preamp) }
+        assertEquals(listOf(4, 3), PanelRows.of(knobs).map { it.size })
     }
 
     @Test

@@ -122,13 +122,13 @@ class AmpModelsTest {
 
     @Test
     fun `A control that needs something other than a switch is refused`() {
-        val gain = Control("gain", "Gain", 20, ControlKind.Knob, Section.Amp)
+        val gain = Control("gain", "Gain", 20, ControlKind.Knob, Section.Preamp)
         val failure =
             runCatching {
                 AmpModel(
                     "test",
                     "Test",
-                    listOf(gain, Control("bass", "Bass", 21, ControlKind.Knob, Section.Amp, needs = "gain")),
+                    listOf(gain, Control("bass", "Bass", 21, ControlKind.Knob, Section.Preamp, needs = "gain")),
                 )
             }.exceptionOrNull()
         assertEquals("Test: 'bass' needs 'gain', which is not one of its switches", failure?.message)

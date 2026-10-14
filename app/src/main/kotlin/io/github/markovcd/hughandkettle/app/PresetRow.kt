@@ -40,14 +40,14 @@ internal fun PresetRow(
     val preset = panel.state.preset
     var picking by remember { mutableStateOf(false) }
     Row(
-        modifier = modifier.fillMaxWidth().height(88.dp).padding(horizontal = 4.dp),
+        modifier = modifier.fillMaxWidth().height(72.dp).padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilledTonalButton(
             onClick = { panel.recall(if (preset == null || preset == 1) amp.presetCount else preset - 1) },
             enabled = enabled,
-            modifier = Modifier.size(64.dp).testTag("preset_down"),
+            modifier = Modifier.size(56.dp).testTag("preset_down"),
         ) { Text("−", style = MaterialTheme.typography.headlineSmall) }
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             val slot = preset?.let(amp::slotOf)
@@ -76,7 +76,7 @@ internal fun PresetRow(
         FilledTonalButton(
             onClick = { panel.recall(if (preset == null || preset == amp.presetCount) 1 else preset + 1) },
             enabled = enabled,
-            modifier = Modifier.size(64.dp).testTag("preset_up"),
+            modifier = Modifier.size(56.dp).testTag("preset_up"),
         ) { Text("+", style = MaterialTheme.typography.headlineSmall) }
     }
     if (picking) PresetGrid(panel, names, onClose = { picking = false })

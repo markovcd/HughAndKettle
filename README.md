@@ -85,7 +85,7 @@ the host machine's fake at `10.0.2.2`.
 | `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, tones and their files, preset names, and reading presets into tones |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |
-| `app` | The Compose screen (a link card with the WMI-1s heard, folded into a status glyph once linked, the preset, the tones, then one row per control) and the service that holds the link |
+| `app` | The Compose screen (the preset, channel and boost always in view over tabs for the amp, its effects and the tones; a link card with the WMI-1s heard, folded into a status glyph once linked) and the service that holds the link |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 
 Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are the standing rules;

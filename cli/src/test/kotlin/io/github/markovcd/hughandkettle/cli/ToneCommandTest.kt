@@ -78,7 +78,7 @@ class ToneCommandTest {
         assertEquals(ExitCodes.BAD_ARGUMENTS, run("save", "black_spirit_200", "x", "gain=loud").code)
         val unknown = run("save", "black_spirit_200", "x", "flux=1")
         assertEquals(ExitCodes.BAD_ARGUMENTS, unknown.code)
-        assertTrue("black_spirit_200 has channel" in unknown.err, unknown.err)
+        assertTrue("black_spirit_200 has mute, channel" in unknown.err, unknown.err)
         assertEquals("", ok("list"))
     }
 

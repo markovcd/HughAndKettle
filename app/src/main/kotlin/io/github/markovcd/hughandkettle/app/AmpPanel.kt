@@ -1,35 +1,42 @@
 package io.github.markovcd.hughandkettle.app
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
-import io.github.markovcd.hughandkettle.amp.Control
-import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
-import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * The whole screen: the amp picker, the link's glyph and the settings, the link card while there is no
- * link, the preset and the tones, then the controls by section, knobs several to a row and switches and
- * selectors a row each. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the effects
- * and extras get a pane of their own to the right. Tests find the panes by `panel` and `controls`, and a control's row by `control:<id>`.
+ * The whole screen: the amp picker, the link's glyph, the header's switches and the settings; the preset
+ * and the switching, always in view; the link card while there is no link; then one tab of the amp, its
+ * effects or the tones, picked along the bottom. Wider than [TWO_PANES_FROM], as a phone or a tablet in
+ * landscape, the tabs move to a rail at the side, the preset joins the top bar, and the amp and its
+ * effects share a tab side by side. Tests find the tab's content by `panel`,
+ * the effects beside the amp by `controls`, and a control by `control:<id>`.
  */
 @Composable
 fun AmpPanel(
@@ -40,139 +47,88 @@ fun AmpPanel(
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
 ) {
-    // With no link there is nothing to turn; the rows dim to 38% and the link card keeps full contrast.
+    // With no link there is nothing to turn; the controls dim to 38% and the link card keeps full contrast.
     val enabled = panel.linked
+    val dim = Modifier.alpha(if (enabled) 1f else DIMMED)
+    var picked by rememberSaveable { mutableStateOf(PanelTab.Amp) }
     BoxWithConstraints {
-        if (maxWidth < TWO_PANES_FROM) {
-            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), modifier = Modifier.testTag("panel")) {
-                head(panel, discovery, shelf, presetNames, theme, onTheme, enabled)
-                controls(panel, enabled, Section.entries)
+        val wide = maxWidth >= TWO_PANES_FROM
+        val tabs = if (wide) listOf(PanelTab.Amp, PanelTab.Tones) else PanelTab.entries
+        val tab = if (picked in tabs) picked else PanelTab.Amp
+        val bar: @Composable (Modifier) -> Unit = { modifier ->
+            Row(modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                AmpPicker(panel, Modifier.weight(1f))
+                if (wide) PresetRow(panel, presetNames, enabled, Modifier.width(PRESET_WIDTH).then(dim))
+                LinkButton(panel, discovery)
+                panel.amp.controls.filter { it.section == Section.Header }.forEach {
+                    HeaderSwitch(it, panel, enabled, dim)
+                }
+                SettingsMenu(theme, onTheme)
+            }
+        }
+        val body: @Composable ColumnScope.() -> Unit = {
+            if (!wide) {
+                bar(Modifier.height(56.dp))
+                PresetRow(panel, presetNames, enabled, Modifier.padding(horizontal = 12.dp).then(dim))
+            } else {
+                bar(Modifier.height(72.dp))
+            }
+            SwitchingStrip(panel, enabled, dim)
+            if (panel.idle) LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+            val content = Modifier.weight(1f).fillMaxWidth()
+            when {
+                tab == PanelTab.Tones -> {
+                    Column(content.verticalScroll(rememberScrollState()).padding(12.dp).testTag("panel")) {
+                        ToneShelfCard(shelf, enabled)
+                    }
+                }
+
+                wide -> {
+                    Row(content) {
+                        AmpTab(panel, enabled, Modifier.weight(1f).then(dim).testTag("panel"))
+                        FxTab(panel, enabled, Modifier.weight(1f).then(dim).testTag("controls"))
+                    }
+                }
+
+                tab == PanelTab.Amp -> {
+                    AmpTab(panel, enabled, content.then(dim).testTag("panel"))
+                }
+
+                else -> {
+                    FxTab(panel, enabled, content.then(dim).testTag("panel"))
+                }
+            }
+        }
+        if (wide) {
+            Row(Modifier.fillMaxSize()) {
+                NavigationRail {
+                    tabs.forEach {
+                        NavigationRailItem(
+                            selected = it == tab,
+                            onClick = { picked = it },
+                            icon = { TabGlyph(it, selected = it == tab) },
+                            label = { Text(stringResource(it.label)) },
+                            modifier = Modifier.testTag("tab:${it.id}"),
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f).fillMaxHeight(), content = body)
             }
         } else {
-            Row {
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    modifier = Modifier.weight(1f).testTag("panel"),
-                ) {
-                    head(panel, discovery, shelf, presetNames, theme, onTheme, enabled)
-                    controls(panel, enabled, Section.entries - EFFECTS_PANE)
-                }
-                LazyColumn(
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
-                    modifier = Modifier.weight(1f).testTag("controls"),
-                ) {
-                    controls(panel, enabled, EFFECTS_PANE)
+            Column(Modifier.fillMaxSize()) {
+                body()
+                NavigationBar {
+                    tabs.forEach {
+                        NavigationBarItem(
+                            selected = it == tab,
+                            onClick = { picked = it },
+                            icon = { TabGlyph(it, selected = it == tab) },
+                            label = { Text(stringResource(it.label)) },
+                            modifier = Modifier.testTag("tab:${it.id}"),
+                        )
+                    }
                 }
             }
-        }
-    }
-}
-
-private fun LazyListScope.head(
-    panel: PanelState,
-    discovery: DiscoveryState,
-    shelf: ToneShelf,
-    presetNames: PresetNamesState,
-    theme: ThemeChoice,
-    onTheme: (ThemeChoice) -> Unit,
-    enabled: Boolean,
-) {
-    item {
-        Row(
-            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AmpPicker(panel, Modifier.weight(1f))
-            LinkButton(panel, discovery)
-            SettingsMenu(theme, onTheme)
-        }
-    }
-    if (panel.idle) item { LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp)) }
-    item {
-        PresetRow(
-            panel,
-            presetNames,
-            enabled,
-            Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED),
-        )
-    }
-    item { ToneShelfCard(shelf, enabled, Modifier.padding(horizontal = 12.dp)) }
-}
-
-private fun LazyListScope.controls(
-    panel: PanelState,
-    enabled: Boolean,
-    sections: List<Section>,
-) {
-    sections.forEach { section ->
-        val controls = panel.amp.controls.filter { it.section == section }
-        if (controls.isEmpty()) return@forEach
-        item(key = "section:$section") { SectionLabel(section) }
-        PanelRows.of(controls).forEach { row ->
-            item(key = row.joinToString(",") { it.id }) {
-                ControlRow(
-                    row,
-                    panel,
-                    enabled,
-                    Modifier.padding(horizontal = 12.dp).alpha(if (enabled) 1f else DIMMED),
-                )
-            }
-        }
-    }
-}
-
-/**
- * One row of the panel: up to [PanelRows.KNOBS_PER_ROW] knobs, or one switch or selector, each described by its
- * control's name, dimmed while its effect is off and outlined while the amp has moved it.
- */
-@Composable
-internal fun ControlRow(
-    row: List<Control>,
-    panel: PanelState,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val first = row.first()
-    val markColor = MaterialTheme.colorScheme.tertiary
-    val markWords = stringResource(R.string.moved_on_amp)
-    val offWords = stringResource(R.string.effect_off)
-
-    fun Modifier.marked(control: Control) =
-        effectOff(panel.state.silent(control), offWords).movedMark(control.id in panel.moved, markColor, markWords)
-    when (val kind = first.kind) {
-        ControlKind.Knob -> {
-            Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                row.forEach { control ->
-                    KnobCell(
-                        control = control,
-                        value = panel.state.values[control.id] ?: 0,
-                        enabled = enabled,
-                        onValue = { panel.set(control, it) },
-                        modifier = Modifier.weight(1f).marked(control).testTag("control:${control.id}"),
-                        onTap =
-                            if (control.scale?.unit ==
-                                "ms"
-                            ) {
-                                ({ panel.tap(control, System.nanoTime().nanoseconds) })
-                            } else {
-                                null
-                            },
-                    )
-                }
-                repeat(PanelRows.KNOBS_PER_ROW - row.size) { Box(Modifier.weight(1f)) }
-            }
-        }
-
-        ControlKind.Switch -> {
-            SwitchRow(first, panel.state.values[first.id] ?: 0, enabled, {
-                panel.set(first, it)
-            }, modifier.marked(first).testTag("control:${first.id}"))
-        }
-
-        is ControlKind.Selector -> {
-            SelectorRow(first, kind, panel.state.values[first.id] ?: 0, enabled, {
-                panel.set(first, it)
-            }, modifier.marked(first).testTag("control:${first.id}"))
         }
     }
 }
@@ -181,4 +137,4 @@ private const val DIMMED = 0.38f
 
 // Material's expanded width: a phone or a tablet in landscape, or an unfolded phone.
 private val TWO_PANES_FROM = 840.dp
-private val EFFECTS_PANE = listOf(Section.Fx, Section.Extras)
+private val PRESET_WIDTH = 280.dp

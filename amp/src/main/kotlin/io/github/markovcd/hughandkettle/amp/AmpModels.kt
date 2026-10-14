@@ -3,9 +3,10 @@ package io.github.markovcd.hughandkettle.amp
 import io.github.markovcd.hughandkettle.amp.ControlKind.Knob
 import io.github.markovcd.hughandkettle.amp.ControlKind.Selector
 import io.github.markovcd.hughandkettle.amp.ControlKind.Switch
-import io.github.markovcd.hughandkettle.amp.Section.Amp
-import io.github.markovcd.hughandkettle.amp.Section.Extras
 import io.github.markovcd.hughandkettle.amp.Section.Fx
+import io.github.markovcd.hughandkettle.amp.Section.Header
+import io.github.markovcd.hughandkettle.amp.Section.PowerAmp
+import io.github.markovcd.hughandkettle.amp.Section.Preamp
 import io.github.markovcd.hughandkettle.amp.Section.Switching
 
 /**
@@ -30,17 +31,17 @@ public object AmpModels {
     /** The controls both amps share, with the same numbers, in the order the panel shows them. */
     private val common =
         listOf(
+            Control("mute", "Mute", 9, Switch, Header),
             Control("channel", "Channel", 31, channels, Switching),
             Control("boost", "Boost", 64, Switch, Switching),
-            Control("noise_gate", "Noise gate", 63, Switch, Switching),
-            Control("mute", "Mute", 9, Switch, Switching),
-            Control("gain", "Gain", 56, Knob, Amp),
-            Control("volume", "Volume", 57, Knob, Amp),
-            Control("bass", "Bass", 21, Knob, Amp, startsGroup = true),
-            Control("mid", "Mid", 22, Knob, Amp),
-            Control("treble", "Treble", 23, Knob, Amp),
-            Control("resonance", "Resonance", 24, Knob, Amp, startsGroup = true),
-            Control("presence", "Presence", 25, Knob, Amp),
+            Control("gain", "Gain", 56, Knob, Preamp),
+            Control("bass", "Bass", 21, Knob, Preamp),
+            Control("mid", "Mid", 22, Knob, Preamp),
+            Control("treble", "Treble", 23, Knob, Preamp),
+            Control("volume", "Volume", 57, Knob, PowerAmp),
+            Control("resonance", "Resonance", 24, Knob, PowerAmp),
+            Control("presence", "Presence", 25, Knob, PowerAmp),
+            Control("noise_gate", "Noise gate", 63, Switch, PowerAmp),
             Control("modulation", "Modulation", 52, Switch, Fx),
             Control("modulation_type", "Modulation type", 12, modulationTypes, Fx, needs = "modulation", fine = true),
             Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx, needs = "modulation"),
@@ -61,9 +62,9 @@ public object AmpModels {
             controls =
                 common +
                     listOf(
-                        Control("cabinet", "Cabinet", 58, Selector(List(8) { "Cabinet ${it + 1}" }), Extras),
-                        Control("sagging", "Sagging", 59, Selector(List(8) { "Sagging ${it + 1}" }), Extras),
-                        Control("noise_gate_sensitivity", "Noise gate sensitivity", 62, Knob, Extras),
+                        Control("cabinet", "Cabinet", 58, Selector(List(8) { "Cabinet ${it + 1}" }), PowerAmp),
+                        Control("sagging", "Sagging", 59, Selector(List(8) { "Sagging ${it + 1}" }), PowerAmp),
+                        Control("noise_gate_sensitivity", "Noise gate sensitivity", 62, Knob, PowerAmp),
                     ),
         )
 
@@ -74,7 +75,7 @@ public object AmpModels {
             controls =
                 common +
                     listOf(
-                        Control("power_soak", "Power soak", 30, powerSoakSteps, Extras),
+                        Control("power_soak", "Power soak", 30, powerSoakSteps, PowerAmp),
                     ),
             // The manual's 128 presets are 32 banks of 4.
             presetsPerBank = 4,
@@ -88,7 +89,7 @@ public object AmpModels {
             controls =
                 common +
                     listOf(
-                        Control("power_soak", "Power soak", 30, Selector(List(5) { "Power soak ${it + 1}" }), Extras),
+                        Control("power_soak", "Power soak", 30, Selector(List(5) { "Power soak ${it + 1}" }), PowerAmp),
                     ),
             // The manual's 128 presets are 32 banks of 4.
             presetsPerBank = 4,

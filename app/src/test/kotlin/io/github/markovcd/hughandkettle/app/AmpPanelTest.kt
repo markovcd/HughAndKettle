@@ -5,7 +5,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.ToneStore
@@ -62,17 +62,19 @@ class AmpPanelTest {
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun `A phone shows one column with the controls under the link`() {
+    fun `A phone shows the amp's tab, and the effects only on their own tab`() {
         shown()
-        compose.onNodeWithTag("panel").assertExists()
-        compose.onNodeWithTag("controls").assertDoesNotExist()
+        compose.onNodeWithTag("control:gain").assertExists()
+        compose.onNodeWithTag("control:delay").assertDoesNotExist()
+        compose.onNodeWithTag("tab:fx").performClick()
+        compose.onNodeWithTag("control:delay").assertExists()
+        compose.onNodeWithTag("control:gain").assertDoesNotExist()
     }
 
     @Test
     @Config(qualifiers = "w915dp-h412dp-land")
     fun `In landscape the effects get a pane of their own beside the amp`() {
         shown()
-        compose.onNodeWithTag("panel").performScrollToNode(hasTestTag("control:gain"))
         compose.onNode(hasTestTag("control:gain") and hasAnyAncestor(hasTestTag("panel"))).assertExists()
         compose.onNode(hasTestTag("control:delay") and hasAnyAncestor(hasTestTag("controls"))).assertExists()
     }
@@ -83,8 +85,7 @@ class AmpPanelTest {
         shown()
         compose.onNodeWithTag("amp").performClick()
         compose.onNodeWithTag("amp:grandmeister_deluxe_40").performClick()
-        compose.onNodeWithTag("panel").performScrollToNode(hasTestTag("control:power_soak"))
-        compose.onNodeWithTag("control:power_soak").assertExists()
+        compose.onNodeWithTag("control:power_soak").performScrollTo().assertExists()
         assertEquals(AmpModels.grandMeisterDeluxe40, panel.amp)
     }
 
@@ -111,6 +112,27 @@ class AmpPanelTest {
         compose.waitUntil(5_000) { panel.idle }
         compose.onNodeWithTag("link_dialog").assertDoesNotExist()
         compose.onNodeWithTag("enter_address").assertExists()
+        fake.close()
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun `Switching an effect on opens its card and closes the others, and switching it off hides its controls`() {
+        val fake = FakeWmi(onEvent = {})
+        panel.connect(WmiAddress("127.0.0.1", fake.port))
+        compose.waitUntil(5_000) { panel.linked }
+        shown()
+        compose.onNodeWithTag("tab:fx").performClick()
+        compose.onNodeWithTag("control:delay_time").assertDoesNotExist()
+        compose.onNodeWithTag("control:delay").performClick()
+        compose.onNodeWithTag("control:delay_time").assertExists()
+        compose.onNodeWithTag("control:modulation").performClick()
+        compose.onNodeWithTag("control:modulation_speed").assertExists()
+        compose.onNodeWithTag("control:delay_time").assertDoesNotExist()
+        compose.onNodeWithTag("effect:delay").performClick()
+        compose.onNodeWithTag("control:delay_time").assertExists()
+        compose.onNodeWithTag("control:delay").performClick()
+        compose.onNodeWithTag("control:delay_time").assertDoesNotExist()
         fake.close()
     }
 }

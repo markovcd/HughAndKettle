@@ -32,7 +32,6 @@
     <string name="preset_naming_title">Tap a preset to name it</string>
     <string name="preset_name_title">Name preset %1$d</string>
     <string name="moved_on_amp">Moved on the amp</string>
-    <string name="effect_off">Effect off</string>
     <string name="tones">Tones</string>
     <string name="tones_none">No tones yet. Set the controls, then Save.</string>
     <string name="tone_save">Save</string>
@@ -62,8 +61,12 @@
     <string name="tap">Tap</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
-    <string name="section_switching">Switching</string>
-    <string name="section_amp">Amp</string>
-    <string name="section_fx">FX</string>
-    <string name="section_extras">Amp extras</string>
+    <string name="section_preamp">Preamp</string>
+    <string name="section_power_amp">Power amp</string>
+    <string name="tab_amp">Amp</string>
+    <string name="tab_fx">FX</string>
+    <string name="effect_on">On</string>
+    <string name="effect_switched_off">Off</string>
+    <string name="effect_expand">Show %1$s</string>
+    <string name="effect_collapse">Hide %1$s</string>
 </resources>
