@@ -26,6 +26,7 @@ import io.github.markovcd.hughandkettle.amp.Section.Switching
 public object AmpModels {
     private val modulationTypes = Selector(listOf("Chorus", "Flanger", "Phaser", "Tremolo"))
     private val powerSoakSteps = Selector(listOf("Off", "1 W", "5 W", "20 W", "40 W"))
+    private val powerSoak36Steps = Selector(listOf("Off", "1 W", "5 W", "18 W", "36 W"))
     private val channels = Selector(listOf("Clean", "Crunch", "Lead", "Ultra"))
 
     /** The controls both amps share, with the same numbers, in the order the panel shows them. */
@@ -81,7 +82,10 @@ public object AmpModels {
             presetsPerBank = 4,
         )
 
-    /** The GrandMeister Deluxe 40's chart, row for row, with the power soak's top step at 36 watts. */
+    /**
+     * The GrandMeister Deluxe 40's chart, row for row, with the power soak's top steps at 18 and 36 watts.
+     * The manual names the steps but not their order on cc 30; the Deluxe 40's is taken.
+     */
     public val grandMeister36: AmpModel =
         AmpModel(
             id = "grandmeister_36",
@@ -89,7 +93,7 @@ public object AmpModels {
             controls =
                 common +
                     listOf(
-                        Control("power_soak", "Power soak", 30, Selector(List(5) { "Power soak ${it + 1}" }), PowerAmp),
+                        Control("power_soak", "Power soak", 30, powerSoak36Steps, PowerAmp),
                     ),
             // The manual's 128 presets are 32 banks of 4.
             presetsPerBank = 4,

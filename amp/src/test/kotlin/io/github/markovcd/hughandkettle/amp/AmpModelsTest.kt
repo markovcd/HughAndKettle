@@ -49,6 +49,12 @@ class AmpModelsTest {
     }
 
     @Test
+    fun `The GrandMeister 36 power soak steps are the manual's, in the Deluxe 40's order`() {
+        val soak = AmpModels.grandMeister36.control("power_soak")!!.kind as ControlKind.Selector
+        assertEquals(listOf("Off", "1 W", "5 W", "18 W", "36 W"), soak.options)
+    }
+
+    @Test
     fun `The GrandMeister 36 chart matches the manual`() {
         val chart = AmpModels.grandMeister36.controls.associate { it.id to it.controller }
         val fromManual =

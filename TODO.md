@@ -13,7 +13,7 @@ that lands it.
 
 ## Code
 
-- Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names, GrandMeister 36 power soak steps. `AmpModels` carries numbered placeholders until then.
+- Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names. `AmpModels` carries numbered placeholders until then.
 - Decode the rest of the amp's value block: its flags byte and pairs 14 and 15 ([wmi-1.md](docs/wmi-1.md#the-value-block)).
 - Time the delay at a few settings to confirm 51 ms to 1360 ms is spread evenly over 0..127; the amp's reports suggest it is, and `Scale` takes it as even.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.
