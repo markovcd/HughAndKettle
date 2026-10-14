@@ -8,6 +8,7 @@ Planned work that has its own document is not repeated here; link to it instead.
 |---|---|---|---|
 | 01 | [Implementation plan](01-implementation-plan.md): from these foundations to an app on a phone driving an amp | — | Open |
 | 02 | [Design brief](02-design-brief.md): a logo, an icon and the look of the whole app, for a design session | — | Landed; later screens wait on phases 1 and 2 |
+| 03 | [Desktop app](03-desktop-app.md): the same screens on Windows and Linux through Compose Multiplatform | — | Open; step 1 in progress |
 
 Severity: **Critical**, act now; **High**, security or data problem in production; **Medium**, wrong behavior or real risk; **Low**, friction or latent risk.
 
