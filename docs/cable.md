@@ -27,7 +27,7 @@ Install the latest build, plug the cable in, open the app.
 
 1. The link card lists the cable under "USB MIDI cables plugged in". Tap it; the status reads
    "Connected over USB to …".
-2. Tap the amp's name and pick the GrandMeister Deluxe 40.
+2. Open the settings menu (⋮) and pick the GrandMeister Deluxe 40.
 3. Move Volume, then Gain. Does the amp follow?
 4. Switch the channel with the selector, then switch Delay and Reverb on and off.
 5. Open the preset grid and pick preset 4. Does the amp change preset?

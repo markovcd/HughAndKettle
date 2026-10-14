@@ -21,6 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.fail
 import kotlin.time.Duration.Companion.milliseconds
@@ -227,6 +228,28 @@ class PanelStateTest {
         picking.connect(box)
         until("remembered") { remembered.isNotEmpty() }
         assertEquals(box to "grandmeister_deluxe_40", remembered.first())
+    }
+
+    @Test
+    fun `Linking to a box with no amp picked for it asks which amp it is, until one is picked`() {
+        assertFalse(panel.asking)
+        connected()
+        until("asking") { it.asking }
+        panel.choose(AmpModels.grandMeisterDeluxe40)
+        assertFalse(panel.asking)
+    }
+
+    @Test
+    fun `A box whose question was put away is not asked about again`() {
+        connected()
+        until("asking") { it.asking }
+        panel.settle()
+        panel.disconnect()
+        until("idle") { it.link == LinkState.Idle }
+        panel.connect()
+        until("connected") { it.link is LinkState.Connected }
+        assertFalse(panel.asking)
+        assertEquals(AmpModels.blackSpirit200, panel.amp)
     }
 
     @Test

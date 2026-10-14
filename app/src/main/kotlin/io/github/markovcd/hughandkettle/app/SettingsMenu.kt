@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -23,10 +24,15 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.amp.AmpModels
 
-/** The settings behind a three-dot button: for now the theme. Tests find it by `settings` and the items by `theme:<id>`. */
+/**
+ * The settings behind a three-dot button: the amp behind the box and the theme. Tests find it by `settings`
+ * and the items by `amp:<id>` and `theme:<id>`.
+ */
 @Composable
 internal fun SettingsMenu(
+    panel: PanelState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
 ) {
@@ -46,12 +52,20 @@ internal fun SettingsMenu(
             }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            Text(
-                stringResource(R.string.theme),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            MenuHeading(stringResource(R.string.amp))
+            AmpModels.all.forEach { amp ->
+                DropdownMenuItem(
+                    text = { Text(amp.name) },
+                    leadingIcon = { RadioButton(selected = amp == panel.amp, onClick = null) },
+                    onClick = {
+                        open = false
+                        panel.choose(amp)
+                    },
+                    modifier = Modifier.testTag("amp:${amp.id}"),
+                )
+            }
+            HorizontalDivider()
+            MenuHeading(stringResource(R.string.theme))
             ThemeChoice.entries.forEach { choice ->
                 DropdownMenuItem(
                     text = { Text(stringResource(choice.label)) },
@@ -65,4 +79,14 @@ internal fun SettingsMenu(
             }
         }
     }
+}
+
+@Composable
+private fun MenuHeading(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }

@@ -19,7 +19,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: dark by default, with light or the phone's own setting in the settings menu, and remembered.
 - App: the panel is three tabs (Amp, FX, Tones) with the preset, channel, boost and mute always in view; in landscape the amp and its effects sit side by side.
 - App: opens on a splash of its kettle mark on the dark stage.
-- App: pick the amp from its name on the panel; the pick is remembered for each WMI-1.
+- App: the amp is picked in the settings menu, asked for on first linking to a WMI-1, and remembered for each.
 - `hk latency` measures how long a control change takes to reach a fake WMI-1 on the same machine.
 - Delay time shows in milliseconds, takes a tapped beat in the app, and `hk set` takes `520ms`.
 - App: a tap on the preset opens a grid of all 128 to jump to.

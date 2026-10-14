@@ -59,11 +59,17 @@ class PanelState(
     var last by mutableStateOf<WmiAddress?>(null)
         private set
 
+    /** True from linking to a box with no amp picked for it, until one is picked or the question is put away. */
+    var asking by mutableStateOf(false)
+        private set
+
     /** Whether a box heard is linked to without a tap; off from a disconnect until the next connect. */
     private var linksByItself = true
 
     private var choices: Map<WmiAddress, AmpModel> = emptyMap()
     private var choicesRead = false
+    private var pickedByHand = false
+    private var askedAbout: WmiAddress? = null
     private var taps = TapTempo()
 
     init {
@@ -116,18 +122,35 @@ class PanelState(
     /** Puts [amp] on the panel, and remembers it for the box when there is one. */
     fun choose(amp: AmpModel) {
         show(amp)
+        pickedByHand = true
+        asking = false
         val box = box ?: return
         scope.launch { rememberAmp(box, amp) }
     }
 
-    /** Shows the amp picked for the box; a box linked to with none picked keeps the amp on the panel. */
+    /**
+     * Shows the amp picked for the box. A box linked to with none picked keeps the amp on the panel, and asks
+     * which amp it is unless one was picked by hand.
+     */
     private fun follow() {
         val box = box ?: return
         val chosen = choices[box]
         when {
-            chosen != null -> show(chosen)
-            choicesRead && link != LinkState.Idle -> scope.launch { rememberAmp(box, amp) }
+            chosen != null -> {
+                show(chosen)
+            }
+
+            choicesRead && link != LinkState.Idle -> {
+                if (box != askedAbout && !pickedByHand) asking = true
+                askedAbout = box
+                scope.launch { rememberAmp(box, amp) }
+            }
         }
+    }
+
+    /** Keeps the amp on the panel for the box without asking again. */
+    fun settle() {
+        asking = false
     }
 
     /** A different amp starts from knowing nothing about it. */

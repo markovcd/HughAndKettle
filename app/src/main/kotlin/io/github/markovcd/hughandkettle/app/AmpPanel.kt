@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -7,9 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.NavigationBar
@@ -31,11 +31,11 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Section
 
 /**
- * The whole screen: the amp picker, the link's glyph, the header's switches and the settings; the preset
- * and the switching, always in view; the link card while there is no link; then one tab of the amp, its
- * effects or the tones, picked along the bottom. Wider than [TWO_PANES_FROM], as a phone or a tablet in
- * landscape, the tabs move to a rail at the side, the preset joins the top bar, and the amp and its
- * effects share a tab side by side. Tests find the tab's content by `panel`,
+ * The whole screen: a top bar of the preset, the link's glyph, the header's switches and the settings, where
+ * the amp is picked; the switching, always in view; the link card while there is no link; then one tab of
+ * the amp, its effects or the tones, picked along the bottom. A box linked to with no amp picked for it asks
+ * which amp it is. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the tabs move to a rail
+ * at the side and the amp and its effects share a tab side by side. Tests find the tab's content by `panel`,
  * the effects beside the amp by `controls`, and a control by `control:<id>`.
  */
 @Composable
@@ -51,27 +51,21 @@ fun AmpPanel(
     val enabled = panel.linked
     val dim = Modifier.alpha(if (enabled) 1f else DIMMED)
     var picked by rememberSaveable { mutableStateOf(PanelTab.Amp) }
+    if (panel.asking) AmpQuestion(panel)
     BoxWithConstraints {
         val wide = maxWidth >= TWO_PANES_FROM
         val tabs = if (wide) listOf(PanelTab.Amp, PanelTab.Tones) else PanelTab.entries
         val tab = if (picked in tabs) picked else PanelTab.Amp
-        val bar: @Composable (Modifier) -> Unit = { modifier ->
-            Row(modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                AmpPicker(panel, Modifier.weight(1f))
-                if (wide) PresetRow(panel, presetNames, enabled, Modifier.width(PRESET_WIDTH).then(dim))
+        val body: @Composable ColumnScope.() -> Unit = {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    PresetRow(panel, presetNames, enabled, Modifier.widthIn(max = PRESET_WIDTH).then(dim))
+                }
                 LinkButton(panel, discovery)
                 panel.amp.controls.filter { it.section == Section.Header }.forEach {
                     HeaderSwitch(it, panel, enabled, dim)
                 }
-                SettingsMenu(theme, onTheme)
-            }
-        }
-        val body: @Composable ColumnScope.() -> Unit = {
-            if (!wide) {
-                bar(Modifier.height(56.dp))
-                PresetRow(panel, presetNames, enabled, Modifier.padding(horizontal = 12.dp).then(dim))
-            } else {
-                bar(Modifier.height(72.dp))
+                SettingsMenu(panel, theme, onTheme)
             }
             SwitchingStrip(panel, enabled, dim)
             if (panel.idle) LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp, vertical = 8.dp))

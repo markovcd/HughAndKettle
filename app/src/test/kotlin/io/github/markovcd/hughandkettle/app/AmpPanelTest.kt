@@ -81,12 +81,30 @@ class AmpPanelTest {
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun `Picking another amp puts its controls on the panel`() {
+    fun `Picking another amp in the settings puts its controls on the panel`() {
         shown()
-        compose.onNodeWithTag("amp").performClick()
+        compose.onNodeWithTag("settings").performClick()
         compose.onNodeWithTag("amp:grandmeister_deluxe_40").performClick()
         compose.onNodeWithTag("control:power_soak").performScrollTo().assertExists()
         assertEquals(AmpModels.grandMeisterDeluxe40, panel.amp)
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun `The amp picked in answer to the question goes on the panel and puts the question away`() {
+        shown()
+        compose.onNodeWithTag("amp_question").assertDoesNotExist()
+        val box = FakeWmi(onEvent = {})
+        try {
+            panel.connect(WmiAddress("127.0.0.1", box.port))
+            compose.waitUntil(5_000) { panel.asking }
+            compose.onNodeWithTag("amp_answer:grandmeister_deluxe_40").performClick()
+            compose.onNodeWithTag("amp_question").assertDoesNotExist()
+            assertEquals(AmpModels.grandMeisterDeluxe40, panel.amp)
+        } finally {
+            panel.disconnect()
+            box.close()
+        }
     }
 
     @Test
@@ -106,6 +124,7 @@ class AmpPanelTest {
         compose.onNodeWithTag("enter_address").assertExists()
         panel.connect(WmiAddress("127.0.0.1", fake.port))
         compose.waitUntil(5_000) { panel.linked }
+        panel.settle()
         compose.onNodeWithTag("enter_address").assertDoesNotExist()
         compose.onNodeWithTag("link").performClick()
         compose.onNodeWithTag("disconnect").performClick()
@@ -121,6 +140,7 @@ class AmpPanelTest {
         val fake = FakeWmi(onEvent = {})
         panel.connect(WmiAddress("127.0.0.1", fake.port))
         compose.waitUntil(5_000) { panel.linked }
+        panel.settle()
         shown()
         compose.onNodeWithTag("tab:fx").performClick()
         compose.onNodeWithTag("control:delay_time").assertDoesNotExist()
