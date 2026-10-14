@@ -1,7 +1,7 @@
 # 03. Desktop app: the same screens on Windows and Linux
 
 - **Severity:** —
-- **Status:** Open; step 1 done
+- **Status:** Open; steps 1 and 2 done
 - **Found:** 2026-10-14, on `main` at `d10cd81`
 
 The user asked for the app on Windows and Linux. This is the plan, one step per task, in order. The
@@ -58,7 +58,8 @@ any other file changing.
   `app` rebase cleanly. `PanelState` and its siblings move with them.
 - UI tests that need nothing from Android move to the desktop JVM and drop Robolectric.
 
-**Done when** `app` holds only the twelve Android files and the phone layouts.
+**Done when** `app` holds only the twelve Android files and the phone layouts. Done, apart from
+`LinkCard`, `LinkButton`, `SettingsMenu` and `ToneShelfCard`, which wait on the seams of step 3.
 
 ## Step 3: the seams the platforms fill differently
 
