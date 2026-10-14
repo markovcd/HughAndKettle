@@ -6,4 +6,8 @@ plugins {
 
 ktlint {
     version.set(catalog.version("ktlint"))
+    // Code a plugin generates (Compose resources) is not ours to format.
+    filter {
+        exclude { it.file.path.contains("/build/generated/") }
+    }
 }

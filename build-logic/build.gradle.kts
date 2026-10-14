@@ -7,5 +7,6 @@ dependencies {
     implementation(libs.android.gradle.plugin)
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.compose.compiler.gradle.plugin)
+    implementation(libs.compose.mp.gradle.plugin)
     implementation(libs.ktlint.gradle.plugin)
 }

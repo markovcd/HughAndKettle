@@ -1,7 +1,7 @@
 # 03. Desktop app: the same screens on Windows and Linux
 
 - **Severity:** —
-- **Status:** Open; step 1 in progress
+- **Status:** Open; step 1 done
 - **Found:** 2026-10-14, on `main` at `d10cd81`
 
 The user asked for the app on Windows and Linux. This is the plan, one step per task, in order. The
@@ -47,7 +47,9 @@ on Robolectric.
 - ADR 0012: the screens are shared with a desktop build through Compose Multiplatform. It amends the
   Kotlin Multiplatform paragraph of ADR 0001.
 
-**Done when** the gate is green with all three building, and the phone app is unchanged.
+**Done when** the gate is green with all three building, and the phone app is unchanged. Done:
+the source keeps its `io.github.markovcd.hughandkettle.app` packages in `ui`, so a file moves without
+any other file changing.
 
 ## Step 2: the screens move into `ui`
 

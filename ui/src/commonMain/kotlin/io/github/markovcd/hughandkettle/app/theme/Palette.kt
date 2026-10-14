@@ -6,8 +6,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /** The two schemes from docs/design/colors.md. Dark is the one designed for the stage; light is derived. */
-internal object Palette {
-    val Dark: ColorScheme =
+public object Palette {
+    public val Dark: ColorScheme =
         darkColorScheme(
             primary = Color(0xFFFFB547),
             onPrimary = Color(0xFF422C00),
@@ -40,7 +40,7 @@ internal object Palette {
             surfaceContainerHighest = Color(0xFF36312C),
         )
 
-    val Light: ColorScheme =
+    public val Light: ColorScheme =
         lightColorScheme(
             primary = Color(0xFF7A5200),
             onPrimary = Color(0xFFFFFFFF),

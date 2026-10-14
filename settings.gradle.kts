@@ -19,4 +19,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "hughandkettle"
 
-include(":midi", ":amp", ":wmi", ":cli", ":app")
+include(":midi", ":amp", ":wmi", ":cli", ":ui", ":app", ":desktop")

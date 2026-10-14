@@ -37,7 +37,7 @@ Before changing the shape of something, check `docs/adr/` and the comment at the
 
 ## Kotlin and Android specifics
 
-- Everything that can run without Android lives in a pure-Kotlin JVM module (`midi`, `amp`, `wmi`, `cli`) and is tested there in milliseconds. The `app` module is Compose and thin: it renders state and hands events on. No Android class below `app`.
+- Everything that can run without Android lives in a pure-Kotlin JVM module (`midi`, `amp`, `wmi`, `cli`) and is tested there in milliseconds. Compose that both apps draw lives in `ui`, a Kotlin Multiplatform module whose common code uses no Android class. The `app` and `desktop` modules are thin shells: they render state and hand events on. No Android class below `app`.
 - Library modules compile with `explicitApi()`: every declaration states its visibility, and the answer is `internal` unless another module needs it. Classes are final unless `open` is a decision.
 - `data class` for data, `@JvmInline value class` for a small value with a rule (a MIDI channel), `sealed interface` for a closed set of shapes, `object` for the one place that knows a thing. Nested types stay inside their owner.
 - An expected failure is a value: `Result<T>` where the caller needs the reason, a nullable where "not one of these" is the whole answer. `require` and `error` are for broken invariants only.

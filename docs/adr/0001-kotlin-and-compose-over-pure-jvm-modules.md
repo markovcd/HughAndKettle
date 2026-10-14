@@ -38,3 +38,8 @@ threads and blocking sockets so the CLI has no runtime dependency.
   `commonMain` could not, apart from `java.net` sockets, which would move behind an expect/actual pair.
 - The Android module compiles with AGP 9's built-in Kotlin, so the Kotlin Android plugin is never
   applied; a session that adds it will get a build error, which is the intended signal.
+
+## Amendment (2026-10-14)
+
+Kotlin Multiplatform is adopted for the shared screens, so a desktop app can draw them: ADR 0012.
+The JVM modules stay as they are.

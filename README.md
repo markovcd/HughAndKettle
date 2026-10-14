@@ -22,6 +22,7 @@ Needs JDK 21, and an Android SDK with `ANDROID_HOME` pointing at it (or `local.p
 | **The gate** (the only definition of passing) | `./gate.sh` |
 | The `hk` command line, installed under `cli/build/install/hk` | `./gradlew :cli:installDist` |
 | The app on a connected phone or emulator | `./gradlew :app:installDebug` |
+| The desktop app in a window (in progress: the theme and a knob so far) | `./gradlew :desktop:run` |
 | Try a release with throwaway keys, publishing nothing | `./release.sh` |
 
 Test reports with a duration per test land in `<module>/build/test-results/test/*.xml`.
@@ -88,7 +89,9 @@ the host machine's fake at `10.0.2.2`.
 | `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, tones and their files, preset names, and reading presets into tones |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |
+| `ui` | The Compose pieces the Android and desktop apps share: the theme, its fonts and the knob |
 | `app` | The Compose screen (the preset in the top bar and the channel and boost always in view; the amp picked in the settings over tabs for the amp, its effects and the tones; a link card with the WMI-1s heard, folded into a status glyph once linked) and the service that holds the link |
+| `desktop` | The desktop app, a window over `ui`; see [the plan](docs/handoff/03-desktop-app.md) |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 
 Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are the standing rules;

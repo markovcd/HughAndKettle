@@ -17,8 +17,9 @@ ARG SDK_PACKAGES="platform-tools platforms;android-37.0 build-tools;37.0.0"
 ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 
+# libgl1, libx11-6 and libfontconfig1: Skia's native library, which the desktop UI tests load, links them.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl unzip ca-certificates \
+    && apt-get install -y --no-install-recommends curl unzip ca-certificates libgl1 libx11-6 libfontconfig1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p $ANDROID_HOME/cmdline-tools \
@@ -54,4 +55,5 @@ COPY --from=gate /src/midi/build/test-results /test-results/midi
 COPY --from=gate /src/amp/build/test-results /test-results/amp
 COPY --from=gate /src/wmi/build/test-results /test-results/wmi
 COPY --from=gate /src/cli/build/test-results /test-results/cli
+COPY --from=gate /src/ui/build/test-results /test-results/ui
 COPY --from=gate /src/app/build/reports /reports/app

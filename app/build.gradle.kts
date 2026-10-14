@@ -41,6 +41,7 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(project(":amp"))
     implementation(project(":wmi"))
+    implementation(project(":ui"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)

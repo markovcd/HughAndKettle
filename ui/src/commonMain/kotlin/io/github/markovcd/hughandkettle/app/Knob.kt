@@ -44,7 +44,7 @@ import kotlin.math.sin
  * arc and the value follow the finger, and [onValue] fires on every step.
  */
 @Composable
-fun Knob(
+public fun Knob(
     value: Int,
     onValue: (Int) -> Unit,
     description: String,
