@@ -11,7 +11,10 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
 
-/** The amp's own controls by section: each section's knobs, then its selectors, then its switches on cards. */
+/**
+ * The amp's own controls by section: each section's knobs, then its selectors, then its switches on cards,
+ * with the controls behind a switch on its card.
+ */
 @Composable
 internal fun AmpTab(
     panel: PanelState,
@@ -23,7 +26,7 @@ internal fun AmpTab(
             val controls = panel.amp.controls.filter { it.section == section }
             if (controls.isEmpty()) return@forEach
             SectionLabel(section)
-            val (switches, others) = controls.partition { it.kind == ControlKind.Switch }
+            val (switches, others) = controls.filter { it.needs == null }.partition { it.kind == ControlKind.Switch }
             PanelRows.of(others.sortedBy { it.kind is ControlKind.Selector }).forEach { row ->
                 ControlRow(row, panel, enabled, Modifier.padding(horizontal = 12.dp))
             }
@@ -31,7 +34,7 @@ internal fun AmpTab(
                 Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                switches.forEach { SwitchCard(it, panel, enabled) }
+                SwitchCards(switches, controls, panel, enabled)
             }
         }
     }

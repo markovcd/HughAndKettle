@@ -65,7 +65,14 @@ public object AmpModels {
                     listOf(
                         Control("cabinet", "Cabinet", 58, Selector(List(8) { "Cabinet ${it + 1}" }), PowerAmp),
                         Control("sagging", "Sagging", 59, Selector(List(8) { "Sagging ${it + 1}" }), PowerAmp),
-                        Control("noise_gate_sensitivity", "Noise gate sensitivity", 62, Knob, PowerAmp),
+                        Control(
+                            "noise_gate_sensitivity",
+                            "Noise gate sensitivity",
+                            62,
+                            Knob,
+                            PowerAmp,
+                            needs = "noise_gate",
+                        ),
                     ),
         )
 

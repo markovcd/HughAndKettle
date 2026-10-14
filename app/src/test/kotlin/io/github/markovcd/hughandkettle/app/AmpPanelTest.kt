@@ -155,4 +155,20 @@ class AmpPanelTest {
         compose.onNodeWithTag("control:delay_time").assertDoesNotExist()
         fake.close()
     }
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun `The noise gate's sensitivity shows under its switch only while the gate is on`() {
+        val fake = FakeWmi(onEvent = {})
+        panel.connect(WmiAddress("127.0.0.1", fake.port))
+        compose.waitUntil(5_000) { panel.linked }
+        panel.settle()
+        shown()
+        compose.onNodeWithTag("control:noise_gate_sensitivity").assertDoesNotExist()
+        compose.onNodeWithTag("control:noise_gate").performScrollTo().performClick()
+        compose.onNodeWithTag("control:noise_gate_sensitivity").assertExists()
+        compose.onNodeWithTag("control:noise_gate").performClick()
+        compose.onNodeWithTag("control:noise_gate_sensitivity").assertDoesNotExist()
+        fake.close()
+    }
 }
