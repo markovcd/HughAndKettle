@@ -1,14 +1,15 @@
 package io.github.markovcd.hughandkettle.app
 
-import androidx.annotation.StringRes
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Section
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.section_power_amp
+import io.github.markovcd.hughandkettle.ui.section_preamp
+import org.jetbrains.compose.resources.StringResource
 
 /** The words over a section, kept out of the amp tables; the sections a tab or a bar speaks for have none. */
-@StringRes
-internal fun Section.title(): Int? =
+internal fun Section.title(): StringResource? =
     when (this) {
-        Section.Preamp -> R.string.section_preamp
-        Section.PowerAmp -> R.string.section_power_amp
+        Section.Preamp -> Res.string.section_preamp
+        Section.PowerAmp -> Res.string.section_power_amp
         Section.Header, Section.Switching, Section.Fx -> null
     }

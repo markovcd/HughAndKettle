@@ -10,10 +10,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.amp_question
+import io.github.markovcd.hughandkettle.ui.ok
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Asks which amp is behind a box linked to for the first time, the amp on the panel marked. Tests find it
@@ -23,7 +25,7 @@ import io.github.markovcd.hughandkettle.amp.AmpModels
 internal fun AmpQuestion(panel: PanelState) {
     AlertDialog(
         onDismissRequest = panel::settle,
-        title = { Text(stringResource(R.string.amp_question)) },
+        title = { Text(stringResource(Res.string.amp_question)) },
         text = {
             Column(Modifier.testTag("amp_question")) {
                 AmpModels.all.forEach { amp ->
@@ -36,6 +38,6 @@ internal fun AmpQuestion(panel: PanelState) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = panel::settle) { Text(stringResource(R.string.ok)) } },
+        confirmButton = { TextButton(onClick = panel::settle) { Text(stringResource(Res.string.ok)) } },
     )
 }

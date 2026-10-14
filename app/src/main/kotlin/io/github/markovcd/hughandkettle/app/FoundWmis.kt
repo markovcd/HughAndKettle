@@ -23,11 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.discovery_failed
+import io.github.markovcd.hughandkettle.ui.discovery_found
+import io.github.markovcd.hughandkettle.ui.discovery_listening
+import io.github.markovcd.hughandkettle.ui.last_used
+import io.github.markovcd.hughandkettle.ui.wifi_named
+import io.github.markovcd.hughandkettle.ui.wifi_off
+import io.github.markovcd.hughandkettle.ui.wifi_show_name
+import io.github.markovcd.hughandkettle.ui.wifi_unnamed
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiBroadcast
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The WiFi the phone is on, the last box used, then every other WMI-1 heard on the network, one tappable
@@ -56,14 +64,14 @@ internal fun FoundWmis(
         val failure = discovery.failure
         val note =
             when {
-                failure != null -> stringResource(R.string.discovery_failed, failure)
-                discovery.found.isEmpty() -> stringResource(R.string.discovery_listening)
-                else -> stringResource(R.string.discovery_found)
+                failure != null -> stringResource(Res.string.discovery_failed, failure)
+                discovery.found.isEmpty() -> stringResource(Res.string.discovery_listening)
+                else -> stringResource(Res.string.discovery_found)
             }
         Text(note, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
         PhoneWifiLine(discovery)
         if (last != null) {
-            WmiRow(stringResource(R.string.last_used), last, onPick, Modifier.testTag("last"))
+            WmiRow(stringResource(Res.string.last_used), last, onPick, Modifier.testTag("last"))
         }
         discovery.found.forEach { box ->
             val address = box.wmiAddress()
@@ -86,9 +94,9 @@ private fun PhoneWifiLine(discovery: DiscoveryState) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         val text =
             when (val now = wifi) {
-                PhoneWifi.Off -> stringResource(R.string.wifi_off)
-                PhoneWifi.Unnamed -> stringResource(R.string.wifi_unnamed)
-                is PhoneWifi.Named -> stringResource(R.string.wifi_named, now.name)
+                PhoneWifi.Off -> stringResource(Res.string.wifi_off)
+                PhoneWifi.Unnamed -> stringResource(Res.string.wifi_unnamed)
+                is PhoneWifi.Named -> stringResource(Res.string.wifi_named, now.name)
             }
         Text(
             text,
@@ -105,7 +113,7 @@ private fun PhoneWifiLine(discovery: DiscoveryState) {
                 },
                 modifier = Modifier.testTag("name_wifi"),
             ) {
-                Text(stringResource(R.string.wifi_show_name))
+                Text(stringResource(Res.string.wifi_show_name))
             }
         }
     }

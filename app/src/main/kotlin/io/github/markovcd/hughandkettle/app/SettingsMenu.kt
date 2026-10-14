@@ -19,12 +19,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.amp
+import io.github.markovcd.hughandkettle.ui.settings
+import io.github.markovcd.hughandkettle.ui.theme
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The settings behind a three-dot button: the amp behind the box and the theme. Tests find it by `settings`
@@ -37,7 +40,7 @@ internal fun SettingsMenu(
     onTheme: (ThemeChoice) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val words = stringResource(R.string.settings)
+    val words = stringResource(Res.string.settings)
     Box {
         IconButton(
             onClick = { open = true },
@@ -52,7 +55,7 @@ internal fun SettingsMenu(
             }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            MenuHeading(stringResource(R.string.amp))
+            MenuHeading(stringResource(Res.string.amp))
             AmpModels.all.forEach { amp ->
                 DropdownMenuItem(
                     text = { Text(amp.name) },
@@ -65,7 +68,7 @@ internal fun SettingsMenu(
                 )
             }
             HorizontalDivider()
-            MenuHeading(stringResource(R.string.theme))
+            MenuHeading(stringResource(Res.string.theme))
             ThemeChoice.entries.forEach { choice ->
                 DropdownMenuItem(
                     text = { Text(stringResource(choice.label)) },

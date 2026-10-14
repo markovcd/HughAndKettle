@@ -1,14 +1,17 @@
 package io.github.markovcd.hughandkettle.app
 
-import androidx.annotation.StringRes
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.tab_amp
+import io.github.markovcd.hughandkettle.ui.tab_fx
+import io.github.markovcd.hughandkettle.ui.tones
+import org.jetbrains.compose.resources.StringResource
 
 /** The panel's tabs along the bottom. Tests find each by `tab:<id>`. */
 enum class PanelTab(
     val id: String,
-    @param:StringRes val label: Int,
+    val label: StringResource,
 ) {
-    Amp("amp", R.string.tab_amp),
-    Fx("fx", R.string.tab_fx),
-    Tones("tones", R.string.tones),
+    Amp("amp", Res.string.tab_amp),
+    Fx("fx", Res.string.tab_fx),
+    Tones("tones", Res.string.tones),
 }

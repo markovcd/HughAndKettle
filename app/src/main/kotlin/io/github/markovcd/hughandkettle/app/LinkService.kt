@@ -11,6 +11,8 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.disconnect
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
@@ -36,8 +38,8 @@ class LinkService : Service() {
         startId: Int,
     ): Int {
         if (intent?.action == ACTION_DISCONNECT) holder.stop()
-        // A started foreground service must show its notification at once, whatever happens next.
-        show(holder.state.value, holder.cable.value)
+        // A started foreground service must show its notification at once, before its words are read.
+        show(text = null, disconnectLabel = null)
         if (watching == null) {
             watching =
                 scope.launch {
@@ -46,7 +48,7 @@ class LinkService : Service() {
                             stopForeground(STOP_FOREGROUND_REMOVE)
                             stopSelf()
                         } else {
-                            show(state, cable)
+                            show(LinkWords.of(state, cable).load(), Words(Res.string.disconnect).load())
                         }
                     }
                 }
@@ -60,8 +62,8 @@ class LinkService : Service() {
     }
 
     private fun show(
-        state: LinkState,
-        cable: CableState,
+        text: String?,
+        disconnectLabel: String?,
     ) {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
@@ -81,19 +83,18 @@ class LinkService : Service() {
                 Intent(this, LinkService::class.java).setAction(ACTION_DISCONNECT),
                 PendingIntent.FLAG_IMMUTABLE,
             )
-        val notification =
+        val builder =
             Notification
                 .Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
                 .setContentTitle(getString(R.string.app_name))
-                .setContentText(LinkWords.of(state, cable, resources))
+                .setContentText(text)
                 .setContentIntent(open)
                 .setOngoing(true)
-                .addAction(
-                    Notification.Action
-                        .Builder(null, getString(R.string.disconnect), disconnect)
-                        .build(),
-                ).build()
+        if (disconnectLabel != null) {
+            builder.addAction(Notification.Action.Builder(null, disconnectLabel, disconnect).build())
+        }
+        val notification = builder.build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         } else {

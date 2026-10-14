@@ -25,11 +25,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.connect
+import io.github.markovcd.hughandkettle.ui.disconnect
+import io.github.markovcd.hughandkettle.ui.enter_address
+import io.github.markovcd.hughandkettle.ui.host
+import io.github.markovcd.hughandkettle.ui.port
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * A status line, then, while there is no link, the USB MIDI cables plugged in, the WMI-1s heard on the
@@ -60,11 +64,11 @@ internal fun LinkCard(
                         onClick = panel::connect,
                         modifier = Modifier.fillMaxWidth().height(48.dp).testTag("connect"),
                     ) {
-                        Text(stringResource(R.string.connect))
+                        Text(stringResource(Res.string.connect))
                     }
                 } else {
                     TextButton(onClick = { typing = true }, modifier = Modifier.testTag("enter_address")) {
-                        Text(stringResource(R.string.enter_address))
+                        Text(stringResource(Res.string.enter_address))
                     }
                 }
             } else {
@@ -72,7 +76,7 @@ internal fun LinkCard(
                     onClick = panel::disconnect,
                     modifier = Modifier.fillMaxWidth().height(48.dp).testTag("disconnect"),
                 ) {
-                    Text(stringResource(R.string.disconnect))
+                    Text(stringResource(Res.string.disconnect))
                 }
             }
         }
@@ -85,15 +89,7 @@ private fun StatusLine(panel: PanelState) {
     val colors = MaterialTheme.colorScheme
     val warning = panel.warning
     val band = if (warning) Modifier.background(colors.errorContainer, RoundedCornerShape(8.dp)) else Modifier
-    val resources = LocalResources.current
-    val text =
-        if (failure !=
-            null
-        ) {
-            LinkWords.of(failure, resources)
-        } else {
-            LinkWords.of(panel.link, panel.cable, resources)
-        }
+    val text = (if (failure != null) LinkWords.of(failure) else LinkWords.of(panel.link, panel.cable)).text()
     Row(
         modifier = band.defaultMinSize(minHeight = 36.dp).padding(horizontal = 10.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -115,7 +111,7 @@ private fun AddressFields(panel: PanelState) {
         OutlinedTextField(
             value = panel.host,
             onValueChange = { panel.host = it },
-            label = { Text(stringResource(R.string.host)) },
+            label = { Text(stringResource(Res.string.host)) },
             singleLine = true,
             enabled = panel.idle,
             textStyle = MaterialTheme.typography.bodyLarge,
@@ -125,7 +121,7 @@ private fun AddressFields(panel: PanelState) {
         OutlinedTextField(
             value = panel.port,
             onValueChange = { panel.port = it },
-            label = { Text(stringResource(R.string.port)) },
+            label = { Text(stringResource(Res.string.port)) },
             singleLine = true,
             enabled = panel.idle,
             textStyle = MaterialTheme.typography.bodyLarge,

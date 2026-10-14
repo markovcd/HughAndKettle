@@ -20,14 +20,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Sectors
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.effect_collapse
+import io.github.markovcd.hughandkettle.ui.effect_expand
+import io.github.markovcd.hughandkettle.ui.effect_on
+import io.github.markovcd.hughandkettle.ui.effect_switched_off
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * An effect's card: its name over a one-line summary and its switch, and while [open] and on, the
@@ -46,7 +50,7 @@ internal fun EffectCard(
     val values = panel.state.values
     val on = switch.isOn(values[switch.id] ?: 0)
     val shown = open && on
-    val toggle = stringResource(if (shown) R.string.effect_collapse else R.string.effect_expand, switch.name)
+    val toggle = stringResource(if (shown) Res.string.effect_collapse else Res.string.effect_expand, switch.name)
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -116,7 +120,7 @@ private fun summary(
     behind: List<Control>,
     values: Map<String, Int>,
 ): String {
-    if (!on) return stringResource(R.string.effect_switched_off)
+    if (!on) return stringResource(Res.string.effect_switched_off)
     behind.forEach { control ->
         val value = values[control.id] ?: return@forEach
         val kind = control.kind
@@ -124,7 +128,7 @@ private fun summary(
         if (kind is ControlKind.Selector) return kind.options[Sectors.index(value, kind.options.size)]
         if (scale != null) return "${scale.amount(value)} ${scale.unit}"
     }
-    return stringResource(R.string.effect_on)
+    return stringResource(Res.string.effect_on)
 }
 
 @Composable

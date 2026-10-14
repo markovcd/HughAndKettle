@@ -9,12 +9,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.link
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The link's state as a glyph, which opens the [LinkCard] while there is a link. While there is none the
@@ -26,7 +27,7 @@ internal fun LinkButton(
     discovery: DiscoveryState,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
-    val words = stringResource(R.string.link)
+    val words = stringResource(Res.string.link)
     IconButton(
         onClick = { open = true },
         modifier = Modifier.testTag("link").semantics { contentDescription = words },

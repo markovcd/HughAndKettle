@@ -26,9 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Section
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The whole screen: a top bar of the preset, the link's glyph, the header's switches and the settings, where

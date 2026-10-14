@@ -43,7 +43,7 @@ kotlin {
             api(catalog.findLibrary("compose-mp-foundation").get())
             api(catalog.findLibrary("compose-mp-ui").get())
             api(catalog.findLibrary("compose-mp-material3").get())
-            implementation(catalog.findLibrary("compose-mp-resources").get())
+            api(catalog.findLibrary("compose-mp-resources").get())
         }
         getByName("desktopTest").dependencies {
             implementation(kotlin("test"))

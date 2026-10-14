@@ -11,8 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.cancel
+import io.github.markovcd.hughandkettle.ui.ok
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Asks for a name. Tests find the field by `tone_name` and the confirm by `tone_name_done`; a blank
@@ -46,9 +48,9 @@ internal fun NameDialog(
                 enabled = name.isNotBlank() || !needsName,
                 modifier = Modifier.testTag("tone_name_done"),
             ) {
-                Text(stringResource(R.string.ok))
+                Text(stringResource(Res.string.ok))
             }
         },
-        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(Res.string.cancel)) } },
     )
 }

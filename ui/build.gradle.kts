@@ -9,5 +9,7 @@ kotlin {
 }
 
 compose.resources {
+    // The Android app reads its text through it until its screens move here.
+    publicResClass = true
     packageOfResClass = "io.github.markovcd.hughandkettle.ui"
 }

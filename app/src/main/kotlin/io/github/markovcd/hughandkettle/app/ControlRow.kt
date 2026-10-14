@@ -7,11 +7,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.moved_on_amp
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
@@ -27,7 +28,7 @@ internal fun ControlRow(
 ) {
     val first = row.first()
     val markColor = MaterialTheme.colorScheme.tertiary
-    val markWords = stringResource(R.string.moved_on_amp)
+    val markWords = stringResource(Res.string.moved_on_amp)
 
     fun Modifier.marked(control: Control) = movedMark(control.id in panel.moved, markColor, markWords)
     when (val kind = first.kind) {

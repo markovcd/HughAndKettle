@@ -13,9 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.cables_found
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The USB MIDI cables plugged into the phone, one tappable row each, and nothing when there are none.
@@ -30,7 +31,7 @@ internal fun FoundCables(
     if (cables.isEmpty()) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            stringResource(R.string.cables_found),
+            stringResource(Res.string.cables_found),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

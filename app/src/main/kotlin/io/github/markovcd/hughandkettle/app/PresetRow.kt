@@ -19,10 +19,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.preset
+import io.github.markovcd.hughandkettle.ui.preset_bank_slot
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The current preset in large type, under it the name given to it or else its bank and slot where the
@@ -62,9 +64,9 @@ internal fun PresetRow(
                     if (name != null) {
                         name
                     } else if (slot != null) {
-                        stringResource(R.string.preset_bank_slot, slot.bank, slot.slot)
+                        stringResource(Res.string.preset_bank_slot, slot.bank, slot.slot)
                     } else {
-                        stringResource(R.string.preset)
+                        stringResource(Res.string.preset)
                     },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

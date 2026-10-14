@@ -23,10 +23,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.cancel
+import io.github.markovcd.hughandkettle.ui.preset_name_title
+import io.github.markovcd.hughandkettle.ui.preset_naming
+import io.github.markovcd.hughandkettle.ui.preset_naming_done
+import io.github.markovcd.hughandkettle.ui.preset_naming_title
+import io.github.markovcd.hughandkettle.ui.preset_pick
+import io.github.markovcd.hughandkettle.ui.tone_name
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Every preset of the panel's amp, eight to a row, the current one filled, each with the name given
@@ -45,7 +52,7 @@ internal fun PresetGrid(
     var renaming by remember { mutableStateOf<Int?>(null) }
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text(stringResource(if (naming) R.string.preset_naming_title else R.string.preset_pick)) },
+        title = { Text(stringResource(if (naming) Res.string.preset_naming_title else Res.string.preset_pick)) },
         text = {
             names.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             LazyVerticalGrid(
@@ -88,18 +95,18 @@ internal fun PresetGrid(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.cancel)) } },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(Res.string.cancel)) } },
         dismissButton = {
             TextButton(onClick = { naming = !naming }, modifier = Modifier.testTag("preset_naming")) {
-                Text(stringResource(if (naming) R.string.preset_naming_done else R.string.preset_naming))
+                Text(stringResource(if (naming) Res.string.preset_naming_done else Res.string.preset_naming))
             }
         },
         modifier = Modifier.padding(8.dp),
     )
     renaming?.let { preset ->
         NameDialog(
-            title = stringResource(R.string.preset_name_title, preset),
-            label = stringResource(R.string.tone_name),
+            title = stringResource(Res.string.preset_name_title, preset),
+            label = stringResource(Res.string.tone_name),
             initial = names.names[preset] ?: "",
             onDone = { name ->
                 renaming = null

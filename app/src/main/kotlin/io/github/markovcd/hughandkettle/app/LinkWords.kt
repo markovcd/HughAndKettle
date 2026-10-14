@@ -1,7 +1,18 @@
 package io.github.markovcd.hughandkettle.app
 
-import android.content.res.Resources
-import io.github.markovcd.hughandkettle.R
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.cable_failed
+import io.github.markovcd.hughandkettle.ui.cable_open
+import io.github.markovcd.hughandkettle.ui.cable_opening
+import io.github.markovcd.hughandkettle.ui.connected_to
+import io.github.markovcd.hughandkettle.ui.connecting_again_to
+import io.github.markovcd.hughandkettle.ui.connecting_to
+import io.github.markovcd.hughandkettle.ui.link_lost
+import io.github.markovcd.hughandkettle.ui.link_needs_address
+import io.github.markovcd.hughandkettle.ui.link_refused
+import io.github.markovcd.hughandkettle.ui.link_unreachable
+import io.github.markovcd.hughandkettle.ui.not_connected
+import io.github.markovcd.hughandkettle.ui.send_failed
 import io.github.markovcd.hughandkettle.wmi.LinkFailure
 import io.github.markovcd.hughandkettle.wmi.LinkState
 
@@ -11,59 +22,52 @@ internal object LinkWords {
     fun of(
         state: LinkState,
         cable: CableState,
-        resources: Resources,
-    ): String =
+    ): Words =
         when (cable) {
-            CableState.None -> of(state, resources)
-            is CableState.Opening -> resources.getString(R.string.cable_opening, cable.cable.name)
-            is CableState.Open -> resources.getString(R.string.cable_open, cable.cable.name)
-            is CableState.Failed -> resources.getString(R.string.cable_failed, cable.cable.name, cable.reason)
+            CableState.None -> of(state)
+            is CableState.Opening -> Words(Res.string.cable_opening, listOf(cable.cable.name))
+            is CableState.Open -> Words(Res.string.cable_open, listOf(cable.cable.name))
+            is CableState.Failed -> Words(Res.string.cable_failed, listOf(cable.cable.name, cable.reason))
         }
 
-    private fun of(
-        state: LinkState,
-        resources: Resources,
-    ): String =
+    private fun of(state: LinkState): Words =
         when (state) {
             LinkState.Idle -> {
-                resources.getString(R.string.not_connected)
+                Words(Res.string.not_connected)
             }
 
             is LinkState.Connecting -> {
                 if (state.attempt == 1) {
-                    resources.getString(R.string.connecting_to, "${state.address}")
+                    Words(Res.string.connecting_to, listOf("${state.address}"))
                 } else {
-                    resources.getString(R.string.connecting_again_to, "${state.address}", state.attempt)
+                    Words(Res.string.connecting_again_to, listOf("${state.address}", state.attempt))
                 }
             }
 
             is LinkState.Connected -> {
-                resources.getString(R.string.connected_to, "${state.address}")
+                Words(Res.string.connected_to, listOf("${state.address}"))
             }
 
             is LinkState.Retrying -> {
                 when (val failure = state.failure) {
                     LinkFailure.Refused -> {
-                        resources.getString(R.string.link_refused, "${state.address}")
+                        Words(Res.string.link_refused, listOf("${state.address}"))
                     }
 
                     is LinkFailure.Unreachable -> {
-                        resources.getString(R.string.link_unreachable, "${state.address}", failure.reason)
+                        Words(Res.string.link_unreachable, listOf("${state.address}", failure.reason))
                     }
 
                     is LinkFailure.Lost -> {
-                        resources.getString(R.string.link_lost, "${state.address}", failure.reason)
+                        Words(Res.string.link_lost, listOf("${state.address}", failure.reason))
                     }
                 }
             }
         }
 
-    fun of(
-        failure: PanelFailure,
-        resources: Resources,
-    ): String =
+    fun of(failure: PanelFailure): Words =
         when (failure) {
-            PanelFailure.NeedsAddress -> resources.getString(R.string.link_needs_address)
-            is PanelFailure.SendFailed -> resources.getString(R.string.send_failed, failure.reason)
+            PanelFailure.NeedsAddress -> Words(Res.string.link_needs_address)
+            is PanelFailure.SendFailed -> Words(Res.string.send_failed, listOf(failure.reason))
         }
 }

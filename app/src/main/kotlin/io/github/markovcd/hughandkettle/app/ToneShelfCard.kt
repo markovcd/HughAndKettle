@@ -28,10 +28,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Tone
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.cancel
+import io.github.markovcd.hughandkettle.ui.tone_delete
+import io.github.markovcd.hughandkettle.ui.tone_delete_confirm
+import io.github.markovcd.hughandkettle.ui.tone_export
+import io.github.markovcd.hughandkettle.ui.tone_failed
+import io.github.markovcd.hughandkettle.ui.tone_import
+import io.github.markovcd.hughandkettle.ui.tone_imported
+import io.github.markovcd.hughandkettle.ui.tone_imported_presets
+import io.github.markovcd.hughandkettle.ui.tone_imported_presets_skipped
+import io.github.markovcd.hughandkettle.ui.tone_imported_skipped
+import io.github.markovcd.hughandkettle.ui.tone_move_down
+import io.github.markovcd.hughandkettle.ui.tone_move_up
+import io.github.markovcd.hughandkettle.ui.tone_name
+import io.github.markovcd.hughandkettle.ui.tone_read
+import io.github.markovcd.hughandkettle.ui.tone_read_done
+import io.github.markovcd.hughandkettle.ui.tone_read_explain
+import io.github.markovcd.hughandkettle.ui.tone_read_missed
+import io.github.markovcd.hughandkettle.ui.tone_read_stop
+import io.github.markovcd.hughandkettle.ui.tone_reading
+import io.github.markovcd.hughandkettle.ui.tone_rename
+import io.github.markovcd.hughandkettle.ui.tone_save
+import io.github.markovcd.hughandkettle.ui.tones
+import io.github.markovcd.hughandkettle.ui.tones_none
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The tones on the phone: save the panel as one, read the amp's presets into them, tap one to recall
@@ -69,18 +92,18 @@ internal fun ToneShelfCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(R.string.tones),
+                    stringResource(Res.string.tones),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { import.launch(TONE_FILE_TYPES) }, modifier = Modifier.testTag("tone_import")) {
-                    Text(stringResource(R.string.tone_import))
+                    Text(stringResource(Res.string.tone_import))
                 }
                 Button(
                     onClick = { naming = ToneNaming.New },
                     enabled = shelf.canSave,
                     modifier = Modifier.testTag("tone_save"),
-                ) { Text(stringResource(R.string.tone_save)) }
+                ) { Text(stringResource(Res.string.tone_save)) }
             }
             val reading = shelf.reading
             if (reading == null) {
@@ -88,12 +111,12 @@ internal fun ToneShelfCard(
                     onClick = { confirmingRead = true },
                     enabled = enabled && shelf.canRead,
                     modifier = Modifier.testTag("tone_read"),
-                ) { Text(stringResource(R.string.tone_read)) }
+                ) { Text(stringResource(Res.string.tone_read)) }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(
-                            R.string.tone_reading,
+                            Res.string.tone_reading,
                             reading.preset ?: reading.amp.presetCount,
                             reading.amp.presetCount,
                         ),
@@ -101,7 +124,7 @@ internal fun ToneShelfCard(
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(onClick = shelf::stopReading, modifier = Modifier.testTag("tone_read_stop")) {
-                        Text(stringResource(R.string.tone_read_stop))
+                        Text(stringResource(Res.string.tone_read_stop))
                     }
                 }
             }
@@ -115,7 +138,7 @@ internal fun ToneShelfCard(
             }
             if (shelf.tones.isEmpty()) {
                 Text(
-                    stringResource(R.string.tones_none),
+                    stringResource(Res.string.tones_none),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -137,8 +160,11 @@ internal fun ToneShelfCard(
     }
     naming?.let { current ->
         NameDialog(
-            title = stringResource(if (current is ToneNaming.Existing) R.string.tone_rename else R.string.tone_save),
-            label = stringResource(R.string.tone_name),
+            title =
+                stringResource(
+                    if (current is ToneNaming.Existing) Res.string.tone_rename else Res.string.tone_save,
+                ),
+            label = stringResource(Res.string.tone_name),
             initial = (current as? ToneNaming.Existing)?.tone?.name ?: "",
             onDone = { name ->
                 naming = null
@@ -150,31 +176,31 @@ internal fun ToneShelfCard(
     if (confirmingRead) {
         AlertDialog(
             onDismissRequest = { confirmingRead = false },
-            text = { Text(stringResource(R.string.tone_read_explain)) },
+            text = { Text(stringResource(Res.string.tone_read_explain)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmingRead = false
                     shelf.readPresets()
-                }, modifier = Modifier.testTag("tone_read_confirm")) { Text(stringResource(R.string.tone_read)) }
+                }, modifier = Modifier.testTag("tone_read_confirm")) { Text(stringResource(Res.string.tone_read)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { confirmingRead = false },
-                ) { Text(stringResource(R.string.cancel)) }
+                ) { Text(stringResource(Res.string.cancel)) }
             },
         )
     }
     deleting?.let { tone ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            text = { Text(stringResource(R.string.tone_delete_confirm, tone.name)) },
+            text = { Text(stringResource(Res.string.tone_delete_confirm, tone.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null
                     shelf.delete(tone)
-                }, modifier = Modifier.testTag("tone_delete_confirm")) { Text(stringResource(R.string.tone_delete)) }
+                }, modifier = Modifier.testTag("tone_delete_confirm")) { Text(stringResource(Res.string.tone_delete)) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(Res.string.cancel)) } },
         )
     }
 }
@@ -217,11 +243,11 @@ private fun ToneRow(
             TextButton(onClick = { menu = true }, modifier = Modifier.testTag("tone_menu:${tone.name}")) { Text("⋮") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 listOf(
-                    Triple("tone_move_up", R.string.tone_move_up) { shelf.move(tone, -1) },
-                    Triple("tone_move_down", R.string.tone_move_down) { shelf.move(tone, 1) },
-                    Triple("tone_rename", R.string.tone_rename, onRename),
-                    Triple("tone_export", R.string.tone_export, onExport),
-                    Triple("tone_delete", R.string.tone_delete, onDelete),
+                    Triple("tone_move_up", Res.string.tone_move_up) { shelf.move(tone, -1) },
+                    Triple("tone_move_down", Res.string.tone_move_down) { shelf.move(tone, 1) },
+                    Triple("tone_rename", Res.string.tone_rename, onRename),
+                    Triple("tone_export", Res.string.tone_export, onExport),
+                    Triple("tone_delete", Res.string.tone_delete, onDelete),
                 ).forEach { (tag, label, action) ->
                     DropdownMenuItem(
                         text = { Text(stringResource(label)) },
@@ -241,30 +267,34 @@ private fun ToneRow(
 private fun words(notice: ToneNotice): String =
     when (notice) {
         is ToneNotice.Failed -> {
-            stringResource(R.string.tone_failed, notice.reason)
+            stringResource(Res.string.tone_failed, notice.reason)
         }
 
         is ToneNotice.Read -> {
             if (notice.missed.isEmpty()) {
-                stringResource(R.string.tone_read_done, notice.count)
+                stringResource(Res.string.tone_read_done, notice.count)
             } else {
-                stringResource(R.string.tone_read_missed, notice.count, notice.missed.joinToString(", "))
+                stringResource(Res.string.tone_read_missed, notice.count, notice.missed.joinToString(", "))
             }
         }
 
         is ToneNotice.Imported -> {
             if (notice.skipped.isEmpty()) {
-                stringResource(R.string.tone_imported, notice.name)
+                stringResource(Res.string.tone_imported, notice.name)
             } else {
-                stringResource(R.string.tone_imported_skipped, notice.name, notice.skipped.joinToString("; "))
+                stringResource(Res.string.tone_imported_skipped, notice.name, notice.skipped.joinToString("; "))
             }
         }
 
         is ToneNotice.ImportedPresets -> {
             if (notice.skipped.isEmpty()) {
-                stringResource(R.string.tone_imported_presets, notice.count)
+                stringResource(Res.string.tone_imported_presets, notice.count)
             } else {
-                stringResource(R.string.tone_imported_presets_skipped, notice.count, notice.skipped.joinToString("; "))
+                stringResource(
+                    Res.string.tone_imported_presets_skipped,
+                    notice.count,
+                    notice.skipped.joinToString("; "),
+                )
             }
         }
     }

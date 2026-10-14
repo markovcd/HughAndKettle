@@ -11,9 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Section
+import org.jetbrains.compose.resources.stringResource
 
 /** A section's name in small capitals with a rule running on to the edge; nothing for a section with no title. */
 @Composable

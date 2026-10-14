@@ -11,11 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.github.markovcd.hughandkettle.R
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.tap
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * A knob with its name above and its value below, in a 150 dp cell: in the amp's unit where the manual
@@ -49,7 +50,7 @@ internal fun KnobCell(
                 enabled = enabled,
                 modifier = Modifier.height(48.dp).testTag("tap:${control.id}"),
             ) {
-                Text(stringResource(R.string.tap))
+                Text(stringResource(Res.string.tap))
             }
         }
     }
