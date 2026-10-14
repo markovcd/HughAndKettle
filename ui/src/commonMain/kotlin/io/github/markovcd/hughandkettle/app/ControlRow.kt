@@ -13,11 +13,10 @@ import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.moved_on_amp
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * One row of the panel: up to [PanelRows.KNOBS_PER_ROW] knobs sharing the width, or one switch or selector,
- * each described by its control's name and outlined while the amp has moved it.
+ * One row of the panel: up to [PanelRows.KNOBS_PER_ROW] knobs sharing the width, a time knob with its tempo,
+ * or one switch or selector, each described by its control's name and outlined while the amp has moved it.
  */
 @Composable
 internal fun ControlRow(
@@ -35,22 +34,18 @@ internal fun ControlRow(
         ControlKind.Knob -> {
             Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { control ->
-                    val timed = control.scale?.unit == "ms"
-                    KnobCell(
-                        control = control,
-                        value = panel.state.values[control.id] ?: 0,
-                        enabled = enabled,
-                        onValue = { panel.set(control, it) },
-                        modifier = Modifier.weight(1f).marked(control).testTag("control:${control.id}"),
-                        onTap =
-                            if (timed) {
-                                ({ panel.tap(control, System.nanoTime().nanoseconds) })
-                            } else {
-                                null
-                            },
-                        locked = panel.lock?.control?.controller == control.controller,
-                        onLock = if (timed) ({ panel.lock(control, it) }) else null,
-                    )
+                    val cell = Modifier.weight(1f).marked(control).testTag("control:${control.id}")
+                    if (control.timed) {
+                        TempoCell(control, panel, enabled, cell)
+                    } else {
+                        KnobCell(
+                            control,
+                            panel.state.values[control.id] ?: 0,
+                            enabled,
+                            { panel.set(control, it) },
+                            cell,
+                        )
+                    }
                 }
             }
         }

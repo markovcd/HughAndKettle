@@ -38,7 +38,7 @@ section becomes a version's section when `release.sh` ships it.
 - The release APK is shrunk by R8.
 - App: shows which WiFi network the phone is on, named once location is allowed.
 - App and `hk tone import`: import H&K's GrandMeister Deluxe 40 preset files (`.gm40memory`) as tones.
-- App and `hk lock`: lock the delay time so a preset recalled from the footswitch keeps the tempo.
+- App and `hk lock`: lock the delay time so a preset recalled from the footswitch keeps the tempo; the app shows the delay time in BPM too.
 
 ### Fixes
 

@@ -210,6 +210,7 @@ class PanelStateTest {
         fake.emit(ValueBlock(mapOf(delay.controller to 141), preset = 3).message())
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), delay.controller, 40)), nextSeen())
         assertEquals(40, panel.state.values["delay_time"])
+        assertEquals(1, panel.restored)
     }
 
     @Test

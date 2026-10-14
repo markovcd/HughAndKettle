@@ -60,6 +60,10 @@ class PanelState(
     var lock by mutableStateOf<TempoLock?>(null)
         private set
 
+    /** How many recalled presets the lock has given the held time back, so the panel can show each one. */
+    var restored by mutableStateOf(0)
+        private set
+
     /** The last box a link reached, offered first. */
     var last by mutableStateOf<WmiAddress?>(null)
         private set
@@ -284,7 +288,9 @@ class PanelState(
             }
         val held = lock ?: return
         lock = held.after(message)
-        held.restore(message)?.let(::send)
+        val restore = held.restore(message) ?: return
+        send(restore)
+        restored++
     }
 
     private fun AmpModel.controlFor(change: ControlChange): String? =

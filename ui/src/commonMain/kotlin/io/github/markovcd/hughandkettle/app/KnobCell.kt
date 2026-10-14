@@ -4,9 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,15 +13,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
-import io.github.markovcd.hughandkettle.ui.Res
-import io.github.markovcd.hughandkettle.ui.tap
-import io.github.markovcd.hughandkettle.ui.tempo_lock
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * A knob with its name above and its value below, in a 150 dp cell: in the amp's unit where the manual
- * gives a scale, with a tap button for a time and a lock that holds it across preset recalls. Tests find
- * the tap button by `tap:<id>` and the lock by `lock:<id>`.
+ * gives a scale. Tests find the value by `value:<id>`.
  */
 @Composable
 internal fun KnobCell(
@@ -32,13 +25,10 @@ internal fun KnobCell(
     enabled: Boolean,
     onValue: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    onTap: (() -> Unit)? = null,
-    locked: Boolean = false,
-    onLock: ((Boolean) -> Unit)? = null,
 ) {
     val scale = control.scale
     Column(
-        modifier = modifier.height(if (onTap == null) 150.dp else 246.dp).padding(horizontal = 4.dp),
+        modifier = modifier.height(150.dp).padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -49,23 +39,5 @@ internal fun KnobCell(
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.testTag("value:${control.id}"),
         )
-        if (onTap != null) {
-            OutlinedButton(
-                onClick = onTap,
-                enabled = enabled,
-                modifier = Modifier.height(48.dp).testTag("tap:${control.id}"),
-            ) {
-                Text(stringResource(Res.string.tap))
-            }
-        }
-        if (onLock != null) {
-            FilterChip(
-                selected = locked,
-                onClick = { onLock(!locked) },
-                label = { Text(stringResource(Res.string.tempo_lock)) },
-                enabled = enabled,
-                modifier = Modifier.height(48.dp).testTag("lock:${control.id}"),
-            )
-        }
     }
 }

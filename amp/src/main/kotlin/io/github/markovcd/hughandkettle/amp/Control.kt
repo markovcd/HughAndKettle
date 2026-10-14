@@ -27,6 +27,9 @@ public data class Control(
         require(scale == null || kind == ControlKind.Knob) { "only a knob has a scale, and '$id' is not one" }
     }
 
+    /** Whether this is a time knob, one whose scale is in milliseconds: it takes a tapped beat and a tempo lock. */
+    val timed: Boolean get() = scale?.unit == "ms"
+
     /** The message that sets this control to [value] on [channel]. */
     public fun set(
         value: Int,

@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
@@ -46,7 +47,7 @@ public object LockCommand : Command {
                 err.println(it.message)
                 return ExitCodes.BAD_ARGUMENTS
             }
-        val time = amp.controls.firstOrNull { it.scale?.unit == "ms" }
+        val time = amp.controls.firstOrNull(Control::timed)
         val scale = time?.scale
         if (time == null || scale == null) {
             err.println("${amp.id} has no delay time to hold")

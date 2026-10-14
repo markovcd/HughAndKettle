@@ -64,8 +64,12 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
     <string name="theme_system">As the phone</string>
-    <string name="tap">Tap</string>
-    <string name="tempo_lock">Lock</string>
+    <string name="tap">Tap tempo</string>
+    <string name="tempo_lock">Tempo lock</string>
+    <string name="tempo_held">Held</string>
+    <string name="bpm">BPM</string>
+    <string name="time_tempo">%1$s · %2$s BPM</string>
+    <string name="tempo_locked_at">Tempo lock · %1$s · %2$s BPM</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="section_preamp">Preamp</string>

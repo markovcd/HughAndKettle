@@ -22,6 +22,13 @@ class PanelRowsTest {
     }
 
     @Test
+    fun `The delay time knob has a row of its own, ahead of the delay's other knobs`() {
+        val delay = AmpModels.grandMeisterDeluxe40.controls.filter { it.needs == "delay" }
+        val rows = PanelRows.of(delay).map { row -> row.map(Control::id) }
+        assertEquals(listOf(listOf("delay_time"), listOf("delay_feedback", "delay_volume")), rows)
+    }
+
+    @Test
     fun `A switch between knobs closes the knob row before it`() {
         val fx = AmpModels.blackSpirit200.controls.filter { it.section == Section.Fx }
         val rows = PanelRows.of(fx)
