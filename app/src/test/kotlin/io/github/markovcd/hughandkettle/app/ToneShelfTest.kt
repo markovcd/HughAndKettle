@@ -159,6 +159,19 @@ class ToneShelfTest {
     }
 
     @Test
+    fun `A GrandMeister preset file imports its presets as tones, named apart from the shelf's`() {
+        val tones = ToneShelf(ToneStore(folder.resolve("gm")), panel, scope, Dispatchers.Unconfined)
+        tones.import {
+            ByteArrayInputStream(
+                Tone("Lead", AmpModels.grandMeisterDeluxe40, emptyMap()).let(ToneFile::write).toByteArray(),
+            )
+        }
+        tones.import { ToneShelfTest::class.java.getResourceAsStream("/presets/test-bank.gm40memory") }
+        assertEquals(ToneNotice.ImportedPresets(3, emptyList()), tones.notice)
+        assertEquals(listOf("Lead", "Clean Chorus", "Lead 2", "Lead 3"), tones.tones.map { it.name })
+    }
+
+    @Test
     fun `Reading the presets keeps each as a tone named after it and returns to the preset the amp was on`() {
         lateinit var amp: FakeWmi
         lateinit var reader: ToneShelf

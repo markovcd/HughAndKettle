@@ -78,7 +78,9 @@ its program change (bank 32 is programs 124 to 127), the amp reports 80 at 0, se
 for the preset just stored, and reports controller 16 at the preset's number.
 
 Sending controller 80 at 127 does not arm a store: the amp neither reports it nor stores on the
-program change that follows, which recalls the preset as usual. How the iPad apps store is unknown.
+program change that follows, which recalls the preset as usual. How the iPad apps store is unknown,
+though they do: the GrandMeister Deluxe 40 Remote app's App Store listing and the manual's chapter 2.5
+say it uploads presets to the amp and moves them between slots.
 
 ## The value block
 
@@ -118,7 +120,8 @@ Read on 2026-10-13 by setting known values, switching to Crunch and back to Clea
   likely meaning the panel no longer matches a stored preset. The check is `4E` xor every byte from
   `<a>` to the flags.
 - Two stored presets carried 0 for delay volume and modulation intensity, which had been 160 and 201
-  just before: unexplained, possibly how an effect switched off is stored.
+  just before: likely how an effect switched off is stored. H&K's own preset files agree: they keep
+  no effect switches, only levels, and a level of 0 in every preset whose effect is off.
 - Presence set to 50 reported 127 of 255 and stored 127, not 100: unexplained.
 - On the GrandMeister Deluxe 40 a change on 26 (modulation speed in the chart) reports as 12 at half
   its value, so speed and type look like the one modulation knob.

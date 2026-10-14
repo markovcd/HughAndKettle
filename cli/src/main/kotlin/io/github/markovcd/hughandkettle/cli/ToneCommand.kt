@@ -4,6 +4,7 @@ import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.PresetReading
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
+import io.github.markovcd.hughandkettle.amp.ToneImport
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
@@ -15,7 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
-import kotlin.io.path.readText
+import kotlin.io.path.readBytes
 import kotlin.io.path.writeText
 
 /**
@@ -35,7 +36,7 @@ public object ToneCommand : Command {
         hk tone move <name> <position> [--dir D]
         hk tone delete <name> [--dir D]
         hk tone export <name> <file> [--dir D]
-        hk tone import <file> [--replace] [--dir D]
+        hk tone import <file> [--replace] [--dir D]    (a tone file, or a GrandMeister .gm40memory)
         """.trimIndent()
 
     override fun run(
@@ -305,26 +306,28 @@ public object ToneCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val text =
+        val bytes =
             try {
-                file.readText()
+                file.readBytes()
             } catch (e: IOException) {
                 err.println("cannot read $file: ${e.message}")
                 return ExitCodes.BAD_FILE
             }
         val read =
-            ToneFile.read(text).getOrElse {
+            ToneImport.read(bytes).getOrElse {
                 err.println("$file: ${it.message}")
                 return ExitCodes.BAD_FILE
             }
         read.skipped.forEach { err.println("$file: skipped: $it") }
-        return changed(
-            store.save(read.tone, replace),
-            out,
-            err,
-            "imported" to read.tone.name,
-            "skipped" to read.skipped,
-        )
+        if (!ToneImport.isPresetFile(bytes)) {
+            val tone = read.tones.single()
+            return changed(store.save(tone, replace), out, err, "imported" to tone.name, "skipped" to read.skipped)
+        }
+        // A preset file's tones are named apart from each other, and from the tones kept unless they replace them.
+        val tones = read.namedApartFrom(if (replace) emptyList() else store.list().tones.map { it.name }).tones
+        val saved = store.save(tones, replace)
+        saved.onSuccess { tones.forEach { out.println(Json.line(*fields(it))) } }
+        return changed(saved, out, err, "presets" to tones.size, "skipped" to read.skipped)
     }
 
     private fun found(

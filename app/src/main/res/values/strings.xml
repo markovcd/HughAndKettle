@@ -49,6 +49,8 @@
     <string name="tone_move_down">Move down</string>
     <string name="tone_imported">Imported “%1$s”</string>
     <string name="tone_imported_skipped">Imported “%1$s”, leaving out: %2$s</string>
+    <string name="tone_imported_presets">Presets imported as tones: %1$d</string>
+    <string name="tone_imported_presets_skipped">Presets imported as tones: %1$d, leaving out: %2$s</string>
     <string name="tone_failed">Tones: %1$s</string>
     <string name="tone_read">Read presets</string>
     <string name="tone_read_explain">Recalls every preset on the amp in turn and saves each as a tone named after it, replacing tones of the same name. The amp\'s sound changes while it runs. Only the knobs are read, not the channel or the switches.</string>

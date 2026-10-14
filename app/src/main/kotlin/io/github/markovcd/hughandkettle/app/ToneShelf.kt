@@ -7,6 +7,7 @@ import io.github.markovcd.hughandkettle.amp.PresetNames
 import io.github.markovcd.hughandkettle.amp.PresetReading
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
+import io.github.markovcd.hughandkettle.amp.ToneImport
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import kotlinx.coroutines.CoroutineDispatcher
@@ -135,18 +136,27 @@ class ToneShelf(
         }
     }
 
-    /** Reads a tone file from what [open] opens and keeps it; a name already on the shelf is refused. */
+    /**
+     * Reads a tone file, or the GrandMeister app's preset file, from what [open] opens and keeps its tones.
+     * A tone file's name already on the shelf is refused; a preset file's tones are named apart from the shelf's.
+     */
     fun import(open: () -> InputStream?) =
         change {
-            val text =
+            val bytes =
                 try {
                     val stream = open() ?: return@change Result.failure(IOException("nothing to read"))
                     stream.use(::capped)
                 } catch (e: IOException) {
                     return@change Result.failure(e)
                 } ?: return@change Result.failure(IOException("larger than a tone file can be"))
-            val read = ToneFile.read(text).getOrElse { return@change Result.failure(it) }
-            store.save(read.tone).map { ToneNotice.Imported(read.tone.name, read.skipped) }
+            val read = ToneImport.read(bytes).getOrElse { return@change Result.failure(it) }
+            if (ToneImport.isPresetFile(bytes)) {
+                val apart = read.namedApartFrom(store.list().tones.map { it.name })
+                store.save(apart.tones).map { ToneNotice.ImportedPresets(apart.tones.size, read.skipped) }
+            } else {
+                val tone = read.tones.single()
+                store.save(tone).map { ToneNotice.Imported(tone.name, read.skipped) }
+            }
         }
 
     fun dismiss() {
@@ -171,16 +181,16 @@ class ToneShelf(
         // The amp answers a recall in tens of milliseconds over the WMI-1; this leaves room for a busy network.
         const val PER_PRESET_MILLIS = 2000L
 
-        // A tone file of every control of the largest amp is a few kilobytes; anything past this is not one.
+        // A tone file is a few kilobytes and the GrandMeister app's preset file under 32 KB; anything past this is neither.
         const val MAX_FILE_BYTES = 64 * 1024
 
-        /** The text of [stream], or null when it runs past [MAX_FILE_BYTES]. */
-        fun capped(stream: InputStream): String? {
+        /** The bytes of [stream], or null when it runs past [MAX_FILE_BYTES]. */
+        fun capped(stream: InputStream): ByteArray? {
             val bytes = ByteArrayOutputStream()
             val buffer = ByteArray(8192)
             while (true) {
                 val read = stream.read(buffer)
-                if (read < 0) return bytes.toString(Charsets.UTF_8.name())
+                if (read < 0) return bytes.toByteArray()
                 bytes.write(buffer, 0, read)
                 if (bytes.size() > MAX_FILE_BYTES) return null
             }

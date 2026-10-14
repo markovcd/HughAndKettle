@@ -13,6 +13,9 @@ that lands it.
 
 ## Code
 
+- Parked: write tones into the amp's presets and move presets between slots, as the GrandMeister app does. Storing over MIDI was not found ([wmi-1.md](docs/wmi-1.md#storing-a-preset)); sending the amp its own value block is the untried guess.
+- Parked: keep a preset file whole, named, read-only if wanted and shared as one, rather than as loose tones.
+- Parked: set the WMI-1's name, access point channel, password and home WiFi, as WMI Connect does, likely through the WiFly module's `$$$` command mode over TCP. A wrong setting locks the app out until a factory reset.
 - Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names. `AmpModels` carries numbered placeholders until then.
 - Decode the rest of the amp's value block: its flags byte and pairs 14 and 15 ([wmi-1.md](docs/wmi-1.md#the-value-block)).
 - Time the delay at a few settings to confirm 51 ms to 1360 ms is spread evenly over 0..127; the amp's reports suggest it is, and `Scale` takes it as even.

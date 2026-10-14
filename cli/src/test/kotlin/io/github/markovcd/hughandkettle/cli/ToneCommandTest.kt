@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.readText
+import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -163,6 +164,23 @@ class ToneCommandTest {
         assertEquals(ExitCodes.BAD_FILE, newer.code)
         assertTrue("from a newer Hugh & Kettle" in newer.err, newer.err)
         assertEquals(listOf("Odd"), names())
+    }
+
+    @Test
+    fun `A GrandMeister preset file imports its named presets, named apart from the tones already kept`() {
+        ok("save", "grandmeister_deluxe_40", "Lead", "gain=1")
+        val file = folder.resolve("bank.gm40memory")
+        file.writeBytes(ToneCommandTest::class.java.getResource("/presets/test-bank.gm40memory")!!.readBytes())
+        val run = run("import", file.toString())
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertEquals(
+            """{"presets":3,"skipped":[]}""",
+            run.out
+                .trim()
+                .lines()
+                .last(),
+        )
+        assertEquals(listOf("Lead", "Clean Chorus", "Lead 2", "Lead 3"), names())
     }
 
     @Test

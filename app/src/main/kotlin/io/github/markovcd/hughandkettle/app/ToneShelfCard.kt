@@ -259,6 +259,14 @@ private fun words(notice: ToneNotice): String =
                 stringResource(R.string.tone_imported_skipped, notice.name, notice.skipped.joinToString("; "))
             }
         }
+
+        is ToneNotice.ImportedPresets -> {
+            if (notice.skipped.isEmpty()) {
+                stringResource(R.string.tone_imported_presets, notice.count)
+            } else {
+                stringResource(R.string.tone_imported_presets_skipped, notice.count, notice.skipped.joinToString("; "))
+            }
+        }
     }
 
 private const val TONE_FILE_TYPE = "application/json"

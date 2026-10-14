@@ -35,6 +35,7 @@ Prefer the domain's words over the framework's.
 | **preset** | One of the amp's 128 stored sounds, recalled by a program change. | `preset`; `program` for the MIDI number | patch, program (in prose), slot, bank entry |
 | **preset name** | A name given to one of the amp's presets, kept on the phone or by `hk`; the amp itself names none. | `PresetNames`, `PresetNameStore` | preset title, label, tag |
 | **tone** | A named set of control values kept on the phone or by `hk`, apart from the amp's presets, and recalled by sending each value. | `Tone`, `ToneFile`, `ToneStore` | preset (the amp's), patch, sound, favorite |
+| **preset file** | A file of 128 presets saved by H&K's GrandMeister Deluxe 40 Remote app, `.gm40memory`; its named presets import as tones. | `Gm40Memory`, `ToneImport` | memory, bank (an amp word), library, preset dump |
 | **tone shelf** | The panel's list of tones, with save, recall, rename, move, delete, export and import. | `ToneShelf`, `ToneShelfCard` | library, bank (an amp word), favorites |
 | **message** | One complete MIDI message. | `MidiMessage` | event, packet (a network word), command |
 | **report** | The amp's system exclusive saying a control moved and to what. | `ControlReport` | notification, echo (the amp's copy of what it receives), feedback (a delay knob) |
