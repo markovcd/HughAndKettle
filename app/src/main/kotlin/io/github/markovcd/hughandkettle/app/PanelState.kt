@@ -7,6 +7,7 @@ import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.TapTempo
+import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiMessage
@@ -53,6 +54,10 @@ class PanelState(
 
     /** The ids of controls the amp last moved to a value the panel had not set, until the panel sets them. */
     var moved by mutableStateOf(emptySet<String>())
+        private set
+
+    /** The delay time held across preset recalls, while locked. */
+    var lock by mutableStateOf<TempoLock?>(null)
         private set
 
     /** The last box a link reached, offered first. */
@@ -160,6 +165,7 @@ class PanelState(
         state = AmpState(amp)
         moved = emptySet()
         taps = TapTempo()
+        lock = null
     }
 
     /** The fields are editable only while there is nothing to protect. */
@@ -230,16 +236,25 @@ class PanelState(
         set(control, scale.value(beat.inWholeMilliseconds.toInt()))
     }
 
+    /** Holds [control]'s time, at its value now, across preset recalls; or lets it go. */
+    fun lock(
+        control: Control,
+        on: Boolean,
+    ) {
+        lock = if (on) TempoLock(control, state.values[control.id]) else null
+    }
+
     /** Recalls [preset], counted from 1 as the amp shows it. */
     fun recall(preset: Int) = send(amp.recall(preset))
 
     /** Sends every value [tone] holds, in order, so a channel switch lands before the knobs it carries. */
-    fun recall(tone: Tone) = send(tone.recall())
+    fun recall(tone: Tone) = send(lock?.kept(tone.recall()) ?: tone.recall())
 
     private fun send(message: MidiMessage) = send(listOf(message))
 
     private fun send(messages: List<MidiMessage>) {
         state = messages.fold(state) { before, message -> before.after(message) }
+        lock = lock?.let { messages.fold(it) { held, message -> held.after(message) } }
         moved =
             if (messages.any { it is ProgramChange }) {
                 emptySet()
@@ -257,6 +272,7 @@ class PanelState(
         }
     }
 
+    /** Takes in what the amp said; a preset it recalled while locked gets the held time back. */
     private fun heard(message: MidiMessage) {
         val before = state
         state = before.after(message)
@@ -266,6 +282,9 @@ class PanelState(
             } else {
                 moved + state.values.filter { (id, value) -> before.values[id] != value }.keys
             }
+        val held = lock ?: return
+        lock = held.after(message)
+        held.restore(message)?.let(::send)
     }
 
     private fun AmpModel.controlFor(change: ControlChange): String? =

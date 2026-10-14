@@ -39,6 +39,7 @@ hk cable list | send <name> cc|pc|raw ... [--channel 1..16] | listen <name> [--s
 hk set <host[:port]> <amp-id> <control-id> <0..127 | on | off | option>
 hk set <host[:port]> <amp-id> preset <1..128>
 hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
+hk lock <host[:port]> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay time across preset recalls
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
 hk tone rename <name> <new-name> | move <name> <position> | delete <name>
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D

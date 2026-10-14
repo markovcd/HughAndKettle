@@ -13,6 +13,14 @@ public data class ControlReport(
     val controller: Int,
     val value: Int,
 ) {
+    /** The report as the amp sends it, for a stand-in amp. */
+    public fun message(): SystemExclusive {
+        val high = value shr 7
+        val low = value and 0x7F
+        val body = listOf(controller, high, low, 0x0A xor controller xor high xor low)
+        return SystemExclusive((header.toList() + body.map { it.toByte() }).toByteArray())
+    }
+
     public companion object {
         private val header = byteArrayOf(0x00, 0x20, 0x44, 0x00, 0x10, 0x00, 0x0A, 0x00, 0x04)
 

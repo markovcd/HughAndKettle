@@ -12,6 +12,7 @@ public object Cli {
             ToneCommand,
             PresetCommand,
             ListenCommand,
+            LockCommand,
             CableCommand,
             DiscoverCommand,
             FakeWmiCommand,

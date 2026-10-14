@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.OtherMessage
@@ -133,6 +134,31 @@ class CliTest {
         val run = run("listen", "127.0.0.1:${fake.port}", "--seconds", "1")
         assertEquals(ExitCodes.OK, run.code, run.err)
         assertEquals("", run.out)
+    }
+
+    @Test
+    fun `A lock gives a recalled preset the held delay time back and prints that it did`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val locking = started("lock", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "500ms", "--seconds", "1")
+        assertTrue(next() is FakeWmiEvent.Opened)
+        fake.emit(ValueBlock(mapOf(4 to 141), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 4, 44)), next())
+        val run = locking.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertEquals(
+            listOf(""""held":44,"delay_ms":505}""", """"restored":44,"delay_ms":505}"""),
+            run.out
+                .lines()
+                .filter { it.isNotEmpty() }
+                .map { it.replace(Regex("""^\{"ms":\d+,"""), "") },
+        )
+    }
+
+    @Test
+    fun `A lock on a time outside the delay's range is refused before anything is sent`() {
+        val run = run("lock", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "2000ms")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
+        assertTrue("'delay_time' takes 0..127 or 51..1360ms" in run.err, run.err)
     }
 
     @Test

@@ -35,6 +35,7 @@ internal fun ControlRow(
         ControlKind.Knob -> {
             Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { control ->
+                    val timed = control.scale?.unit == "ms"
                     KnobCell(
                         control = control,
                         value = panel.state.values[control.id] ?: 0,
@@ -42,11 +43,13 @@ internal fun ControlRow(
                         onValue = { panel.set(control, it) },
                         modifier = Modifier.weight(1f).marked(control).testTag("control:${control.id}"),
                         onTap =
-                            if (control.scale?.unit == "ms") {
+                            if (timed) {
                                 ({ panel.tap(control, System.nanoTime().nanoseconds) })
                             } else {
                                 null
                             },
+                        locked = panel.lock?.control?.controller == control.controller,
+                        onLock = if (timed) ({ panel.lock(control, it) }) else null,
                     )
                 }
             }

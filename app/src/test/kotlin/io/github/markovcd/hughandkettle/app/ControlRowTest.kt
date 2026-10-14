@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
@@ -83,6 +84,19 @@ class ControlRowTest {
         compose.onNodeWithTag("value:delay_feedback").assertTextEquals("0")
         compose.onNodeWithTag("tap:delay_time").assertExists()
         compose.onNodeWithTag("tap:delay_feedback").assertDoesNotExist()
+    }
+
+    @Test
+    fun `The lock on delay time holds it and lets it go`() {
+        val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
+        val row = listOf("delay_time", "delay_feedback").map { panel.amp.control(it)!! }
+        panel.set(row[0], 40)
+        compose.setContent { ControlRow(row, panel, enabled = true) }
+        compose.onNodeWithTag("lock:delay_feedback").assertDoesNotExist()
+        compose.onNodeWithTag("lock:delay_time").performClick()
+        assertEquals(40, panel.lock?.value)
+        compose.onNodeWithTag("lock:delay_time").performClick()
+        assertEquals(null, panel.lock)
     }
 
     @Test

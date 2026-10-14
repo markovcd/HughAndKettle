@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.MidiMessage
@@ -196,6 +197,31 @@ class PanelStateTest {
         assertEquals(null, panel.state.values["delay_time"])
         panel.tap(delay, 10.seconds + 500.milliseconds)
         assertEquals(delay.scale!!.value(500), panel.state.values["delay_time"])
+    }
+
+    @Test
+    fun `A preset recalled from the footswitch while the tempo is locked gets the locked delay time back`() {
+        val delay = AmpModels.blackSpirit200.control("delay_time")!!
+        connected()
+        panel.set(delay, 40)
+        nextSeen()
+        panel.lock(delay, on = true)
+        fake.emit(ProgramChange(MidiChannel(1), 2))
+        fake.emit(ValueBlock(mapOf(delay.controller to 141), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), delay.controller, 40)), nextSeen())
+        assertEquals(40, panel.state.values["delay_time"])
+    }
+
+    @Test
+    fun `A preset recalled with the tempo unlocked keeps its own delay time`() {
+        val delay = AmpModels.blackSpirit200.control("delay_time")!!
+        connected()
+        panel.set(delay, 40)
+        nextSeen()
+        fake.emit(ValueBlock(mapOf(delay.controller to 141), preset = 3).message())
+        until("delay time at 70") { it.state.values["delay_time"] == 70 }
+        // An answer goes out as the block is taken in, so one would be on loopback well inside 200 ms.
+        assertEquals(null, seen.poll(200, TimeUnit.MILLISECONDS))
     }
 
     @Test

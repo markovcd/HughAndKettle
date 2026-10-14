@@ -65,6 +65,7 @@
     <string name="theme_light">Light</string>
     <string name="theme_system">As the phone</string>
     <string name="tap">Tap</string>
+    <string name="tempo_lock">Lock</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="section_preamp">Preamp</string>
