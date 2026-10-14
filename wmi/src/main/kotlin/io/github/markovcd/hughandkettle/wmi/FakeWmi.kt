@@ -24,7 +24,8 @@ public class FakeWmi(
     private val onEvent: (FakeWmiEvent) -> Unit,
 ) : Closeable {
     private val server = ServerSocket(port)
-    private var client: Socket? = null
+
+    @Volatile private var client: Socket? = null
     private var broadcaster: Thread? = null
 
     public val port: Int get() = server.localPort
@@ -39,6 +40,11 @@ public class FakeWmi(
                         break
                     }
                 client = socket
+                // A close that came while this client was being taken in missed it; drop it here.
+                if (server.isClosed) {
+                    socket.close()
+                    break
+                }
                 serve(socket)
             }
         }
