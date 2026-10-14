@@ -23,7 +23,9 @@ target (AGP's KMP library plugin, with Android Lint applied) and a `desktop` JVM
 - The building blocks and the state behind them are shared; layouts and input are per platform.
 - Code moved into `ui` keeps its `io.github.markovcd.hughandkettle.app` package, so moving a file
   changes no other file and another session's edits rebase across it.
-- Fonts and, later, text are Compose resources in `ui`.
+- Fonts and text are Compose resources in `ui`.
+- `ui` does not use explicit API mode: it is the app's screens split from their shell, not a
+  published library, and files keep their visibility when they move.
 - The desktop build links Skia's native library for the machine building it; the lock files hold the
   gate's Linux x64 one.
 

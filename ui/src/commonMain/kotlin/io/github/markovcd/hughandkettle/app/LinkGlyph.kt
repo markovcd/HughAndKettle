@@ -20,7 +20,7 @@ import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /** The link's state at a glance: a warning, a filled dot when linked, a spinner while linking, else a ring. */
 @Composable
-internal fun LinkGlyph(panel: PanelState) {
+fun LinkGlyph(panel: PanelState) {
     val colors = MaterialTheme.colorScheme
     when {
         panel.warning -> {

@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 
 /** A tab's glyph, drawn in place: a knob for the amp, a wave for the effects, a bookmark for the tones. */
 @Composable
-internal fun TabGlyph(
+fun TabGlyph(
     tab: PanelTab,
     selected: Boolean,
 ) {

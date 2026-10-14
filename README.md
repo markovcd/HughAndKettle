@@ -90,8 +90,8 @@ the host machine's fake at `10.0.2.2`.
 | `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, tones and their files, preset names, and reading presets into tones |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |
-| `ui` | The Compose pieces the Android and desktop apps share: the theme, its fonts and the knob |
-| `app` | The Compose screen (the preset in the top bar and the channel and boost always in view; the amp picked in the settings over tabs for the amp, its effects and the tones; a link card with the WMI-1s heard, folded into a status glyph once linked) and the service that holds the link |
+| `ui` | The screens the Android and desktop apps share: the theme, the tabs, cards and rows, the panel's state, the link holder, the tone shelf, and their words as Compose resources |
+| `app` | The Android shell: the activity, the phone's layout (`AmpPanel`), the service that holds the link, the settings stores, WiFi, the USB cable and the tone file picker |
 | `desktop` | The desktop app, a window over `ui`; see [the plan](docs/handoff/03-desktop-app.md) |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 

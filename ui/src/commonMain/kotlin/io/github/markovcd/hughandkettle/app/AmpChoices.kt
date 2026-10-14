@@ -9,7 +9,7 @@ import io.github.markovcd.hughandkettle.wmi.WmiAddress
  * `<host:port> <amp-id>` per box. A line that does not read, or names an amp this version does not
  * know, is left out; a newer version reads as no choices at all.
  */
-internal object AmpChoices {
+object AmpChoices {
     const val VERSION: Int = 1
 
     fun write(choices: Map<WmiAddress, AmpModel>): String =

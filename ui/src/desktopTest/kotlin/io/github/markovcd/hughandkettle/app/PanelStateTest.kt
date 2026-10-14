@@ -16,10 +16,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.junit.After
-import org.junit.Test
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import kotlin.test.AfterTest
+import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -39,7 +39,7 @@ class PanelStateTest {
     private val panel = PanelState(AmpModels.blackSpirit200, holder, scope, last)
     private val gain = AmpModels.blackSpirit200.controls.first { it.id == "gain" }
 
-    @After
+    @AfterTest
     fun teardown() {
         scope.cancel()
         holder.close()

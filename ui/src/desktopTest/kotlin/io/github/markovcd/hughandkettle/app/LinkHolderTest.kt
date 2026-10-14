@@ -5,8 +5,8 @@ import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.junit.After
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -14,7 +14,7 @@ class LinkHolderTest {
     private val jack = SlowJack()
     private val holder = LinkHolder(jack)
 
-    @After
+    @AfterTest
     fun teardown() = holder.close()
 
     @Test

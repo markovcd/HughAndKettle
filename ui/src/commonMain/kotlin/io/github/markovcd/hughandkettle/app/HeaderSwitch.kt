@@ -21,7 +21,7 @@ import io.github.markovcd.hughandkettle.amp.Control
 
 /** A switch beside the amp's name, as mute: a round toggle with a struck-out speaker, ringed in amber while on. */
 @Composable
-internal fun HeaderSwitch(
+fun HeaderSwitch(
     control: Control,
     panel: PanelState,
     enabled: Boolean,

@@ -22,7 +22,7 @@ import org.jetbrains.compose.resources.stringResource
  * by `amp_question` and each amp by `amp_answer:<id>`.
  */
 @Composable
-internal fun AmpQuestion(panel: PanelState) {
+fun AmpQuestion(panel: PanelState) {
     AlertDialog(
         onDismissRequest = panel::settle,
         title = { Text(stringResource(Res.string.amp_question)) },

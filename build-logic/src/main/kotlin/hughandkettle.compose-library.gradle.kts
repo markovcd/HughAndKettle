@@ -15,8 +15,8 @@ plugins {
 
 kotlin {
     jvmToolchain(catalog.version("jdk").toInt())
-    // Every declaration states its visibility; the default is internal, by rule.
-    explicitApi()
+    // No explicitApi(): this is the app's screens, shared by two thin shells rather than published, and
+    // its files move here from `app` as they are.
     compilerOptions {
         allWarningsAsErrors.set(true)
     }

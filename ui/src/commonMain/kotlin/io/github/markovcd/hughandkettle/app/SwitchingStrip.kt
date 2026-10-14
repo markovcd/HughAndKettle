@@ -34,7 +34,7 @@ import io.github.markovcd.hughandkettle.amp.Sectors
  * and each switch as a chip with a lit dot, as boost.
  */
 @Composable
-internal fun SwitchingStrip(
+fun SwitchingStrip(
     panel: PanelState,
     enabled: Boolean,
     modifier: Modifier = Modifier,

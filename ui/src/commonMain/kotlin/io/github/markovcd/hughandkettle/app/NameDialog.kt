@@ -21,7 +21,7 @@ import org.jetbrains.compose.resources.stringResource
  * name is taken only when it does not [need a name][needsName].
  */
 @Composable
-internal fun NameDialog(
+fun NameDialog(
     title: String,
     label: String,
     initial: String,

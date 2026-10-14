@@ -18,8 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
-import org.junit.After
-import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
@@ -28,6 +26,8 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
+import kotlin.test.AfterTest
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -44,7 +44,7 @@ class ToneShelfTest {
     private val panel = PanelState(amp, holder, scope, flowOf(null))
     private val shelf = ToneShelf(ToneStore(folder.resolve("tones")), panel, scope, Dispatchers.Unconfined)
 
-    @After
+    @AfterTest
     @OptIn(ExperimentalPathApi::class)
     fun teardown() {
         scope.cancel()

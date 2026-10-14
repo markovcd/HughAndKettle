@@ -1,6 +1,6 @@
 package io.github.markovcd.hughandkettle.app
 
-import org.junit.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class PhoneWifiTest {

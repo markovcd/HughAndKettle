@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
  * opens the grid of all of them. Tests find it by `preset`, `preset_label`, `preset_down` and `preset_up`.
  */
 @Composable
-internal fun PresetRow(
+fun PresetRow(
     panel: PanelState,
     names: PresetNamesState,
     enabled: Boolean,

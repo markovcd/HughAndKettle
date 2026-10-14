@@ -17,7 +17,7 @@ import io.github.markovcd.hughandkettle.wmi.LinkFailure
 import io.github.markovcd.hughandkettle.wmi.LinkState
 
 /** The one place a link's or a cable's state becomes words, for the panel and the notification alike. */
-internal object LinkWords {
+object LinkWords {
     /** The cable's words while there is a cable, else the link's. */
     fun of(
         state: LinkState,

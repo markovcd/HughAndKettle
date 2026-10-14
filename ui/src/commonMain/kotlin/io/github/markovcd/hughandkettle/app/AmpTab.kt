@@ -16,7 +16,7 @@ import io.github.markovcd.hughandkettle.amp.Section
  * with the controls behind a switch on its card.
  */
 @Composable
-internal fun AmpTab(
+fun AmpTab(
     panel: PanelState,
     enabled: Boolean,
     modifier: Modifier = Modifier,

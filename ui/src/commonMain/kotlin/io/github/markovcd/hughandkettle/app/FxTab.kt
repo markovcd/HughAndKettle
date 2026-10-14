@@ -16,7 +16,7 @@ import io.github.markovcd.hughandkettle.amp.Section
  * time and only while it is on; switching one on opens it. A switch with nothing behind it is a plain card.
  */
 @Composable
-internal fun FxTab(
+fun FxTab(
     panel: PanelState,
     enabled: Boolean,
     modifier: Modifier = Modifier,

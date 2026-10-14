@@ -23,7 +23,7 @@ import org.jetbrains.compose.resources.stringResource
  * Tests find the rows by `cable:<id>`.
  */
 @Composable
-internal fun FoundCables(
+fun FoundCables(
     cables: List<Cable>,
     onPick: (Cable) -> Unit,
     modifier: Modifier = Modifier,

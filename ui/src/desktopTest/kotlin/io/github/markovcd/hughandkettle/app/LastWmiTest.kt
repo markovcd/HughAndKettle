@@ -1,7 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import org.junit.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 

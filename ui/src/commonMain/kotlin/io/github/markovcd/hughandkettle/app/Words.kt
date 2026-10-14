@@ -6,7 +6,7 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 /** Text not yet looked up: a string resource and its arguments, read on screen or, off it, suspended. */
-internal data class Words(
+data class Words(
     val resource: StringResource,
     val args: List<Any> = emptyList(),
 ) {
