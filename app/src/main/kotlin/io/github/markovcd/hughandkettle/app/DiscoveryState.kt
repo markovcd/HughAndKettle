@@ -8,16 +8,21 @@ import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import io.github.markovcd.hughandkettle.wmi.WmiDiscovery
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * The WMI-1s heard broadcasting on the network, newest broadcast per box, in the order first heard. Every port a
- * box may broadcast to is heard at once.
+ * The WMI-1s heard broadcasting on the network, newest broadcast per box, in the order first heard, and
+ * the WiFi network the phone is on. Every port a box may broadcast to is heard at once. [rereadWifi] asks
+ * for the network's name again once Android may give it.
  */
 class DiscoveryState(
     private val discoveries: List<WmiDiscovery> = WmiDefaults.BroadcastPorts.map(::WmiDiscovery),
+    val wifi: StateFlow<PhoneWifi> = MutableStateFlow(PhoneWifi.Off),
+    val rereadWifi: () -> Unit = {},
 ) {
     constructor(discovery: WmiDiscovery) : this(listOf(discovery))
 

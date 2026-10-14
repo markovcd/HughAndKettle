@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import io.github.markovcd.hughandkettle.wmi.FakeWmi
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiDiscovery
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -62,5 +64,17 @@ class FoundWmisTest {
         compose.onNodeWithTag("last").performClick()
         compose.waitForIdle()
         assertEquals(last, picked)
+    }
+
+    @Test
+    fun `The WiFi the phone is on is named, and an unnamed one offers to show its name`() {
+        val wifi = MutableStateFlow<PhoneWifi>(PhoneWifi.Named("WMI-1_Network_a724e7"))
+        compose.setContent { FoundWmis(DiscoveryState(listOf(WmiDiscovery(0)), wifi), last = null, onPick = {}) }
+        compose.onNodeWithTag("wifi").assertTextContains("WMI-1_Network_a724e7", substring = true)
+        compose.onNodeWithTag("name_wifi").assertDoesNotExist()
+        wifi.value = PhoneWifi.Unnamed
+        compose.onNodeWithTag("name_wifi").assertExists()
+        wifi.value = PhoneWifi.Off
+        compose.onNodeWithTag("wifi").assertTextContains("not on WiFi", substring = true)
     }
 }

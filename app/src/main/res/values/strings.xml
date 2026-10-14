@@ -18,6 +18,10 @@
     <string name="discovery_listening">Listening for WMI-1s on this network…</string>
     <string name="discovery_found">WMI-1s on this network</string>
     <string name="last_used">Last used</string>
+    <string name="wifi_off">The phone is not on WiFi</string>
+    <string name="wifi_unnamed">The phone is on WiFi</string>
+    <string name="wifi_named">The phone is on WiFi network %1$s</string>
+    <string name="wifi_show_name">Show its name</string>
     <string name="discovery_failed">Cannot listen for WMI-1s: %1$s</string>
     <string name="cables_found">USB MIDI cables plugged in</string>
     <string name="cable_opening">Opening %1$s…</string>

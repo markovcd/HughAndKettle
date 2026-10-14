@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
                         app.amps::remember,
                     )
                 }
-            val discovery = remember { DiscoveryState() }
+            val discovery = remember { DiscoveryState(wifi = app.wifi.network, rereadWifi = app.wifi::reread) }
             val presetNames = remember { PresetNamesState(app.presetNames, panel, scope) }
             val shelf =
                 remember { ToneShelf(app.tones, panel, scope, heard = app.link.heard, names = { presetNames.names }) }

@@ -36,6 +36,7 @@ section becomes a version's section when `release.sh` ships it.
 - The GrandMeister Deluxe 40 power soak shows its steps by wattage.
 - After a preset recall or channel switch, the app and `hk state` show the knobs the amp reports it is set to.
 - The release APK is shrunk by R8.
+- App: shows which WiFi network the phone is on, named once location is allowed.
 
 ### Fixes
 

@@ -1,6 +1,10 @@
 package io.github.markovcd.hughandkettle.app
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,8 +14,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,8 +30,8 @@ import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiBroadcast
 
 /**
- * The last box used, then every other WMI-1 heard on the network, one tappable row each, listening for
- * as long as it is shown. Tests find the rows by `last` and `found:<device id>`.
+ * The WiFi the phone is on, the last box used, then every other WMI-1 heard on the network, one tappable
+ * row each, listening for as long as it is shown. Tests find the rows by `last` and `found:<device id>`.
  */
 @Composable
 internal fun FoundWmis(
@@ -54,12 +61,52 @@ internal fun FoundWmis(
                 else -> stringResource(R.string.discovery_found)
             }
         Text(note, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+        PhoneWifiLine(discovery)
         if (last != null) {
             WmiRow(stringResource(R.string.last_used), last, onPick, Modifier.testTag("last"))
         }
         discovery.found.forEach { box ->
             val address = box.wmiAddress()
             if (address != last) WmiRow(box.deviceId, address, onPick, Modifier.testTag("found:${box.deviceId}"))
+        }
+    }
+}
+
+/** Which WiFi the phone is on, with a way to the location grant Android names the network only behind. */
+@Composable
+private fun PhoneWifiLine(discovery: DiscoveryState) {
+    val wifi by discovery.wifi.collectAsState()
+    val context = LocalContext.current
+    val ask =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+            if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true) discovery.rereadWifi()
+        }
+    val located =
+        context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        val text =
+            when (val now = wifi) {
+                PhoneWifi.Off -> stringResource(R.string.wifi_off)
+                PhoneWifi.Unnamed -> stringResource(R.string.wifi_unnamed)
+                is PhoneWifi.Named -> stringResource(R.string.wifi_named, now.name)
+            }
+        Text(
+            text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f).testTag("wifi"),
+        )
+        if (wifi == PhoneWifi.Unnamed && !located) {
+            TextButton(
+                onClick = {
+                    ask.launch(
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                    )
+                },
+                modifier = Modifier.testTag("name_wifi"),
+            ) {
+                Text(stringResource(R.string.wifi_show_name))
+            }
         }
     }
 }
