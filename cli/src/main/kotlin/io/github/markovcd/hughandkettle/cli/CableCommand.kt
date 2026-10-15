@@ -1,5 +1,7 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.midi.JavaCable
+import io.github.markovcd.hughandkettle.midi.JavaCables
 import io.github.markovcd.hughandkettle.midi.MidiStreamParser
 import java.io.PrintWriter
 import java.util.concurrent.CountDownLatch

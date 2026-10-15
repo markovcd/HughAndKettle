@@ -1,10 +1,5 @@
-package io.github.markovcd.hughandkettle.cli
+package io.github.markovcd.hughandkettle.midi
 
-import io.github.markovcd.hughandkettle.midi.ControlChange
-import io.github.markovcd.hughandkettle.midi.MidiChannel
-import io.github.markovcd.hughandkettle.midi.ProgramChange
-import io.github.markovcd.hughandkettle.midi.SystemExclusive
-import io.github.markovcd.hughandkettle.midi.SystemRealtime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -91,7 +91,7 @@ the host machine's fake at `10.0.2.2`.
 
 | Module | Holds |
 |---|---|
-| `midi` | MIDI 1.0 messages, a stream parser that survives banners and split chunks, hex helpers |
+| `midi` | MIDI 1.0 messages, a stream parser that survives banners and split chunks, hex helpers, and the MIDI cables a computer sees through Java's own MIDI |
 | `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, tones and their files, preset names, and reading presets into tones |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |

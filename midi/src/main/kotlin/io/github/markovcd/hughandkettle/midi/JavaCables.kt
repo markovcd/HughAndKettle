@@ -1,6 +1,5 @@
-package io.github.markovcd.hughandkettle.cli
+package io.github.markovcd.hughandkettle.midi
 
-import io.github.markovcd.hughandkettle.midi.MidiMessage
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
 import javax.sound.midi.ShortMessage
@@ -9,9 +8,9 @@ import javax.sound.midi.SysexMessage
 import javax.sound.midi.MidiMessage as JavaMidiMessage
 
 /** The MIDI cables plugged into this machine, through Java's own MIDI, and messages spelled its way. */
-internal object JavaCables {
+public object JavaCables {
     /** Every MIDI port that is not Java's own synthesizer or sequencer, the two directions of one name together. */
-    fun all(): Result<List<JavaCable>> =
+    public fun all(): Result<List<JavaCable>> =
         runCatching {
             MidiSystem
                 .getMidiDeviceInfo()
@@ -29,7 +28,7 @@ internal object JavaCables {
         }
 
     /** The first cable whose name or description holds [part], ignoring case. */
-    fun find(part: String): Result<JavaCable?> =
+    public fun find(part: String): Result<JavaCable?> =
         all().map { cables ->
             cables.firstOrNull { cable ->
                 listOf(cable.name, cable.description).any { it.contains(part, ignoreCase = true) }
@@ -37,7 +36,7 @@ internal object JavaCables {
         }
 
     /** [message] as Java's MIDI spells it, with the same bytes. */
-    fun toJava(message: MidiMessage): JavaMidiMessage {
+    public fun toJava(message: MidiMessage): JavaMidiMessage {
         val bytes = message.encode()
         val status = bytes[0].toInt() and 0xFF
         if (status == SYSTEM_EXCLUSIVE) return SysexMessage(bytes, bytes.size)
