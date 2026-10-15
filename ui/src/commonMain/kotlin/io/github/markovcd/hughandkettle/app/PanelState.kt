@@ -285,6 +285,9 @@ class PanelState(
         }
     }
 
+    /** Sends [messages] as they are: a step of a song. */
+    fun cue(messages: List<MidiMessage>) = send(messages)
+
     /** Sends every value [tone] holds, in order, so a channel switch lands before the knobs it carries. */
     fun recall(tone: Tone) {
         val kept = lock?.kept(tone.recall()) ?: tone.recall()

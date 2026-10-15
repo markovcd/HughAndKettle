@@ -10,6 +10,7 @@ that lands it.
 - While the WMI-1 is missing, run the [cable test](docs/cable.md#the-test) instead and paste what it asks for.
 - Try phase 1 on a phone with the real box: it finds the box, connects, survives screen-off and recovers from a power cycle ([plan, phase 1](docs/handoff/01-implementation-plan.md#phase-1-the-link-on-the-phone)).
 - Step through presets with the footswitch under `hk trim <host> grandmeister_deluxe_40 -40` and say whether the stored volume is heard before the trim lands; the printed milliseconds show how long it plays.
+- Play a song through the amp with `hk song play` and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 
 ## Code

@@ -14,6 +14,7 @@ public object Cli {
             ListenCommand,
             LockCommand,
             TrimCommand,
+            SongCommand,
             CableCommand,
             DiscoverCommand,
             FakeWmiCommand,

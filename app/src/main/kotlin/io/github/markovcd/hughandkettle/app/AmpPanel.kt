@@ -33,7 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * The whole screen: a top bar of the preset, the link's glyph, the header's switches and the settings, where
  * the amp is picked; the switching, always in view; the link card while there is no link; then one tab of
- * the amp, its effects or the tones, picked along the bottom. A box linked to with no amp picked for it asks
+ * the amp, its effects or the song and the tones, picked along the bottom. A box linked to with no amp picked for it asks
  * which amp it is. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the tabs move to a rail
  * at the side and the amp and its effects share a tab side by side. Tests find the tab's content by `panel`,
  * the effects beside the amp by `controls`, and a control by `control:<id>`.
@@ -44,6 +44,7 @@ fun AmpPanel(
     discovery: DiscoveryState,
     shelf: ToneShelf,
     presetNames: PresetNamesState,
+    songs: SongState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
 ) {
@@ -73,6 +74,7 @@ fun AmpPanel(
             when {
                 tab == PanelTab.Tones -> {
                     Column(content.verticalScroll(rememberScrollState()).padding(12.dp).testTag("panel")) {
+                        SongCard(songs, enabled, Modifier.padding(bottom = 12.dp))
                         ToneShelfCard(shelf, enabled)
                     }
                 }

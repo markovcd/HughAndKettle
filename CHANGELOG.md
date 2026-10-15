@@ -40,6 +40,7 @@ section becomes a version's section when `release.sh` ships it.
 - App and `hk tone import`: import H&K's GrandMeister Deluxe 40 preset files (`.gm40memory`) as tones.
 - App and `hk lock`: lock the delay time so a preset recalled from the footswitch keeps the tempo; the app shows the delay time in BPM too.
 - App and `hk trim`: a volume trim moves every recalled preset's and channel's volume by the same amount, standing in for Master; a preset recalled from the app goes behind the mute so its own volume never sounds.
+- App and `hk song`: a song recalls the amp's presets on their beats at one tempo, with the delay time set to that tempo.
 
 ### Fixes
 

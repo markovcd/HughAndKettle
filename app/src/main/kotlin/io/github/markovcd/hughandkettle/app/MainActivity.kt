@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                 }
             val discovery = remember { DiscoveryState(wifi = app.wifi.network, rereadWifi = app.wifi::reread) }
             val presetNames = remember { PresetNamesState(app.presetNames, panel, scope) }
+            val songs = remember { SongState(app.songs, panel, scope) }
             val shelf =
                 remember { ToneShelf(app.tones, panel, scope, heard = app.link.heard, names = { presetNames.names }) }
             val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)
@@ -63,6 +64,7 @@ class MainActivity : ComponentActivity() {
                         discovery,
                         shelf,
                         presetNames,
+                        songs,
                         theme,
                         onTheme = { scope.launch { app.theme.pick(it) } },
                     )
