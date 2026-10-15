@@ -17,9 +17,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -35,24 +43,33 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.cancel
+import io.github.markovcd.hughandkettle.ui.ok
 import io.github.markovcd.hughandkettle.ui.song_beat_count
 import io.github.markovcd.hughandkettle.ui.song_beat_fraction
 import io.github.markovcd.hughandkettle.ui.song_beats
+import io.github.markovcd.hughandkettle.ui.song_beats_range
+import io.github.markovcd.hughandkettle.ui.song_beats_title
 import io.github.markovcd.hughandkettle.ui.song_less
 import io.github.markovcd.hughandkettle.ui.song_more
+import io.github.markovcd.hughandkettle.ui.song_move_down
+import io.github.markovcd.hughandkettle.ui.song_move_up
 import io.github.markovcd.hughandkettle.ui.song_preset
 import io.github.markovcd.hughandkettle.ui.song_remove
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One step of a song while it can be changed: its number, its preset and the preset's name, its beats
- * stepped by a bar of four, and remove. Tests find it by `song_step:<n>` and its buttons by
- * `song_beats_down:<n>`, `song_beats_up:<n>` and `song_remove:<n>`, counted from 1.
+ * One step of a song while it can be changed: arrows to move it up and down around its number, its preset
+ * and the preset's name, its beats stepped to the ends of bars of four or typed in a tap on them, and remove.
+ * Tests find it by `song_step:<n>` and its parts by `song_move_up:<n>`, `song_move_down:<n>`,
+ * `song_beats_down:<n>`, `song_beats:<n>`, `song_beats_up:<n>` and `song_remove:<n>`, counted from 1; the typed
+ * beats by `song_beats_field` and `song_beats_done`.
  */
 @Composable
 internal fun SongStepRow(
@@ -60,11 +77,20 @@ internal fun SongStepRow(
     step: SongStep,
     name: String?,
     enabled: Boolean,
+    last: Boolean,
     onBeats: (Int) -> Unit,
+    onMove: (Int) -> Unit,
     onRemove: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
+    var typing by remember { mutableStateOf(false) }
+    if (typing) {
+        BeatsDialog(n, step.beats, onDone = {
+            onBeats(it)
+            typing = false
+        }, onCancel = { typing = false })
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -72,21 +98,44 @@ internal fun SongStepRow(
             .clip(shape)
             .background(colors.surfaceContainer)
             .border(1.dp, colors.outlineVariant, shape)
-            .padding(start = 10.dp, end = 6.dp)
+            .padding(start = 2.dp, end = 6.dp)
             .testTag("song_step:$n"),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StepNumber { Text("$n", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.primary) }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Chevron(
+                up = true,
+                stringResource(Res.string.song_move_up, n),
+                enabled && n > 1,
+                { onMove(-1) },
+                "song_move_up:$n",
+            )
+            StepNumber { Text("$n", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.primary) }
+            Chevron(
+                up = false,
+                stringResource(Res.string.song_move_down, n),
+                enabled && !last,
+                { onMove(1) },
+                "song_move_down:$n",
+            )
+        }
         PresetName(step.preset, name, colors.onSurfaceVariant, Modifier.weight(1f))
         RoundButton(
             up = false,
             description = stringResource(Res.string.song_less, n),
             enabled = enabled && step.beats > 1,
-            onClick = { onBeats(step.beats - BEATS_STEP) },
+            onClick = { onBeats(step.shorter().beats) },
             modifier = Modifier.testTag("song_beats_down:$n"),
         )
-        Column(Modifier.width(44.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            Modifier
+                .width(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(enabled = enabled, role = Role.Button) { typing = true }
+                .testTag("song_beats:$n"),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text("${step.beats}", fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(stringResource(Res.string.song_beats), fontSize = 11.sp, color = colors.onSurfaceVariant)
         }
@@ -94,7 +143,7 @@ internal fun SongStepRow(
             up = true,
             description = stringResource(Res.string.song_more, n),
             enabled = enabled && step.beats < SongStep.MOST_BEATS,
-            onClick = { onBeats(step.beats + BEATS_STEP) },
+            onClick = { onBeats(step.longer().beats) },
             modifier = Modifier.testTag("song_beats_up:$n"),
         )
         val removing = stringResource(Res.string.song_remove, n)
@@ -204,6 +253,74 @@ internal fun PlayedStepRow(
     }
 }
 
+/** An arrow moving a step up or down, wide enough to hit beside the step's number. */
+@Composable
+private fun Chevron(
+    up: Boolean,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    tag: String,
+) {
+    val ink = MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        Modifier
+            .size(width = 40.dp, height = 18.dp)
+            .alpha(if (enabled) 1f else MOVE_DISABLED)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description }
+            .testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(width = 16.dp, height = 10.dp)) {
+            val u = size.width / 16
+            val tip = if (up) 2 * u else 8 * u
+            val foot = if (up) 8 * u else 2 * u
+            val arrow =
+                Path().apply {
+                    moveTo(3 * u, foot)
+                    lineTo(8 * u, tip)
+                    lineTo(13 * u, foot)
+                }
+            drawPath(arrow, ink, style = Stroke(2 * u, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
+    }
+}
+
+/** Asks for a step's beats as a number, taken only when it is 1 to the most a step lasts. */
+@Composable
+private fun BeatsDialog(
+    n: Int,
+    beats: Int,
+    onDone: (Int) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var text by remember { mutableStateOf("$beats") }
+    val typed = text.trim().toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(Res.string.song_beats_title, n)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.filter(Char::isDigit).take(3) },
+                label = { Text(stringResource(Res.string.song_beats_range, SongStep.MOST_BEATS)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.testTag("song_beats_field"),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { typed?.let(onDone) },
+                enabled = typed != null,
+                modifier = Modifier.testTag("song_beats_done"),
+            ) { Text(stringResource(Res.string.ok)) }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
+
 /** A step's number in a 28 dp circle, amber when [lit]. */
 @Composable
 private fun StepNumber(
@@ -252,7 +369,6 @@ private fun PresetName(
     }
 }
 
-/** How far one press moves a step's length: one bar of four. */
-private const val BEATS_STEP = 4
 private const val DISABLED = 0.38f
 private const val PLAYED = 0.6f
+private const val MOVE_DISABLED = 0.25f

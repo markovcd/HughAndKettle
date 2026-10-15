@@ -104,6 +104,15 @@ class SongState(
         )
     }
 
+    /** Moves [step] to stand at [to], the steps between shifting over to make room. */
+    fun move(
+        step: Int,
+        to: Int,
+    ) = change { song ->
+        if (step !in song.steps.indices || to !in song.steps.indices) return@change song
+        song.copy(steps = song.steps.toMutableList().apply { add(to, removeAt(step)) })
+    }
+
     fun remove(step: Int) = change { song -> song.copy(steps = song.steps.filterIndexed { i, _ -> i != step }) }
 
     /** Plays the song: its count-in from now, then its first step on the beat after. */

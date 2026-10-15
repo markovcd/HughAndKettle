@@ -88,6 +88,17 @@ class SongStateTest {
     }
 
     @Test
+    fun `A step moved up or down swaps places with its neighbor, and goes nowhere past the ends`() {
+        songs.add()
+        songs.beats(0, 8)
+        songs.add()
+        songs.move(1, 0)
+        assertEquals(listOf(16, 8), songs.song.steps.map(SongStep::beats))
+        songs.move(1, 2)
+        assertEquals(listOf(16, 8), songs.song.steps.map(SongStep::beats))
+    }
+
+    @Test
     fun `Tapping a beat sets the song's tempo, from the second tap`() {
         songs.tap(0.milliseconds)
         assertEquals(120, songs.song.tempo)

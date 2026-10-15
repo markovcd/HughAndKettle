@@ -112,7 +112,9 @@ fun SongTab(
                                 step,
                                 names[step.preset],
                                 songs.editable,
+                                last = index == song.steps.lastIndex,
                                 onBeats = { songs.beats(index, it) },
+                                onMove = { songs.move(index, index + it) },
                                 onRemove = { songs.remove(index) },
                             )
                         }

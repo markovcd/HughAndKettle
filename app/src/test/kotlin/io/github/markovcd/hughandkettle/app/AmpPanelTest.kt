@@ -186,6 +186,13 @@ class AmpPanelTest {
         compose.onNodeWithTag("song_play").assertIsNotEnabled()
         compose.onNodeWithTag("song_add").performScrollTo().performClick()
         compose.onNodeWithTag("song_step:1").assertExists()
+        compose.onNodeWithTag("song_beats_up:1").performScrollTo().performClick()
+        assertEquals(
+            20,
+            songs.song.steps
+                .single()
+                .beats,
+        )
         compose.onNodeWithTag("song_play").assertIsNotEnabled()
         compose.onNodeWithTag("song_tempo_up").performScrollTo().performClick()
         compose.onNodeWithTag("song_tempo").assertTextEquals("121")
