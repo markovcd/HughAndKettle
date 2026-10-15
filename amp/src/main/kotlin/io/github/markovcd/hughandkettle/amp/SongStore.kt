@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
@@ -22,9 +23,10 @@ import kotlin.io.path.writeText
  * The [Song] of each amp model, kept in one folder as `<amp-id>.json`, version 1:
  *
  * ```json
- * { "version": 1, "amp": "grandmeister_deluxe_40", "tempo": 120, "steps": [ { "preset": 5, "beats": 32 } ] }
+ * { "version": 1, "amp": "grandmeister_deluxe_40", "tempo": 120, "count_in": true, "steps": [ { "preset": 5, "beats": 32 } ] }
  * ```
  *
+ * A file with no `count_in` counts in; an older reader passes over the key.
  * The keys are persisted: never renamed. A missing file is a song with no steps; a damaged or newer one
  * is a failure, and is never written over. Every file is written beside itself and moved into place.
  */
@@ -71,6 +73,7 @@ public class SongStore(
                 put("version", VERSION)
                 put("amp", song.amp.id)
                 put("tempo", song.tempo)
+                put("count_in", song.countIn)
                 putJsonArray("steps") {
                     song.steps.forEach {
                         addJsonObject {
@@ -106,6 +109,17 @@ public class SongStore(
         ) {
             return failure("has tempo ${root["tempo"]}; a tempo is ${Song.TEMPOS.first}..${Song.TEMPOS.last}")
         }
+        val countIn =
+            when (val given = root["count_in"]) {
+                null -> {
+                    true
+                }
+
+                else -> {
+                    (given as? JsonPrimitive)?.takeUnless { it.isString }?.booleanOrNull
+                        ?: return failure("has count_in $given; it is true or false")
+                }
+            }
         val steps = root["steps"] as? JsonArray ?: return failure("has no steps")
         val kept =
             steps.mapIndexed { index, element ->
@@ -128,7 +142,7 @@ public class SongStore(
                 }
                 SongStep(preset, beats)
             }
-        return Result.success(Song(amp, tempo, kept))
+        return Result.success(Song(amp, tempo, kept, countIn))
     }
 
     private fun JsonObject.int(key: String): Int? = (this[key] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull

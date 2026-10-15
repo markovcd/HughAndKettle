@@ -54,6 +54,16 @@ class SongStoreTest {
     }
 
     @Test
+    fun `A song kept without its count-in reads back without one`() {
+        store.save(Song(amp, 96, listOf(SongStep(5, 32)), countIn = false)).getOrThrow()
+        assertEquals(false, store.song(amp).getOrThrow().countIn)
+        assertTrue(
+            "has count_in \"yes\"" in
+                failure("""{ "version": 1, "amp": "${amp.id}", "tempo": 140, "count_in": "yes", "steps": [] }"""),
+        )
+    }
+
+    @Test
     fun `A file from a newer version is refused and never written over`() {
         val newer = """{ "version": 2, "amp": "${amp.id}", "tempo": 140, "steps": [] }"""
         assertTrue("is version 2, from a newer Hugh & Kettle" in failure(newer))

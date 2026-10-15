@@ -1,6 +1,8 @@
 package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -182,10 +184,16 @@ class AmpPanelTest {
         shown()
         compose.onNodeWithTag("tab:song").performClick()
         compose.onNodeWithTag("song_play").assertIsNotEnabled()
-        compose.onNodeWithTag("song_add").performClick()
+        compose.onNodeWithTag("song_add").performScrollTo().performClick()
         compose.onNodeWithTag("song_step:1").assertExists()
         compose.onNodeWithTag("song_play").assertIsNotEnabled()
-        compose.onNodeWithTag("song_tempo_up").performClick()
+        compose.onNodeWithTag("song_tempo_up").performScrollTo().performClick()
         compose.onNodeWithTag("song_tempo").assertTextEquals("121")
+        compose
+            .onNodeWithTag("song_count_in")
+            .performScrollTo()
+            .assertIsOn()
+            .performClick()
+            .assertIsOff()
     }
 }

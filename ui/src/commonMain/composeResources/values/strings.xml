@@ -105,6 +105,9 @@
     <string name="song_unreadable">The saved song can't be read</string>
     <string name="song_off">Editing and Play are off for this song.</string>
     <string name="song_unsaved">The song couldn't be saved</string>
+    <string name="song_count_in">Count-in</string>
+    <string name="song_count_in_what">A bar of clicks before the first step</string>
+    <string name="song_then">Then Preset %1$s</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="section_preamp">Preamp</string>

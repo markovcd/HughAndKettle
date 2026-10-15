@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -46,6 +47,8 @@ import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.bpm
 import io.github.markovcd.hughandkettle.ui.song_add
 import io.github.markovcd.hughandkettle.ui.song_add_what
+import io.github.markovcd.hughandkettle.ui.song_count_in
+import io.github.markovcd.hughandkettle.ui.song_count_in_what
 import io.github.markovcd.hughandkettle.ui.song_held
 import io.github.markovcd.hughandkettle.ui.song_none
 import io.github.markovcd.hughandkettle.ui.song_none_now
@@ -54,15 +57,17 @@ import io.github.markovcd.hughandkettle.ui.song_play
 import io.github.markovcd.hughandkettle.ui.song_steps
 import io.github.markovcd.hughandkettle.ui.song_stop
 import io.github.markovcd.hughandkettle.ui.song_summary
+import io.github.markovcd.hughandkettle.ui.song_then
 import io.github.markovcd.hughandkettle.ui.song_unreadable
 import io.github.markovcd.hughandkettle.ui.song_unsaved
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The song's own tab. Stopped: its tempo, its steps to lengthen, shorten or remove, a step to add on the
- * preset the amp is on, and Play along the foot. Playing: the beat, big, over the steps read only, and Stop.
- * A song that cannot be read says so on top and can be neither changed nor played. Tests find Play and Stop
- * by `song_play` and adding a step by `song_add`.
+ * The song's own tab. Stopped: its tempo, its count-in, its steps to lengthen, shorten or remove, a step to
+ * add on the preset the amp is on, and Play along the foot. Counting in: the clicks left, big. Playing: the
+ * beat, big, over the steps read only, and Stop. A song that cannot be read says so on top and can be neither
+ * changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
+ * switch by `song_count_in` and the clicks left by `song_countdown`.
  */
 @Composable
 fun SongTab(
@@ -75,14 +80,17 @@ fun SongTab(
     val song = songs.song
     val at = songs.position
     val names = presetNames.names
-    val readable = at != null || songs.editable
+    val countdown = songs.countdown
+    val readable = at != null || countdown != null || songs.editable
     Column(modifier) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(if (at == null) 12.dp else 10.dp),
         ) {
             songs.failure?.let { SongAlert(readable, it) }
-            if (at != null) {
+            if (countdown != null) {
+                SongCountdown(countdown, song)
+            } else if (at != null) {
                 SongBeatHero(song, at, names)
                 if (song.delayMs != null) SongHeldStrip(song)
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -92,6 +100,7 @@ fun SongTab(
                 }
             } else {
                 SongTempoCard(songs, readable)
+                CountInRow(song.countIn, songs.editable, songs::countIn)
                 StepsHeader(song)
                 if (song.steps.isEmpty()) {
                     NoSteps(preset, songs.editable, songs::add)
@@ -114,11 +123,103 @@ fun SongTab(
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         PlayBar(
-            playing = at != null,
+            playing = at != null || countdown != null,
             enabled = enabled && readable && song.steps.isNotEmpty(),
             onPlay = songs::start,
             onStop = songs::stop,
         )
+    }
+}
+
+/** The count-in, switched on or off. */
+@Composable
+private fun CountInRow(
+    on: Boolean,
+    enabled: Boolean,
+    onCountIn: (Boolean) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surfaceContainer)
+            .border(1.dp, colors.outlineVariant, shape)
+            .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(Res.string.song_count_in), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.song_count_in_what), fontSize = 13.sp, color = colors.onSurfaceVariant)
+        }
+        Switch(
+            checked = on,
+            onCheckedChange = onCountIn,
+            enabled = enabled,
+            modifier = Modifier.testTag("song_count_in"),
+        )
+    }
+}
+
+/** The clicks of the count-in still to come, big, in a ring that fills as they pass, and the preset that starts. */
+@Composable
+private fun SongCountdown(
+    left: Int,
+    song: Song,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surfaceContainer)
+            .border(1.dp, colors.primary, shape)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(140.dp), contentAlignment = Alignment.Center) {
+            val track = colors.outlineVariant
+            val ink = colors.primary
+            val counted = Song.COUNT_IN_BEATS - left + 1
+            Canvas(Modifier.size(140.dp)) {
+                val u = size.width / 140
+                drawCircle(track, 58 * u, style = Stroke(10 * u))
+                drawArc(
+                    ink,
+                    -90f,
+                    360f * counted / Song.COUNT_IN_BEATS,
+                    false,
+                    Offset(12 * u, 12 * u),
+                    Size(116 * u, 116 * u),
+                    style = Stroke(10 * u, cap = StrokeCap.Round),
+                )
+            }
+            Text(
+                "$left",
+                fontSize = 64.sp,
+                lineHeight = 64.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.primary,
+                modifier = Modifier.testTag("song_countdown"),
+            )
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(Res.string.song_count_in).uppercase(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.onSurfaceVariant,
+            )
+            Text(
+                stringResource(Res.string.song_then, song.steps.first().preset),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text("${song.tempo} ${stringResource(Res.string.bpm)}", fontSize = 14.sp, color = colors.onSurfaceVariant)
+        }
     }
 }
 

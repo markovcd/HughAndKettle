@@ -22,8 +22,8 @@ import kotlin.time.Duration
 import kotlin.time.TimeSource
 
 /**
- * The song of the panel's amp: its tempo and steps, edited and kept on the phone, and played from a tap. While
- * it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the tempo
+ * The song of the panel's amp: its tempo and steps, edited and kept on the phone, and played from a tap. A bar
+ * of [click]s counts it in, unless its count-in is off. While it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the tempo
  * lock holds that time across the recalls. A song that cannot be read plays nothing, says why in [failure],
  * and is left as it is.
  */
@@ -32,6 +32,7 @@ class SongState(
     private val panel: PanelState,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    private val click: () -> Unit = {},
 ) {
     private var all by mutableStateOf(emptyMap<AmpModel, Song>())
     private var unreadable by mutableStateOf(emptySet<AmpModel>())
@@ -42,6 +43,10 @@ class SongState(
     private var locking = false
 
     var failure by mutableStateOf<String?>(null)
+        private set
+
+    /** The clicks of the count-in still to come, this one among them, or null while not counting in. */
+    var countdown by mutableStateOf<Int?>(null)
         private set
 
     /** Where the playing song stands, or null while none plays. */
@@ -64,10 +69,12 @@ class SongState(
     /** The song of the panel's amp. */
     val song: Song get() = all[panel.amp] ?: Song(panel.amp)
 
-    /** Whether the song can be changed: not while it plays, nor when its file could not be read. */
-    val editable: Boolean get() = position == null && panel.amp !in unreadable
+    /** Whether the song can be changed: not while it counts in or plays, nor when its file could not be read. */
+    val editable: Boolean get() = position == null && countdown == null && panel.amp !in unreadable
 
     fun tempo(bpm: Int) = change { it.copy(tempo = bpm.coerceIn(Song.TEMPOS)) }
+
+    fun countIn(on: Boolean) = change { it.copy(countIn = on) }
 
     /** A tap on the song's beat at [at], from any fixed point; from the second tap on, the tempo follows the taps. */
     fun tap(at: Duration) {
@@ -99,17 +106,25 @@ class SongState(
 
     fun remove(step: Int) = change { song -> song.copy(steps = song.steps.filterIndexed { i, _ -> i != step }) }
 
-    /** Plays the song from its first beat, now. */
+    /** Plays the song: its count-in from now, then its first step on the beat after. */
     fun start() {
         val song = song
         if (playing != null || song.steps.isEmpty() || !panel.linked) return
         val time = song.amp.controls.firstOrNull(Control::timed)
         playing =
             scope.launch {
-                val started = TimeSource.Monotonic.markNow()
+                // Measured from the first step, so the count-in runs in negative time.
+                val started = TimeSource.Monotonic.markNow() + song.lead
+                val counts = if (song.countIn) Song.COUNT_IN_BEATS else 0
+                repeat(counts) {
+                    countdown = counts - it
+                    click()
+                    delay(song.beat * (it + 1) - song.lead - started.elapsedNow())
+                }
+                countdown = null
                 var cued = -1
                 while (true) {
-                    val elapsed = started.elapsedNow()
+                    val elapsed = started.elapsedNow().coerceAtLeast(Duration.ZERO)
                     val at = song.at(elapsed) ?: break
                     if (at.step != cued) {
                         if (cued < 0 && time != null && panel.lock == null) {
@@ -136,6 +151,7 @@ class SongState(
         val held = panel.lock
         if (locking && held != null) panel.lock(held.control, on = false)
         locking = false
+        countdown = null
         position = null
         playing = null
     }

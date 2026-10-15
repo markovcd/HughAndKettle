@@ -56,11 +56,20 @@ class SongCommandTest {
         assertEquals(ExitCodes.OK, run("set", "grandmeister_deluxe_40", "120", "5:32", "7:16").code)
         assertEquals(
             listOf(
-                """{"amp":"grandmeister_deluxe_40","tempo":120,"delay_ms":505}""",
+                """{"amp":"grandmeister_deluxe_40","tempo":120,"count_in":true,"delay_ms":505}""",
                 """{"step":1,"preset":5,"beats":32}""",
                 """{"step":2,"preset":7,"beats":16}""",
             ),
             run("show", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() },
+        )
+    }
+
+    @Test
+    fun `A song set with no count-in reads back without one`() {
+        run("set", "grandmeister_deluxe_40", "120", "5:32", "--no-count-in")
+        assertEquals(
+            """{"amp":"grandmeister_deluxe_40","tempo":120,"count_in":false,"delay_ms":505}""",
+            run("show", "grandmeister_deluxe_40").out.lines().first(),
         )
     }
 
@@ -73,8 +82,9 @@ class SongCommandTest {
     }
 
     @Test
-    fun `A song plays each preset on its beat with the delay time of its tempo, and holds that time`() {
-        // At 400 BPM a beat is 150 ms, which the time knob reaches as 154: two steps of two beats play in 600 ms.
+    fun `A song counts in, plays each preset on its beat with the delay time of its tempo, and holds that time`() {
+        // At 400 BPM a beat is 150 ms, which the time knob reaches as 154; a count-in of four and two
+        // steps of two play in 1.2 s.
         run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2")
         val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }
         val delay = ControlChange(MidiChannel(1), 4, time.scale!!.value(150))
@@ -91,9 +101,13 @@ class SongCommandTest {
             run.out
                 .lines()
                 .filter { it.isNotEmpty() }
-                .map { it.replace(Regex("""^\{"ms":\d+,"""), "{") }
+                .map { it.replace(Regex("""^\{"ms":-?\d+,"""), "{") }
         assertEquals(
             listOf(
+                """{"count":4}""",
+                """{"count":3}""",
+                """{"count":2}""",
+                """{"count":1}""",
                 """{"step":1,"preset":3,"delay_ms":154}""",
                 """{"restored":${delay.value},"delay_ms":154}""",
                 """{"step":2,"preset":5,"delay_ms":154}""",

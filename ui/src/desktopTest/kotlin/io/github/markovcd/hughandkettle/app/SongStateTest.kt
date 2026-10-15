@@ -20,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
 import kotlin.test.AfterTest
@@ -42,7 +43,8 @@ class SongStateTest {
     private val time = amp.control("delay_time")!!
     private val panel = PanelState(amp, holder, scope, flowOf(null))
     private val store = SongStore(folder.resolve("songs"))
-    private val songs = SongState(store, panel, scope, Dispatchers.Unconfined)
+    private val clicks = AtomicInteger()
+    private val songs = SongState(store, panel, scope, Dispatchers.Unconfined) { clicks.incrementAndGet() }
 
     @AfterTest
     @OptIn(ExperimentalPathApi::class)
@@ -112,6 +114,26 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(delay), next())
         until("song over") { songs.position == null }
         assertNull(panel.lock)
+    }
+
+    @Test
+    fun `A song counts in a bar of clicks before its first preset, and with the count-in off starts at once`() {
+        connected()
+        songs.tempo(400)
+        songs.add()
+        songs.start()
+        assertEquals(4, songs.countdown)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        assertEquals(4, clicks.get())
+        next()
+        songs.stop()
+        assertNull(songs.countdown)
+        songs.countIn(false)
+        songs.start()
+        assertNull(songs.countdown)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        assertEquals(4, clicks.get())
+        songs.stop()
     }
 
     @Test

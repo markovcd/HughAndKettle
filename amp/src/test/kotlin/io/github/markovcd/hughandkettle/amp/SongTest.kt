@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -37,6 +38,12 @@ class SongTest {
     @Test
     fun `A step starts with its preset, then the delay time at one repeat a beat`() {
         assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1))
+    }
+
+    @Test
+    fun `A count-in is a bar of beats before the first step, and nothing when off`() {
+        assertEquals(2.seconds, Song(amp, 120).lead)
+        assertEquals(Duration.ZERO, Song(amp, 120, countIn = false).lead)
     }
 
     @Test

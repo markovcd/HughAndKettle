@@ -19,15 +19,16 @@ import kotlin.time.TimeSource
 
 /**
  * The song of each amp model, the way the app keeps it, in a folder, `--dir` or `~/.hk/songs`: a tempo and
- * a run of presets, each held for its beats. `play` recalls each preset on its beat with the delay time at
- * one repeat a beat, and holds that time across the recalls, as the tempo lock does.
+ * a run of presets, each held for its beats. `play` counts in a bar, unless the song was set with
+ * `--no-count-in`, then recalls each preset on its beat with the delay time at one repeat a beat, and holds
+ * that time across the recalls, as the tempo lock does.
  */
 public object SongCommand : Command {
     override val name: String = "song"
     override val usage: String =
         """
         hk song show <amp-id> [--dir D]
-        hk song set <amp-id> <bpm> <preset>:<beats> ... [--dir D]
+        hk song set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in] [--dir D]
         hk song play <host[:port]> <amp-id> [--dir D]
         """.trimIndent()
 
@@ -61,7 +62,7 @@ public object SongCommand : Command {
         val store = SongStore(args.value("dir")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "songs"))
         if (verb == "set") {
             val song =
-                parse(amp, rest.drop(1)).getOrElse {
+                parse(amp, rest.drop(1), countIn = !args.flag("no-count-in")).getOrElse {
                     err.println(it.message)
                     return ExitCodes.BAD_ARGUMENTS
                 }
@@ -97,6 +98,7 @@ public object SongCommand : Command {
     private fun parse(
         amp: AmpModel,
         words: List<String>,
+        countIn: Boolean,
     ): Result<Song> {
         val tempo =
             words[0].toIntOrNull()?.takeIf { it in Song.TEMPOS }
@@ -119,14 +121,21 @@ public object SongCommand : Command {
                 }
                 SongStep(preset, beats)
             }
-        return Result.success(Song(amp, tempo, steps))
+        return Result.success(Song(amp, tempo, steps, countIn))
     }
 
     private fun print(
         song: Song,
         out: PrintWriter,
     ) {
-        out.println(Json.line("amp" to song.amp.id, "tempo" to song.tempo, "delay_ms" to song.delayMs))
+        out.println(
+            Json.line(
+                "amp" to song.amp.id,
+                "tempo" to song.tempo,
+                "count_in" to song.countIn,
+                "delay_ms" to song.delayMs,
+            ),
+        )
         song.steps.forEachIndexed { index, step ->
             out.println(Json.line("step" to index + 1, "preset" to step.preset, "beats" to step.beats))
         }
@@ -160,7 +169,9 @@ public object SongCommand : Command {
             song.amp.controls
                 .firstOrNull(Control::timed)
                 ?.let { TempoLock(it, time?.value) }
-        val started = TimeSource.Monotonic.markNow()
+        // Measured from the first step, so the count-in reads in negative milliseconds.
+        val started = TimeSource.Monotonic.markNow() + song.lead
+        val counts = if (song.countIn) Song.COUNT_IN_BEATS else 0
 
         fun ms() = started.elapsedNow().inWholeMilliseconds
         link.use {
@@ -174,7 +185,14 @@ public object SongCommand : Command {
                 return true
             }
             var next = 0
+            var counted = 0
             while (true) {
+                if (counted < counts && started.elapsedNow() >= song.beat * counted - song.lead) {
+                    out.println(Json.line("ms" to ms(), "count" to counts - counted))
+                    out.flush()
+                    counted++
+                    continue
+                }
                 if (next < song.steps.size && started.elapsedNow() >= song.startOf(next)) {
                     if (!send(song.cue(next))) return ExitCodes.NO_LINK
                     out.println(
@@ -189,7 +207,12 @@ public object SongCommand : Command {
                     next++
                     continue
                 }
-                val until = if (next < song.steps.size) song.startOf(next) else song.length
+                val until =
+                    when {
+                        counted < counts -> song.beat * counted - song.lead
+                        next < song.steps.size -> song.startOf(next)
+                        else -> song.length
+                    }
                 val wait = (until - started.elapsedNow()).inWholeMilliseconds
                 if (next >= song.steps.size && wait <= 0) break
                 val message = heard.poll(wait.coerceAtLeast(0), TimeUnit.MILLISECONDS) ?: continue
