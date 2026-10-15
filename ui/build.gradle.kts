@@ -6,6 +6,7 @@ kotlin {
     sourceSets.commonMain.dependencies {
         api(project(":amp"))
         api(project(":wmi"))
+        api(libs.datastore.preferences.core)
         implementation(libs.kotlinx.coroutines.core)
     }
     extensions.configure<com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget>("android") {

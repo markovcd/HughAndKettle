@@ -41,17 +41,26 @@ class MainActivity : ComponentActivity() {
                         AmpModels.all.first(),
                         app.link,
                         scope,
-                        app.lastWmi.last,
-                        app.amps.choices,
-                        app.amps::remember,
+                        app.home.lastWmi.last,
+                        app.home.amps.choices,
+                        app.home.amps::remember,
                     )
                 }
             val discovery = remember { DiscoveryState(wifi = app.wifi.network, rereadWifi = app.wifi::reread) }
-            val presetNames = remember { PresetNamesState(app.presetNames, panel, scope) }
-            val songs = remember { SongState(app.songs, panel, scope, click = app.click::play) }
+            val presetNames = remember { PresetNamesState(app.home.presetNames, panel, scope) }
+            val songs = remember { SongState(app.home.songs, panel, scope, click = app.click::play) }
             val shelf =
-                remember { ToneShelf(app.tones, panel, scope, heard = app.link.heard, names = { presetNames.names }) }
-            val theme by app.theme.choice.collectAsState(initial = ThemeChoice.Dark)
+                remember {
+                    ToneShelf(
+                        app.home.tones,
+                        panel,
+                        scope,
+                        heard = app.link.heard,
+                        names = { presetNames.names },
+                    )
+                }
+            val theme by app.home.theme.choice
+                .collectAsState(initial = ThemeChoice.Dark)
             AskForLocalNetwork()
             AskForNotifications(linked = !panel.idle)
             HughAndKettleTheme(
@@ -66,7 +75,7 @@ class MainActivity : ComponentActivity() {
                         presetNames,
                         songs,
                         theme,
-                        onTheme = { scope.launch { app.theme.pick(it) } },
+                        onTheme = { scope.launch { app.home.theme.pick(it) } },
                     )
                 }
             }

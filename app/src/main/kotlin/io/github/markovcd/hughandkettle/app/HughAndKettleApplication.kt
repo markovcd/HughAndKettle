@@ -2,9 +2,6 @@ package io.github.markovcd.hughandkettle.app
 
 import android.app.Application
 import android.net.ConnectivityManager
-import io.github.markovcd.hughandkettle.amp.PresetNameStore
-import io.github.markovcd.hughandkettle.amp.SongStore
-import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.combine
@@ -15,18 +12,12 @@ import kotlinx.coroutines.launch
 
 /**
  * Holds what outlives a screen: the route over WiFi and the network it is, the link to the WMI-1 or the cable,
- * the service that keeps it while it is up, the last box it reached, the amp picked for each box, the folders
- * of tones, preset names and songs, the click a song counts in with, and the theme picked.
+ * the service that keeps it while it is up, the click a song counts in with, and what the app keeps on the phone.
  */
 class HughAndKettleApplication : Application() {
     val link: LinkHolder by lazy { LinkHolder(MidiCableJack(this)) }
-    val lastWmi: LastWmiStore by lazy { LastWmiStore(this) }
-    val tones: ToneStore by lazy { ToneStore(filesDir.toPath().resolve("tones")) }
-    val presetNames: PresetNameStore by lazy { PresetNameStore(filesDir.toPath().resolve("preset-names")) }
-    val songs: SongStore by lazy { SongStore(filesDir.toPath().resolve("songs")) }
+    val home: AppHome by lazy { AppHome(filesDir.toPath(), settings) }
     val click: ClickSound by lazy { ClickSound() }
-    val theme: ThemeStore by lazy { ThemeStore(this) }
-    val amps: AmpChoiceStore by lazy { AmpChoiceStore(this) }
     val wifi: WifiRoute by lazy { WifiRoute(checkNotNull(getSystemService(ConnectivityManager::class.java))) }
 
     override fun onCreate() {
@@ -39,7 +30,7 @@ class HughAndKettleApplication : Application() {
                 .collect { LinkService.start(this@HughAndKettleApplication) }
         }
         MainScope().launch {
-            link.state.filterIsInstance<LinkState.Connected>().collect { lastWmi.remember(it.address) }
+            link.state.filterIsInstance<LinkState.Connected>().collect { home.lastWmi.remember(it.address) }
         }
     }
 }

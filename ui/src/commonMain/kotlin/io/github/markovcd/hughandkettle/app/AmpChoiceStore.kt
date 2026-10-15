@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
-import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.markovcd.hughandkettle.amp.AmpModel
@@ -9,12 +10,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
-/** The amp picked for each WMI-1, kept on the phone; a damaged settings file reads as none picked. */
+/** The amp picked for each WMI-1 in the settings; a damaged settings file reads as none picked. */
 class AmpChoiceStore(
-    context: Context,
+    private val store: DataStore<Preferences>,
 ) {
-    private val store = context.applicationContext.settings
-
     val choices: Flow<Map<WmiAddress, AmpModel>> =
         store.data
             .map { AmpChoices.read(it[KEY]) }

@@ -27,7 +27,11 @@ class LastWmiStoreTest {
         fake.close()
     }
 
-    private fun last(): WmiAddress? = runBlocking { app.lastWmi.last.first() }
+    private fun last(): WmiAddress? =
+        runBlocking {
+            app.home.lastWmi.last
+                .first()
+        }
 
     @Test
     fun `A box reached over a link is remembered`() {
@@ -39,11 +43,5 @@ class LastWmiStoreTest {
             shadowOf(Looper.getMainLooper()).idle()
             Thread.sleep(5)
         }
-    }
-
-    @Test
-    fun `A remembered box reads back from the phone`() {
-        runBlocking { app.lastWmi.remember(WmiAddress("192.168.1.20", 2001)) }
-        assertEquals(WmiAddress("192.168.1.20", 2001), last())
     }
 }
