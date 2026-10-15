@@ -8,4 +8,5 @@ compose.desktop.application {
 
 dependencies {
     implementation(project(":ui"))
+    implementation(libs.kotlinx.coroutines.core)
 }
