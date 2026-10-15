@@ -11,6 +11,7 @@ that lands it.
 - Try phase 1 on a phone with the real box: it finds the box, connects, survives screen-off and recovers from a power cycle ([plan, phase 1](docs/handoff/01-implementation-plan.md#phase-1-the-link-on-the-phone)).
 - Step through presets with the footswitch under `hk trim <host> grandmeister_deluxe_40 -40` and say whether the stored volume is heard before the trim lands; the printed milliseconds show how long it plays.
 - Play a song through the amp with `hk song play` and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's.
+- Send MIDI clock from the Syntakt into the amp with the delay on and say whether the delay time follows it; neither manual lists clock, so the guess is that it is ignored. Note what the undocumented controller 36 that tap tempo sends does.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 
 ## Code
