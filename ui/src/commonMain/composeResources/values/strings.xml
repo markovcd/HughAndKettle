@@ -70,6 +70,9 @@
     <string name="bpm">BPM</string>
     <string name="time_tempo">%1$s · %2$s BPM</string>
     <string name="tempo_locked_at">Tempo lock · %1$s · %2$s BPM</string>
+    <string name="volume_trim">Volume trim</string>
+    <string name="trim_down">−</string>
+    <string name="trim_up">+</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="section_preamp">Preamp</string>

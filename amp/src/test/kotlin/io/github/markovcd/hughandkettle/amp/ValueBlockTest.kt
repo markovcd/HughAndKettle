@@ -32,6 +32,14 @@ class ValueBlockTest {
                 "01 34 01 20 01 5D 01 0C 01 49 00 0A 00 00 00 00 01 41 33"
         assertEquals(null, heard(switched)?.preset)
         assertEquals(3, heard(switched)?.values?.get(56))
+        assertEquals(1, heard(switched)?.channel)
+    }
+
+    @Test
+    fun `The flags byte's low two bits name the channel`() {
+        assertEquals(0, heard(stored)?.channel)
+        val ultra = heard(stored)!!.copy(preset = null, channel = 3)
+        assertEquals(ultra, ValueBlock.parse(ultra.message()))
     }
 
     @Test

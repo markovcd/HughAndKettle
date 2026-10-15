@@ -13,7 +13,7 @@ import io.github.markovcd.hughandkettle.amp.Section
 
 /**
  * The amp's own controls by section: each section's knobs, then its selectors, then its switches on cards,
- * with the controls behind a switch on its card.
+ * with the controls behind a switch on its card, and last the volume trim.
  */
 @Composable
 fun AmpTab(
@@ -37,5 +37,6 @@ fun AmpTab(
                 SwitchCards(switches, controls, panel, enabled)
             }
         }
+        panel.trim?.let { TrimRow(it.trim, enabled, panel::trim) }
     }
 }

@@ -214,6 +214,30 @@ class PanelStateTest {
     }
 
     @Test
+    fun `A preset recalled from the panel under a trim goes behind the mute and comes back trimmed`() {
+        val volume = AmpModels.blackSpirit200.control("volume")!!
+        val mute = AmpModels.blackSpirit200.control("mute")!!
+        connected()
+        panel.trim(-20)
+        panel.recall(3)
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 127)), nextSeen())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), nextSeen())
+        fake.emit(ValueBlock(mapOf(volume.controller to 120), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), volume.controller, 40)), nextSeen())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 0)), nextSeen())
+    }
+
+    @Test
+    fun `A preset recalled from the footswitch under a trim gets its volume trimmed`() {
+        val volume = AmpModels.blackSpirit200.control("volume")!!
+        connected()
+        panel.trim(-20)
+        fake.emit(ProgramChange(MidiChannel(1), 2))
+        fake.emit(ValueBlock(mapOf(volume.controller to 120), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), volume.controller, 40)), nextSeen())
+    }
+
+    @Test
     fun `A preset recalled with the tempo unlocked keeps its own delay time`() {
         val delay = AmpModels.blackSpirit200.control("delay_time")!!
         connected()

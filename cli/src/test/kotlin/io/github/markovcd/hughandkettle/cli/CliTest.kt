@@ -155,6 +155,41 @@ class CliTest {
     }
 
     @Test
+    fun `A trim recalls a preset behind the mute and gives it back its volume trimmed`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val trimming =
+            started(
+                "trim",
+                "127.0.0.1:${fake.port}",
+                "grandmeister_deluxe_40",
+                "-20",
+                "--recall",
+                "3",
+                "--seconds",
+                "1",
+            )
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 9, 127)), next())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
+        fake.emit(ValueBlock(mapOf(57 to 120), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 57, 40)), next())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 9, 0)), next())
+        val run = trimming.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertTrue(
+            """"direction":"heard","type":"value_block","preset":3,"channel":0,"volume":60}""" in run.out,
+            run.out,
+        )
+    }
+
+    @Test
+    fun `A trim beyond the knob's range is refused before anything is sent`() {
+        val run = run("trim", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "200")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
+        assertTrue("a trim takes -127..127, got '200'" in run.err, run.err)
+    }
+
+    @Test
     fun `A lock on a time outside the delay's range is refused before anything is sent`() {
         val run = run("lock", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "2000ms")
         assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)

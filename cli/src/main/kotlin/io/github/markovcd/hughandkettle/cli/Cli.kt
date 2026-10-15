@@ -13,13 +13,14 @@ public object Cli {
             PresetCommand,
             ListenCommand,
             LockCommand,
+            TrimCommand,
             CableCommand,
             DiscoverCommand,
             FakeWmiCommand,
             LatencyCommand,
         )
     private val valuedOptions =
-        setOf("channel", "seconds", "port", "name", "broadcast-to", "keep-open", "dir", "count", "names")
+        setOf("channel", "seconds", "port", "name", "broadcast-to", "keep-open", "dir", "count", "names", "recall")
 
     public fun run(
         args: List<String>,

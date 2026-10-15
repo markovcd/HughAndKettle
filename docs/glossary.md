@@ -30,6 +30,7 @@ Prefer the domain's words over the framework's.
 | **scale** | What a knob's 0 to 127 means on the amp, where the manual gives it: delay time from 51 ms to 1360 ms. | `Scale` | range, mapping, curve |
 | **tap tempo** | Setting a time knob by tapping its beat. | `TapTempo` | tap delay, BPM |
 | **tempo lock** | Holding the delay time across preset recalls by sending it back after each one. | `TempoLock` | BPM lock, tempo hold, sync |
+| **volume trim** | An amount added to the volume of every preset recalled and channel switched to, standing in for Master, which is not on MIDI. | `VolumeTrim` | master (the amp's knob), offset, global volume |
 | **controller** | The MIDI control change number a control moves on, 0 to 127. | `controller` | CC (fine in a table), parameter number |
 | **MIDI channel** | The 1 to 16 a message is addressed on. Always with the word MIDI, because the amp has channels too. | `MidiChannel` | channel (alone) |
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |

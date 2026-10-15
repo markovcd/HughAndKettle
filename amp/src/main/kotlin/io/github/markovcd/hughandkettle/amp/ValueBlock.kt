@@ -4,8 +4,8 @@ import io.github.markovcd.hughandkettle.midi.SystemExclusive
 
 /**
  * What the amp says after a channel switch, a preset recall or a store: a Hughes & Kettner system
- * exclusive carrying the knob [values] it is set to, keyed by controller, in 0..255, and the [preset]
- * counted from 1 when the panel matches a stored one.
+ * exclusive carrying the knob [values] it is set to, keyed by controller, in 0..255, the [preset]
+ * counted from 1 when the panel matches a stored one, and the [channel] it is on, 0 for Clean to 3 for Ultra.
  *
  * The layout was read off a GrandMeister Deluxe 40 (firmware 1.16); docs/wmi-1.md has the captures
  * and the bytes not yet decoded.
@@ -13,10 +13,11 @@ import io.github.markovcd.hughandkettle.midi.SystemExclusive
 public data class ValueBlock(
     val values: Map<Int, Int>,
     val preset: Int?,
+    val channel: Int = 0,
 ) {
     /**
      * The block as the amp sends it, for a stand-in amp. A controller the block has no pair for is left
-     * out, the pairs nobody has decoded are 0, and the flags name the Clean channel.
+     * out, the pairs nobody has decoded are 0, and the flags name nothing but the channel.
      */
     public fun message(): SystemExclusive {
         val mark = if (preset == null) listOf(0x7F, 0x7F, 0) else listOf(0, 0, preset - 1)
@@ -24,7 +25,7 @@ public data class ValueBlock(
             (controllers.map { values[it] ?: 0 } + List(PAIRS - controllers.size) { 0 }).flatMap {
                 listOf(it shr 7, it and 0x7F)
             }
-        val body = mark + pairs + listOf(0, CLEAN_FLAGS)
+        val body = mark + pairs + listOf(0, FLAGS or channel)
         val check = body.fold(0x4E) { check, byte -> check xor byte }
         return SystemExclusive((header.toList() + (body + check).map { it.toByte() }).toByteArray())
     }
@@ -36,7 +37,10 @@ public data class ValueBlock(
         private val controllers = listOf(56, 21, 22, 57, 23, 24, 25, 29, 28, 4, 27, 1, 12)
 
         private const val PAIRS = 15
-        private const val CLEAN_FLAGS = 0x40
+        private const val FLAGS = 0x40
+
+        /** The flags byte's bits that hold the channel. */
+        private const val CHANNEL_BITS = 0x03
 
         // Preset marker (two bytes) and preset, 15 value pairs, a high byte and flags, and the check.
         private const val SIZE = 9 + 3 + 2 * PAIRS + 2 + 1
@@ -49,12 +53,13 @@ public data class ValueBlock(
             val body = payload.subList(header.size, SIZE - 1)
             if (payload.last() != body.fold(0x4E) { check, byte -> check xor byte }) return null
             val (markHigh, markLow, preset) = body
+            val flags = body.last()
             val values =
                 controllers.withIndex().associate { (pair, controller) ->
                     controller to
                         (body[3 + 2 * pair] shl 7 or body[4 + 2 * pair])
                 }
-            return ValueBlock(values, if (markHigh == 0 && markLow == 0) preset + 1 else null)
+            return ValueBlock(values, if (markHigh == 0 && markLow == 0) preset + 1 else null, flags and CHANNEL_BITS)
         }
     }
 }

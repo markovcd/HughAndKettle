@@ -9,6 +9,7 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.Tone
+import io.github.markovcd.hughandkettle.amp.VolumeTrim
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
@@ -17,6 +18,7 @@ import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -62,6 +64,10 @@ class PanelState(
 
     /** How many recalled presets the lock has given the held time back, so the panel can show each one. */
     var restored by mutableStateOf(0)
+        private set
+
+    /** The amount added to every recalled preset's and channel's volume, standing in for Master; null for an amp with no volume. */
+    var trim by mutableStateOf(trimFor(amp, 0))
         private set
 
     /** The last box a link reached, offered first. */
@@ -170,6 +176,7 @@ class PanelState(
         moved = emptySet()
         taps = TapTempo()
         lock = null
+        trim = trimFor(amp, trim?.trim ?: 0)
     }
 
     /** The fields are editable only while there is nothing to protect. */
@@ -248,15 +255,54 @@ class PanelState(
         lock = if (on) TempoLock(control, state.values[control.id]) else null
     }
 
-    /** Recalls [preset], counted from 1 as the amp shows it. */
-    fun recall(preset: Int) = send(amp.recall(preset))
+    /** Adds [amount] to the volume of every preset recalled and channel switched to from now on, and to the channel on now. */
+    fun trim(amount: Int) {
+        val (next, change) = trim?.retrimmed(amount) ?: return
+        trim = next
+        change?.let { transmit(listOf(it)) }
+    }
+
+    /**
+     * Recalls [preset], counted from 1 as the amp shows it. Under a trim the recall goes behind the amp's mute,
+     * unless it is muted already, so the preset's own volume never sounds.
+     */
+    fun recall(preset: Int) {
+        val recall = amp.recall(preset)
+        val held = trim
+        val mute = amp.control("mute")
+        if (held == null || held.trim == 0 || mute == null || state.values[mute.id]?.let(mute::isOn) == true) {
+            send(recall)
+            return
+        }
+        val (next, messages) = held.recall(recall, mute)
+        trim = next
+        transmit(messages)
+        scope.launch {
+            delay(VolumeTrim.muteLimit)
+            val (unmuted, lift) = trim?.takeIf { it.muting != null }?.unmuted() ?: return@launch
+            trim = unmuted
+            lift?.let { transmit(listOf(it)) }
+        }
+    }
 
     /** Sends every value [tone] holds, in order, so a channel switch lands before the knobs it carries. */
-    fun recall(tone: Tone) = send(lock?.kept(tone.recall()) ?: tone.recall())
+    fun recall(tone: Tone) {
+        val kept = lock?.kept(tone.recall()) ?: tone.recall()
+        send(trim?.trimmed(kept) ?: kept)
+    }
+
+    /** The tone [name] holding every value the amp is known to be at, its volume without the trim. */
+    fun tone(name: String): Tone = Tone(name, state.amp, trim?.untrimmed(state.values) ?: state.values)
 
     private fun send(message: MidiMessage) = send(listOf(message))
 
+    /** Sends what the person asked for: a volume among it is answered with itself if a value block comes first. */
     private fun send(messages: List<MidiMessage>) {
+        trim = trim?.let { messages.fold(it) { trimmed, message -> trimmed.sent(message) } }
+        transmit(messages)
+    }
+
+    private fun transmit(messages: List<MidiMessage>) {
         state = messages.fold(state) { before, message -> before.after(message) }
         lock = lock?.let { messages.fold(it) { held, message -> held.after(message) } }
         moved =
@@ -276,7 +322,10 @@ class PanelState(
         }
     }
 
-    /** Takes in what the amp said; a preset it recalled while locked gets the held time back. */
+    /**
+     * Takes in what the amp said; a preset it recalled while locked gets the held time back, and under a trim
+     * its volume trimmed.
+     */
     private fun heard(message: MidiMessage) {
         val before = state
         state = before.after(message)
@@ -286,12 +335,22 @@ class PanelState(
             } else {
                 moved + state.values.filter { (id, value) -> before.values[id] != value }.keys
             }
+        trim?.let {
+            val answer = it.restore(message)
+            trim = it.after(message)
+            if (answer.isNotEmpty()) transmit(answer)
+        }
         val held = lock ?: return
         lock = held.after(message)
         val restore = held.restore(message) ?: return
-        send(restore)
+        transmit(listOf(restore))
         restored++
     }
+
+    private fun trimFor(
+        amp: AmpModel,
+        amount: Int,
+    ): VolumeTrim? = amp.control("volume")?.let { VolumeTrim.of(it, amount) }
 
     private fun AmpModel.controlFor(change: ControlChange): String? =
         controls

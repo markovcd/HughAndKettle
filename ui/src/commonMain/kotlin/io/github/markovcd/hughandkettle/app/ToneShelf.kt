@@ -60,7 +60,7 @@ class ToneShelf(
     fun fits(tone: Tone): Boolean = tone.amp == panel.amp
 
     fun save(name: String) {
-        if (name.isNotBlank() && canSave) change { store.save(Tone.of(name.trim(), panel.state)) }
+        if (name.isNotBlank() && canSave) change { store.save(panel.tone(name.trim())) }
     }
 
     /** Whether the amp's presets can be read now: it is linked, and no reading is under way. */
