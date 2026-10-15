@@ -1,7 +1,7 @@
 # 03. Desktop app: the same screens on Windows and Linux
 
 - **Severity:** —
-- **Status:** Open; steps 1 and 2 done
+- **Status:** Open; steps 1 to 3 done
 - **Found:** 2026-10-14, on `main` at `d10cd81`
 
 The user asked for the app on Windows and Linux. This is the plan, one step per task, in order. The
@@ -72,6 +72,13 @@ Each becomes a small interface in `ui` with one implementation per shell, since 
 - the cable: `MidiCableJack` on Android, the `javax.sound.midi` code `hk cable` uses on the desktop;
 - tone import and export: the Android file picker, a desktop file dialog;
 - haptics: none on the desktop.
+
+**Done when** each seam has both sides. Done: settings and the app's folders are one `AppHome`
+(the desktop gives it `~/.hk`); the link card, settings menu and tone shelf are shared, with each
+platform's file picker and WiFi listening as `expect` functions; `JavaCableJack` and
+`DesktopClickSound` fill the cable and the song's click; the desktop process holds the link with no
+service; Compose's haptics do nothing on the desktop by themselves. Nothing in the desktop window
+uses them until step 4, which also has to poll `JavaCableJack.look()`.
 
 ## Step 4: the desktop app runs and links
 

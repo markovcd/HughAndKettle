@@ -97,7 +97,7 @@ the host machine's fake at `10.0.2.2`.
 | `cli` | `hk` |
 | `ui` | The screens the Android and desktop apps share: the theme, the tabs, cards and rows, the panel's state, the link holder and link card, the tone shelf, where the app keeps its files and settings (`AppHome`), and their words as Compose resources; `androidMain` and `desktopMain` hold each platform's way of hearing WMI-1s and picking a tone file |
 | `app` | The Android shell: the activity, the phone's layout (`AmpPanel`), the service that holds the link, the settings file, WiFi, the USB cable and the song's click |
-| `desktop` | The desktop app, a window over `ui`; see [the plan](docs/handoff/03-desktop-app.md) |
+| `desktop` | The desktop app, a window over `ui`, with its MIDI cables through Java's MIDI and the song's click through Java's sound; see [the plan](docs/handoff/03-desktop-app.md) |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 
 Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are the standing rules;
