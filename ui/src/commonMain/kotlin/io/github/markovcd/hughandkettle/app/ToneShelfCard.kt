@@ -1,7 +1,5 @@
 package io.github.markovcd.hughandkettle.app
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Tone
@@ -63,27 +60,16 @@ import org.jetbrains.compose.resources.stringResource
  * and the menu's `tone_delete` and kin, and the dialog's field by `tone_name`.
  */
 @Composable
-internal fun ToneShelfCard(
+fun ToneShelfCard(
     shelf: ToneShelf,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val resolver = LocalContext.current.contentResolver
+    val files = rememberToneFiles()
     val colors = MaterialTheme.colorScheme
     var naming by remember { mutableStateOf<ToneNaming?>(null) }
     var deleting by remember { mutableStateOf<Tone?>(null) }
-    var exporting by remember { mutableStateOf<Tone?>(null) }
     var confirmingRead by remember { mutableStateOf(false) }
-    val export =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TONE_FILE_TYPE)) { uri ->
-            val tone = exporting
-            exporting = null
-            if (uri != null && tone != null) shelf.export(tone) { resolver.openOutputStream(uri) }
-        }
-    val import =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) shelf.import { resolver.openInputStream(uri) }
-        }
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -96,7 +82,7 @@ internal fun ToneShelfCard(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { import.launch(TONE_FILE_TYPES) }, modifier = Modifier.testTag("tone_import")) {
+                TextButton(onClick = { files.open { shelf.import(it) } }, modifier = Modifier.testTag("tone_import")) {
                     Text(stringResource(Res.string.tone_import))
                 }
                 Button(
@@ -149,10 +135,7 @@ internal fun ToneShelfCard(
                     shelf = shelf,
                     enabled = enabled,
                     onRename = { naming = ToneNaming.Existing(tone) },
-                    onExport = {
-                        exporting = tone
-                        export.launch("${tone.name}.json")
-                    },
+                    onExport = { files.create("${tone.name}.json") { shelf.export(tone, it) } },
                     onDelete = { deleting = tone },
                 )
             }
@@ -298,8 +281,3 @@ private fun words(notice: ToneNotice): String =
             }
         }
     }
-
-private const val TONE_FILE_TYPE = "application/json"
-
-// File managers label a .json file in more than one way.
-private val TONE_FILE_TYPES = arrayOf("application/json", "application/octet-stream", "text/plain")

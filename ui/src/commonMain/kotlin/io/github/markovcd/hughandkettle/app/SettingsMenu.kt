@@ -34,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
  * and the items by `amp:<id>` and `theme:<id>`.
  */
 @Composable
-internal fun SettingsMenu(
+fun SettingsMenu(
     panel: PanelState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,

@@ -9,6 +9,10 @@ kotlin {
         api(libs.datastore.preferences.core)
         implementation(libs.kotlinx.coroutines.core)
     }
+    sourceSets.androidMain.dependencies {
+        // The document picker and permission asks behind the Android side of the platform seams.
+        implementation(libs.activity.compose)
+    }
     extensions.configure<com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget>("android") {
         namespace = "io.github.markovcd.hughandkettle.ui"
     }

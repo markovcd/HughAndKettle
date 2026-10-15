@@ -22,7 +22,7 @@ import org.jetbrains.compose.resources.stringResource
  * card is on the panel itself, so the dialog closes. Tests find it by `link` and the dialog by `link_dialog`.
  */
 @Composable
-internal fun LinkButton(
+fun LinkButton(
     panel: PanelState,
     discovery: DiscoveryState,
 ) {

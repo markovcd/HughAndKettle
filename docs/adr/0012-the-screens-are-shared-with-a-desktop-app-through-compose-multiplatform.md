@@ -21,6 +21,9 @@ target (AGP's KMP library plugin, with Android Lint applied) and a `desktop` JVM
   differently: the activity and service, or the window; settings storage; the cable; file dialogs; and
   its own layouts, since a phone and a desktop are used differently.
 - The building blocks and the state behind them are shared; layouts and input are per platform.
+- A shared screen that needs one platform's service (a file picker, a permission, WiFi's multicast
+  lock) asks for it through an `expect` function in `ui`, with its Android `actual` in `androidMain`
+  and its desktop one in `desktopMain`.
 - Code moved into `ui` keeps its `io.github.markovcd.hughandkettle.app` package, so moving a file
   changes no other file and another session's edits rebase across it.
 - Fonts and text are Compose resources in `ui`.

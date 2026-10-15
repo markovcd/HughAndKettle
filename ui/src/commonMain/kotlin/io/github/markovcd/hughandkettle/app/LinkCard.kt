@@ -41,7 +41,7 @@ import org.jetbrains.compose.resources.stringResource
  * is [offered][PanelState.offered] to the panel, which may link to it by itself.
  */
 @Composable
-internal fun LinkCard(
+fun LinkCard(
     panel: PanelState,
     discovery: DiscoveryState,
     modifier: Modifier = Modifier,

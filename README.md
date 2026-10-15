@@ -95,8 +95,8 @@ the host machine's fake at `10.0.2.2`.
 | `amp` | Amp models as tables of controls, how a control becomes a message, the amp's state, tones and their files, preset names, and reading presets into tones |
 | `wmi` | Discovery of a WMI-1, the TCP link to it, the fake WMI-1 |
 | `cli` | `hk` |
-| `ui` | The screens the Android and desktop apps share: the theme, the tabs, cards and rows, the panel's state, the link holder, the tone shelf, where the app keeps its files and settings (`AppHome`), and their words as Compose resources |
-| `app` | The Android shell: the activity, the phone's layout (`AmpPanel`), the service that holds the link, the settings file, WiFi, the USB cable and the tone file picker |
+| `ui` | The screens the Android and desktop apps share: the theme, the tabs, cards and rows, the panel's state, the link holder and link card, the tone shelf, where the app keeps its files and settings (`AppHome`), and their words as Compose resources; `androidMain` and `desktopMain` hold each platform's way of hearing WMI-1s and picking a tone file |
+| `app` | The Android shell: the activity, the phone's layout (`AmpPanel`), the service that holds the link, the settings file, WiFi, the USB cable and the song's click |
 | `desktop` | The desktop app, a window over `ui`; see [the plan](docs/handoff/03-desktop-app.md) |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 
