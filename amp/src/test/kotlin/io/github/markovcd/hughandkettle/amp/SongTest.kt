@@ -40,6 +40,11 @@ class SongTest {
     }
 
     @Test
+    fun `The delay time reads in the milliseconds the knob reaches`() {
+        assertEquals(505, Song(amp, 120).delayMs)
+    }
+
+    @Test
     fun `A tempo slower than the longest delay time sets the delay to its longest`() {
         assertEquals(time.set(127), Song(amp, 40).delayTime)
     }

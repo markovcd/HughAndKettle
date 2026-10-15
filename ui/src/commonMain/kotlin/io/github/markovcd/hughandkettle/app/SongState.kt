@@ -9,6 +9,8 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
+import io.github.markovcd.hughandkettle.amp.TapTempo
+import io.github.markovcd.hughandkettle.amp.Tempo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration
 import kotlin.time.TimeSource
 
 /**
@@ -33,6 +36,7 @@ class SongState(
     private var all by mutableStateOf(emptyMap<AmpModel, Song>())
     private var unreadable by mutableStateOf(emptySet<AmpModel>())
     private var playing: Job? = null
+    private var taps = TapTempo()
 
     /** Whether the song turned the tempo lock on, so it turns it off again when it ends. */
     private var locking = false
@@ -64,6 +68,13 @@ class SongState(
     val editable: Boolean get() = position == null && panel.amp !in unreadable
 
     fun tempo(bpm: Int) = change { it.copy(tempo = bpm.coerceIn(Song.TEMPOS)) }
+
+    /** A tap on the song's beat at [at], from any fixed point; from the second tap on, the tempo follows the taps. */
+    fun tap(at: Duration) {
+        taps = taps.after(at)
+        val beat = taps.beat ?: return
+        tempo(Tempo.beatsPerMinute(beat.inWholeMilliseconds.toInt().coerceAtLeast(1)))
+    }
 
     /** Adds a step on the preset the amp is on, else the first. */
     fun add() = change { it.copy(steps = it.steps + SongStep(panel.state.preset ?: 1, NEW_STEP_BEATS)) }
@@ -136,8 +147,8 @@ class SongState(
         scope.launch { withContext(io) { store.save(after) }.onFailure { failure = it.message } }
     }
 
-    private companion object {
-        // Four bars of four: a short part, lengthened from there.
+    companion object {
+        /** The beats a step is added with: four bars of four, a short part, lengthened from there. */
         const val NEW_STEP_BEATS = 16
     }
 }

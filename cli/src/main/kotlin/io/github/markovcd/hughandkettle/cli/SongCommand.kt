@@ -126,19 +126,10 @@ public object SongCommand : Command {
         song: Song,
         out: PrintWriter,
     ) {
-        out.println(Json.line("amp" to song.amp.id, "tempo" to song.tempo, "delay_ms" to delayMs(song)))
+        out.println(Json.line("amp" to song.amp.id, "tempo" to song.tempo, "delay_ms" to song.delayMs))
         song.steps.forEachIndexed { index, step ->
             out.println(Json.line("step" to index + 1, "preset" to step.preset, "beats" to step.beats))
         }
-    }
-
-    private fun delayMs(song: Song): Int? {
-        val time = song.delayTime ?: return null
-        val scale =
-            song.amp.controls
-                .firstOrNull(Control::timed)
-                ?.scale ?: return null
-        return scale.amount(time.value)
     }
 
     /** Plays [song] on the amp behind [target] from now to its last beat, holding its delay time. */
@@ -191,7 +182,7 @@ public object SongCommand : Command {
                             "ms" to ms(),
                             "step" to next + 1,
                             "preset" to song.steps[next].preset,
-                            "delay_ms" to delayMs(song),
+                            "delay_ms" to song.delayMs,
                         ),
                     )
                     out.flush()
@@ -207,7 +198,7 @@ public object SongCommand : Command {
                 lock = held.after(message)
                 val restore = held.restore(message) ?: continue
                 if (!send(listOf(restore))) return ExitCodes.NO_LINK
-                out.println(Json.line("ms" to ms(), "restored" to restore.value, "delay_ms" to delayMs(song)))
+                out.println(Json.line("ms" to ms(), "restored" to restore.value, "delay_ms" to song.delayMs))
             }
         }
         lostBecause.get()?.let {

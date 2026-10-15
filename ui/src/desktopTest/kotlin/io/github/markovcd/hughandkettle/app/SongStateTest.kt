@@ -28,6 +28,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.fail
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -82,6 +83,14 @@ class SongStateTest {
         until("saved") { store.song(amp).getOrNull() == Song(amp, 96, listOf(SongStep(1, 32))) }
         songs.remove(0)
         until("step removed") { store.song(amp).getOrNull() == Song(amp, 96) }
+    }
+
+    @Test
+    fun `Tapping a beat sets the song's tempo, from the second tap`() {
+        songs.tap(0.milliseconds)
+        assertEquals(120, songs.song.tempo)
+        songs.tap(750.milliseconds)
+        assertEquals(80, songs.song.tempo)
     }
 
     @Test

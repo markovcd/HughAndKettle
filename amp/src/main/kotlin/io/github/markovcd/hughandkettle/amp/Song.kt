@@ -55,6 +55,16 @@ public data class Song(
             return time.set(scale.value((beat.inWholeMilliseconds).toInt()))
         }
 
+    /** The delay time [delayTime] sets, in milliseconds as the knob reaches them; null on an amp with no time knob. */
+    val delayMs: Int?
+        get() {
+            val time = delayTime ?: return null
+            return amp.controls
+                .firstOrNull(Control::timed)
+                ?.scale
+                ?.amount(time.value)
+        }
+
     /** The messages that start [step]: its preset, then the delay time, so the preset's own gives way to the song's. */
     public fun cue(step: Int): List<MidiMessage> = listOfNotNull(amp.recall(steps[step].preset), delayTime)
 

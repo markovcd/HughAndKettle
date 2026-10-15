@@ -33,7 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * The whole screen: a top bar of the preset, the link's glyph, the header's switches and the settings, where
  * the amp is picked; the switching, always in view; the link card while there is no link; then one tab of
- * the amp, its effects or the song and the tones, picked along the bottom. A box linked to with no amp picked for it asks
+ * the amp, its effects, the song or the tones, picked along the bottom. A box linked to with no amp picked for it asks
  * which amp it is. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the tabs move to a rail
  * at the side and the amp and its effects share a tab side by side. Tests find the tab's content by `panel`,
  * the effects beside the amp by `controls`, and a control by `control:<id>`.
@@ -55,7 +55,7 @@ fun AmpPanel(
     if (panel.asking) AmpQuestion(panel)
     BoxWithConstraints {
         val wide = maxWidth >= TWO_PANES_FROM
-        val tabs = if (wide) listOf(PanelTab.Amp, PanelTab.Tones) else PanelTab.entries
+        val tabs = if (wide) listOf(PanelTab.Amp, PanelTab.Song, PanelTab.Tones) else PanelTab.entries
         val tab = if (picked in tabs) picked else PanelTab.Amp
         val body: @Composable ColumnScope.() -> Unit = {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -74,9 +74,12 @@ fun AmpPanel(
             when {
                 tab == PanelTab.Tones -> {
                     Column(content.verticalScroll(rememberScrollState()).padding(12.dp).testTag("panel")) {
-                        SongCard(songs, enabled, Modifier.padding(bottom = 12.dp))
                         ToneShelfCard(shelf, enabled)
                     }
+                }
+
+                tab == PanelTab.Song -> {
+                    SongTab(songs, presetNames, panel.state.preset, enabled, content.testTag("panel"))
                 }
 
                 wide -> {

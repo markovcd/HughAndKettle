@@ -1,5 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -172,5 +174,18 @@ class AmpPanelTest {
         compose.onNodeWithTag("control:noise_gate").performClick()
         compose.onNodeWithTag("control:noise_gate_sensitivity").assertDoesNotExist()
         fake.close()
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun `The song has a tab of its own, where a step is added and Play waits for a link`() {
+        shown()
+        compose.onNodeWithTag("tab:song").performClick()
+        compose.onNodeWithTag("song_play").assertIsNotEnabled()
+        compose.onNodeWithTag("song_add").performClick()
+        compose.onNodeWithTag("song_step:1").assertExists()
+        compose.onNodeWithTag("song_play").assertIsNotEnabled()
+        compose.onNodeWithTag("song_tempo_up").performClick()
+        compose.onNodeWithTag("song_tempo").assertTextEquals("121")
     }
 }

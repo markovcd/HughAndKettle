@@ -37,6 +37,14 @@ fun AmpTab(
                 SwitchCards(switches, controls, panel, enabled)
             }
         }
-        panel.trim?.let { TrimRow(it.trim, enabled, panel::trim) }
+        panel.trim?.let {
+            TrimCard(
+                it.trim,
+                panel.trimmed,
+                enabled,
+                panel::trim,
+                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
     }
 }

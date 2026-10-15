@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.song
 import io.github.markovcd.hughandkettle.ui.tab_amp
 import io.github.markovcd.hughandkettle.ui.tab_fx
 import io.github.markovcd.hughandkettle.ui.tones
@@ -13,5 +14,6 @@ enum class PanelTab(
 ) {
     Amp("amp", Res.string.tab_amp),
     Fx("fx", Res.string.tab_fx),
+    Song("song", Res.string.song),
     Tones("tones", Res.string.tones),
 }

@@ -1,0 +1,396 @@
+package io.github.markovcd.hughandkettle.app
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.markovcd.hughandkettle.amp.Song
+import io.github.markovcd.hughandkettle.amp.SongStep
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.bpm
+import io.github.markovcd.hughandkettle.ui.song_add
+import io.github.markovcd.hughandkettle.ui.song_add_what
+import io.github.markovcd.hughandkettle.ui.song_held
+import io.github.markovcd.hughandkettle.ui.song_none
+import io.github.markovcd.hughandkettle.ui.song_none_now
+import io.github.markovcd.hughandkettle.ui.song_off
+import io.github.markovcd.hughandkettle.ui.song_play
+import io.github.markovcd.hughandkettle.ui.song_steps
+import io.github.markovcd.hughandkettle.ui.song_stop
+import io.github.markovcd.hughandkettle.ui.song_summary
+import io.github.markovcd.hughandkettle.ui.song_unreadable
+import io.github.markovcd.hughandkettle.ui.song_unsaved
+import org.jetbrains.compose.resources.stringResource
+
+/**
+ * The song's own tab. Stopped: its tempo, its steps to lengthen, shorten or remove, a step to add on the
+ * preset the amp is on, and Play along the foot. Playing: the beat, big, over the steps read only, and Stop.
+ * A song that cannot be read says so on top and can be neither changed nor played. Tests find Play and Stop
+ * by `song_play` and adding a step by `song_add`.
+ */
+@Composable
+fun SongTab(
+    songs: SongState,
+    presetNames: PresetNamesState,
+    preset: Int?,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val song = songs.song
+    val at = songs.position
+    val names = presetNames.names
+    val readable = at != null || songs.editable
+    Column(modifier) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (at == null) 12.dp else 10.dp),
+        ) {
+            songs.failure?.let { SongAlert(readable, it) }
+            if (at != null) {
+                SongBeatHero(song, at, names)
+                if (song.delayMs != null) SongHeldStrip(song)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    song.steps.forEachIndexed { index, step ->
+                        PlayedStepRow(index + 1, step, names[step.preset], at.step, at.beat)
+                    }
+                }
+            } else {
+                SongTempoCard(songs, readable)
+                StepsHeader(song)
+                if (song.steps.isEmpty()) {
+                    NoSteps(preset, songs.editable, songs::add)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        song.steps.forEachIndexed { index, step ->
+                            SongStepRow(
+                                index + 1,
+                                step,
+                                names[step.preset],
+                                songs.editable,
+                                onBeats = { songs.beats(index, it) },
+                                onRemove = { songs.remove(index) },
+                            )
+                        }
+                        AddStep(preset ?: 1, songs.editable, songs::add)
+                    }
+                }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        PlayBar(
+            playing = at != null,
+            enabled = enabled && readable && song.steps.isNotEmpty(),
+            onPlay = songs::start,
+            onStop = songs::stop,
+        )
+    }
+}
+
+/** "Steps", and how many with how many beats lasting how long. */
+@Composable
+private fun StepsHeader(song: Song) {
+    val colors = MaterialTheme.colorScheme
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(Res.string.song_steps).uppercase(),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.6.sp,
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        if (song.steps.isNotEmpty()) {
+            val seconds = song.length.inWholeSeconds
+            Text(
+                stringResource(
+                    Res.string.song_summary,
+                    song.steps.size,
+                    song.steps.sumOf(SongStep::beats),
+                    "${seconds / 60}:${"${seconds % 60}".padStart(2, '0')}",
+                ),
+                fontSize = 13.sp,
+                color = colors.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** A song with no steps: a dashed box saying what to add, with the preset the amp is on, and Add step. */
+@Composable
+private fun NoSteps(
+    preset: Int?,
+    enabled: Boolean,
+    onAdd: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .alpha(if (enabled) 1f else UNREADABLE)
+            .dashed(colors.surfaceVariant, 16.dp)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Note(colors.onSurfaceVariant)
+        Text(
+            preset?.let { stringResource(Res.string.song_none_now, it) } ?: stringResource(Res.string.song_none),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        val shape = RoundedCornerShape(12.dp)
+        Row(
+            Modifier
+                .height(48.dp)
+                .clip(shape)
+                .background(if (enabled) colors.primary else colors.surfaceContainerHigh)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onAdd)
+                .padding(horizontal = 22.dp)
+                .testTag("song_add"),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val ink = if (enabled) colors.onPrimary else colors.onSurfaceVariant
+            Plus(ink)
+            Text(stringResource(Res.string.song_add), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = ink)
+        }
+    }
+}
+
+/** Add step, under the steps, saying the preset and beats it adds. */
+@Composable
+private fun AddStep(
+    preset: Int,
+    enabled: Boolean,
+    onAdd: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .alpha(if (enabled) 1f else DISABLED)
+            .dashed(colors.surfaceVariant, 14.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onAdd)
+            .testTag("song_add"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Plus(colors.primary)
+        Text(
+            stringResource(Res.string.song_add),
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp,
+            color = colors.primary,
+        )
+        Text(
+            stringResource(Res.string.song_add_what, preset, SongState.NEW_STEP_BEATS),
+            fontWeight = FontWeight.Medium,
+            fontSize = 15.sp,
+            color = colors.onSurfaceVariant,
+        )
+    }
+}
+
+/** Play, filled amber, or Stop, outlined, across the foot of the tab. */
+@Composable
+private fun PlayBar(
+    playing: Boolean,
+    enabled: Boolean,
+    onPlay: () -> Unit,
+    onStop: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    val ground =
+        when {
+            playing -> colors.primary.copy(alpha = 0.14f)
+            enabled -> colors.primary
+            else -> colors.surfaceContainerHigh
+        }
+    val ink =
+        when {
+            playing -> colors.onPrimaryContainer
+            enabled -> colors.onPrimary
+            else -> colors.onSurfaceVariant
+        }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .height(56.dp)
+            .clip(shape)
+            .background(ground)
+            .then(if (playing) Modifier.border(2.dp, colors.primary, shape) else Modifier)
+            .clickable(enabled = playing || enabled, role = Role.Button, onClick = if (playing) onStop else onPlay)
+            .testTag("song_play"),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val mark = if (playing) colors.primary else ink
+        Canvas(Modifier.size(20.dp)) {
+            val u = size.width / 24
+            if (playing) {
+                drawRoundRect(mark, Offset(5 * u, 5 * u), Size(14 * u, 14 * u), CornerRadius(2 * u))
+            } else {
+                val triangle =
+                    Path().apply {
+                        moveTo(7 * u, 4 * u)
+                        lineTo(20 * u, 12 * u)
+                        lineTo(7 * u, 20 * u)
+                        close()
+                    }
+                drawPath(triangle, mark)
+            }
+        }
+        Text(
+            stringResource(if (playing) Res.string.song_stop else Res.string.song_play),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = ink,
+        )
+    }
+}
+
+/** What went wrong with the song: it cannot be read, so it is off, or it could not be saved. */
+@Composable
+private fun SongAlert(
+    readable: Boolean,
+    message: String,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.errorContainer.copy(alpha = 0.35f))
+            .border(1.dp, colors.error.copy(alpha = 0.5f), shape)
+            .padding(14.dp)
+            .testTag("song_failure"),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        val ink = colors.error
+        Canvas(Modifier.padding(top = 1.dp).size(22.dp)) {
+            val u = size.width / 24
+            val stroke = Stroke(2.25f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            val warning =
+                Path().apply {
+                    moveTo(12 * u, 3 * u)
+                    lineTo(22 * u, 21 * u)
+                    lineTo(2 * u, 21 * u)
+                    close()
+                }
+            drawPath(warning, ink, style = stroke)
+            drawLine(ink, Offset(12 * u, 10 * u), Offset(12 * u, 15 * u), 2.25f * u, StrokeCap.Round)
+            drawLine(ink, Offset(12 * u, 18 * u), Offset(12 * u, 18.5f * u), 2.25f * u, StrokeCap.Round)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                stringResource(if (readable) Res.string.song_unsaved else Res.string.song_unreadable),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = ink,
+            )
+            if (!readable) Text(stringResource(Res.string.song_off), fontSize = 14.sp, color = ink)
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
+    }
+}
+
+/** The tempo lock holding the song's delay time, under the beat while the song plays. */
+@Composable
+private fun SongHeldStrip(song: Song) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(shape)
+            .background(colors.surfaceContainerLow)
+            .border(1.dp, colors.outlineVariant, shape)
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Padlock(open = false, color = colors.primary, size = 16.dp)
+        Text(
+            stringResource(Res.string.song_held, song.delayMs ?: 0),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.onPrimaryContainer,
+            modifier = Modifier.weight(1f),
+        )
+        Text("${song.tempo} ${stringResource(Res.string.bpm)}", fontSize = 14.sp, color = colors.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun Plus(ink: Color) {
+    Canvas(Modifier.size(18.dp)) {
+        val u = size.width / 24
+        drawLine(ink, Offset(5 * u, 12 * u), Offset(19 * u, 12 * u), 2.5f * u, StrokeCap.Round)
+        drawLine(ink, Offset(12 * u, 5 * u), Offset(12 * u, 19 * u), 2.5f * u, StrokeCap.Round)
+    }
+}
+
+/** The song's glyph: a pair of beamed notes. */
+@Composable
+private fun Note(ink: Color) {
+    TabMark(PanelTab.Song, ink, 32.dp)
+}
+
+/** A dashed outline of [color] with rounded corners. */
+private fun Modifier.dashed(
+    color: Color,
+    radius: Dp,
+): Modifier =
+    drawBehind {
+        drawRoundRect(
+            color,
+            cornerRadius = CornerRadius(radius.toPx()),
+            style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))),
+        )
+    }
+
+private const val UNREADABLE = 0.6f
+private const val DISABLED = 0.38f

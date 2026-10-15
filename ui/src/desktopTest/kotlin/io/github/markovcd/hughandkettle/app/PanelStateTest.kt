@@ -235,6 +235,7 @@ class PanelStateTest {
         fake.emit(ProgramChange(MidiChannel(1), 2))
         fake.emit(ValueBlock(mapOf(volume.controller to 120), preset = 3).message())
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), volume.controller, 40)), nextSeen())
+        assertEquals(1, panel.trimmed)
     }
 
     @Test

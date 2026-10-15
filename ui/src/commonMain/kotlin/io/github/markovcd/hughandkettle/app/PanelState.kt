@@ -70,6 +70,10 @@ class PanelState(
     var trim by mutableStateOf(trimFor(amp, 0))
         private set
 
+    /** How many recalled presets and channels the trim has moved the volume of, so the panel can show each one. */
+    var trimmed by mutableStateOf(0)
+        private set
+
     /** The last box a link reached, offered first. */
     var last by mutableStateOf<WmiAddress?>(null)
         private set
@@ -341,7 +345,10 @@ class PanelState(
         trim?.let {
             val answer = it.restore(message)
             trim = it.after(message)
-            if (answer.isNotEmpty()) transmit(answer)
+            if (answer.isNotEmpty()) {
+                trimmed++
+                transmit(answer)
+            }
         }
         val held = lock ?: return
         lock = held.after(message)
