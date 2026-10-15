@@ -3,21 +3,14 @@ package io.github.markovcd.hughandkettle.app
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import kotlin.math.PI
-import kotlin.math.exp
-import kotlin.math.sin
 
 /**
- * A metronome click, made once and held loaded, so a click sounds as soon as it is asked for rather than
- * after a sound is decoded: a short tone that dies away fast enough to read as a tick.
+ * The metronome click, held loaded so it sounds as soon as it is asked for rather than after a sound is
+ * decoded.
  */
 class ClickSound {
     private val track: AudioTrack by lazy {
-        val samples =
-            ShortArray(RATE * LENGTH_MS / 1000) { i ->
-                val t = i.toDouble() / RATE
-                (Short.MAX_VALUE * LOUDNESS * exp(-t * DECAY) * sin(2 * PI * PITCH * t)).toInt().toShort()
-            }
+        val samples = ClickSamples.samples
         AudioTrack
             .Builder()
             .setAudioAttributes(
@@ -30,7 +23,7 @@ class ClickSound {
                 AudioFormat
                     .Builder()
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(RATE)
+                    .setSampleRate(ClickSamples.RATE)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .build(),
             ).setTransferMode(AudioTrack.MODE_STATIC)
@@ -44,15 +37,5 @@ class ClickSound {
         track.stop()
         track.reloadStaticData()
         track.play()
-    }
-
-    private companion object {
-        const val RATE = 48_000
-        const val LENGTH_MS = 40
-        const val PITCH = 1_500.0
-
-        // Down to a twentieth by 20 ms: a tick, not a beep.
-        const val DECAY = 150.0
-        const val LOUDNESS = 0.8
     }
 }
