@@ -86,6 +86,13 @@ The phone's landscape layout in a desktop window, linking to a WMI-1, to `hk fak
 A desktop UI test drives it against the fake WMI-1. `./gradlew :desktop:run` and a runnable folder in
 the gate artifacts are how it is tried.
 
+**Done when** the window links to `hk fake-wmi` and the test is green. Done: `AmpPanel` moved to `ui`;
+`DesktopApp` holds the link, looks for cables every two seconds and keeps its things in `~/.hk`;
+`DesktopPanelTest` links by a typed address, flips a switch and plays a song against `FakeWmi`. The
+folder (`./gradlew :desktop:installDist`, `desktop/` in the gate artifacts) carries Skia for Linux and
+Windows x64 and needs Java 21 on the machine. Its jars carry their group in their names, since androidx
+and JetBrains both publish a `runtime-desktop` jar.
+
 ## Step 5: a desktop layout
 
 Amp, FX and Tones side by side in a resizable window, without tabs. Mouse wheel on knobs, hover hints,

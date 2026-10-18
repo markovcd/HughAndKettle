@@ -1,39 +1,19 @@
 package io.github.markovcd.hughandkettle.desktop
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import io.github.markovcd.hughandkettle.app.Knob
-import io.github.markovcd.hughandkettle.app.theme.HughAndKettleTheme
+import androidx.compose.ui.window.rememberWindowState
 
-/** The desktop app: a window over the shared screens. */
-fun main() =
+/** The desktop app: a window over the shared screens, keeping its things in `~/.hk` beside `hk`'s. */
+fun main() {
+    val app = DesktopApp(DesktopApp.HK_FOLDER)
     application {
-        Window(onCloseRequest = ::exitApplication, title = "Hugh & Kettle") {
-            HughAndKettleTheme(dark = true) {
-                var gain by remember { mutableIntStateOf(64) }
-                Surface(Modifier.fillMaxSize()) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Knob(value = gain, onValue = { gain = it }, description = "Gain", size = 120.dp)
-                        Text("Gain $gain", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            }
+        // Wide enough for the amp and its effects side by side, as on a phone in landscape.
+        val window = rememberWindowState(width = 1100.dp, height = 720.dp)
+        Window(onCloseRequest = ::exitApplication, state = window, title = "Hugh & Kettle") {
+            DesktopPanel(app)
         }
     }
+    app.close()
+}

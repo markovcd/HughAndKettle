@@ -51,6 +51,7 @@ RUN ./gradlew build --no-daemon --console=plain
 FROM scratch AS artifacts
 COPY --from=gate /src/app/build/outputs/apk /apk
 COPY --from=gate /src/cli/build/distributions /cli
+COPY --from=gate /src/desktop/build/install /desktop
 COPY --from=gate /src/midi/build/test-results /test-results/midi
 COPY --from=gate /src/amp/build/test-results /test-results/amp
 COPY --from=gate /src/wmi/build/test-results /test-results/wmi

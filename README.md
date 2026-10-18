@@ -22,7 +22,8 @@ Needs JDK 21, and an Android SDK with `ANDROID_HOME` pointing at it (or `local.p
 | **The gate** (the only definition of passing) | `./gate.sh` |
 | The `hk` command line, installed under `cli/build/install/hk` | `./gradlew :cli:installDist` |
 | The app on a connected phone or emulator | `./gradlew :app:installDebug` |
-| The desktop app in a window (in progress: the theme and a knob so far) | `./gradlew :desktop:run` |
+| The desktop app in a window: the phone's landscape panel, keeping its things in `~/.hk` beside `hk`'s | `./gradlew :desktop:run` |
+| The desktop app as a folder that runs on Linux or Windows with Java 21, under `desktop/build/install/hughandkettle` (`bin/hughandkettle`, or `bin\hughandkettle.bat`) | `./gradlew :desktop:installDist` |
 | Try a release with throwaway keys, publishing nothing | `./release.sh` |
 
 Test reports with a duration per test land in `<module>/build/test-results/test/*.xml`.
@@ -97,7 +98,7 @@ the host machine's fake at `10.0.2.2`.
 | `cli` | `hk` |
 | `ui` | The screens the Android and desktop apps share: the theme, the tabs, cards and rows, the panel's state, the link holder and link card, the tone shelf, where the app keeps its files and settings (`AppHome`), and their words as Compose resources; `androidMain` and `desktopMain` hold each platform's way of hearing WMI-1s and picking a tone file |
 | `app` | The Android shell: the activity, the phone's layout (`AmpPanel`), the service that holds the link, the settings file, WiFi, the USB cable and the song's click |
-| `desktop` | The desktop app, a window over `ui`, with its MIDI cables through Java's MIDI and the song's click through Java's sound; see [the plan](docs/handoff/03-desktop-app.md) |
+| `desktop` | The desktop app, a window over `ui`'s panel, with its MIDI cables through Java's MIDI and the song's click through Java's sound; see [the plan](docs/handoff/03-desktop-app.md) |
 | `build-logic` | The Gradle convention plugins; `gradle/libs.versions.toml` has every version |
 
 Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are the standing rules;
