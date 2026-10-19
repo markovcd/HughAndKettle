@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
@@ -92,15 +93,19 @@ public object LockCommand : Command {
                 "delay_ms" to scale.amount(value),
             ),
         )
-        var lock = TempoLock(time, given?.value)
-        lock.value?.let { print("held", it) }
+        var answers = RecallAnswers(lock = TempoLock(time, given?.value))
+        answers.lock?.value?.let { print("held", it) }
         link.use {
             while (true) {
                 val message = heard.take() as? MidiMessage ?: break
-                val before = lock.value
-                lock = lock.after(message)
-                lock.value?.takeIf { it != before }?.let { value -> print("held", value) }
-                val restore = lock.restore(message) ?: continue
+                val before = answers.lock?.value
+                val answered = answers.heard(message)
+                answers = answered.answers
+                answers.lock
+                    ?.value
+                    ?.takeIf { it != before }
+                    ?.let { value -> print("held", value) }
+                val restore = answered.restored ?: continue
                 it.send(restore).getOrElse { failure ->
                     err.println("send failed: ${failure.message}")
                     return ExitCodes.NO_LINK

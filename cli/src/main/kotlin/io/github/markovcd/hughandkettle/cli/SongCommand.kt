@@ -2,6 +2,7 @@ package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
@@ -165,10 +166,13 @@ public object SongCommand : Command {
                     return ExitCodes.NO_LINK
                 }
         val time = song.delayTime
-        var lock =
-            song.amp.controls
-                .firstOrNull(Control::timed)
-                ?.let { TempoLock(it, time?.value) }
+        var answers =
+            RecallAnswers(
+                lock =
+                    song.amp.controls
+                        .firstOrNull(Control::timed)
+                        ?.let { TempoLock(it, time?.value) },
+            )
         // Measured from the first step, so the count-in reads in negative milliseconds.
         val started = TimeSource.Monotonic.markNow() + song.lead
         val counts = if (song.countIn) Song.COUNT_IN_BEATS else 0
@@ -194,7 +198,9 @@ public object SongCommand : Command {
                     continue
                 }
                 if (next < song.steps.size && started.elapsedNow() >= song.startOf(next)) {
-                    if (!send(song.cue(next))) return ExitCodes.NO_LINK
+                    val cue = song.cue(next)
+                    answers = answers.sent(cue)
+                    if (!send(cue)) return ExitCodes.NO_LINK
                     out.println(
                         Json.line(
                             "ms" to ms(),
@@ -217,9 +223,9 @@ public object SongCommand : Command {
                 if (next >= song.steps.size && wait <= 0) break
                 val message = heard.poll(wait.coerceAtLeast(0), TimeUnit.MILLISECONDS) ?: continue
                 if (message !is MidiMessage) break
-                val held = lock ?: continue
-                lock = held.after(message)
-                val restore = held.restore(message) ?: continue
+                val answered = answers.heard(message)
+                answers = answered.answers
+                val restore = answered.restored ?: continue
                 if (!send(listOf(restore))) return ExitCodes.NO_LINK
                 out.println(Json.line("ms" to ms(), "restored" to restore.value, "delay_ms" to song.delayMs))
             }

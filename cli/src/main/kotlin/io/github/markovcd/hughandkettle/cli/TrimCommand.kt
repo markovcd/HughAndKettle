@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.amp.VolumeTrim
 import io.github.markovcd.hughandkettle.midi.MidiMessage
@@ -104,7 +105,7 @@ public object TrimCommand : Command {
                 Json.line("ms" to started.elapsedNow().inWholeMilliseconds, *fields),
             )
 
-        var trim = VolumeTrim.of(volume, amount)
+        var answers = RecallAnswers(trim = VolumeTrim.of(volume, amount))
         link.use {
             fun send(messages: List<MidiMessage>): Boolean {
                 for (message in messages) {
@@ -118,8 +119,8 @@ public object TrimCommand : Command {
             }
             var muteDeadline: Long? = null
             if (recall != null) {
-                val (muted, messages) = trim.recall(recall, mute)
-                trim = muted
+                val (behind, messages) = answers.recall(recall, mute, muted = false)
+                answers = behind
                 if (!send(messages)) return ExitCodes.NO_LINK
                 muteDeadline = started.elapsedNow().inWholeMilliseconds + VolumeTrim.muteLimit.inWholeMilliseconds
             }
@@ -127,8 +128,8 @@ public object TrimCommand : Command {
                 val wait = muteDeadline?.let { (it - started.elapsedNow().inWholeMilliseconds).coerceAtLeast(0) }
                 val next = if (wait == null) heard.take() else heard.poll(wait, TimeUnit.MILLISECONDS)
                 if (next == null) {
-                    val (unmuted, lift) = trim.unmuted()
-                    trim = unmuted
+                    val (unmuted, lift) = answers.unmuted()
+                    answers = unmuted
                     muteDeadline = null
                     print("muted_too_long_ms" to VolumeTrim.muteLimit.inWholeMilliseconds)
                     if (!send(listOfNotNull(lift))) return ExitCodes.NO_LINK
@@ -136,10 +137,10 @@ public object TrimCommand : Command {
                 }
                 val message = next as? MidiMessage ?: break
                 describe(message, volume.controller)?.let { print(*it) }
-                val answer = trim.restore(message)
-                trim = trim.after(message)
-                if (trim.muting == null) muteDeadline = null
-                if (!send(answer)) return ExitCodes.NO_LINK
+                val answered = answers.heard(message)
+                answers = answered.answers
+                if (!answers.muting) muteDeadline = null
+                if (!send(answered.replies)) return ExitCodes.NO_LINK
             }
         }
         val reason = lostBecause.get() ?: return ExitCodes.OK
