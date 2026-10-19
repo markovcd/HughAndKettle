@@ -204,8 +204,8 @@ public object SongCommand : Command {
                 val wait = (until - started.elapsedNow()).inWholeMilliseconds
                 if (next >= song.steps.size && wait <= 0) break
                 val message =
-                    when (val next = link.next(wait)) {
-                        is QueuedLink.Next.Heard -> next.message
+                    when (val polled = link.next(wait)) {
+                        is QueuedLink.Next.Heard -> polled.message
                         QueuedLink.Next.Quiet -> continue
                         QueuedLink.Next.Over -> break
                     }
