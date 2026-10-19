@@ -44,8 +44,8 @@ hk set <host[:port]> <amp-id> preset <1..128>
 hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
 hk lock <host[:port]> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay time across preset recalls
 hk trim <host[:port]> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
-hk song show <amp-id> | set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in]  # the amp's song; takes --dir D
-hk song play <host[:port]> <amp-id>                          # count in a bar, then recall each preset on its beat, delay time at the tempo
+hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in]  # takes --name N, --dir D
+hk song play <host[:port]> <amp-id> [--name N]               # count in a bar, then recall each preset on its beat, delay time at the tempo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
 hk tone rename <name> <new-name> | move <name> <position> | delete <name>
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
@@ -71,8 +71,9 @@ given, printed one per line and then as a `{"presets":N}` line. `tone read` reca
 amp reports for it as a tone named after the preset; it reads every preset unless given one or a
 range, and a preset that sends nothing within 2 s is skipped and said on stderr. `preset` names the
 amp's presets in `--dir` (`~/.hk/preset-names` by default), the way the app does; `tone read` finds
-them there or in `--names`. `song` keeps one song per amp model in `--dir` (`~/.hk/songs` by default),
-the way the app does; `play` recalls each step's preset on its beat from the moment it starts, sets the
+them there or in `--names`. `song` keeps the songs of each amp model in `--dir` (`~/.hk/songs` by default),
+the way the app does; `show`, `set` and `play` take the song `--name` names, else the one open in the app,
+and `set` makes the song when no song has that name; `play` recalls each step's preset on its beat from the moment it starts, sets the
 delay time to one repeat a beat, and holds it across the recalls as `lock` does. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
 `grandmeister_36`.
 Exit codes: 0 done, 2 bad arguments, 3 no link, 4 nothing found, 5 a file that could not be read or

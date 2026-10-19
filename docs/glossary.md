@@ -33,6 +33,7 @@ Prefer the domain's words over the framework's.
 | **volume trim** | An amount added to the volume of every preset recalled and channel switched to, standing in for Master, which is not on MIDI. | `VolumeTrim` | master (the amp's knob), offset, global volume |
 | **song** | A tempo and a run of the amp's presets, each held for a number of beats, played on the app's clock with the delay time at one repeat a beat. | `Song`, `SongStep`, `SongStore` | setlist (a list of songs), sequence, chain, playlist |
 | **count-in** | The bar of clicks a song plays before its first step, so the band starts on the beat. | `Song.countIn`, `ClickSound` | countdown, pre-roll |
+| **open song** | The one song of an amp model the Song tab shows and plays; the others wait in the song list. | `SongState.song`, `SongList.open` | loaded song, current song |
 | **controller** | The MIDI control change number a control moves on, 0 to 127. | `controller` | CC (fine in a table), parameter number |
 | **MIDI channel** | The 1 to 16 a message is addressed on. Always with the word MIDI, because the amp has channels too. | `MidiChannel` | channel (alone) |
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |

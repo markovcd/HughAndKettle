@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -36,11 +41,13 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.ui.Res
@@ -49,11 +56,15 @@ import io.github.markovcd.hughandkettle.ui.song_add
 import io.github.markovcd.hughandkettle.ui.song_add_what
 import io.github.markovcd.hughandkettle.ui.song_count_in
 import io.github.markovcd.hughandkettle.ui.song_count_in_what
+import io.github.markovcd.hughandkettle.ui.song_create
 import io.github.markovcd.hughandkettle.ui.song_held
+import io.github.markovcd.hughandkettle.ui.song_new_title
 import io.github.markovcd.hughandkettle.ui.song_none
 import io.github.markovcd.hughandkettle.ui.song_none_now
 import io.github.markovcd.hughandkettle.ui.song_off
 import io.github.markovcd.hughandkettle.ui.song_play
+import io.github.markovcd.hughandkettle.ui.song_rename
+import io.github.markovcd.hughandkettle.ui.song_rename_title
 import io.github.markovcd.hughandkettle.ui.song_steps
 import io.github.markovcd.hughandkettle.ui.song_stop
 import io.github.markovcd.hughandkettle.ui.song_summary
@@ -67,7 +78,8 @@ import org.jetbrains.compose.resources.stringResource
  * add on the preset the amp is on, and Play along the foot. Counting in: the clicks left, big. Playing: the
  * beat, big, over the steps read only, and Stop. A song that cannot be read says so on top and can be neither
  * changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
- * switch by `song_count_in` and the clicks left by `song_countdown`.
+ * switch by `song_count_in` and the clicks left by `song_countdown`. The open song's name heads the tab and
+ * opens the list of the amp's songs over it.
  */
 @Composable
 fun SongTab(
@@ -82,53 +94,126 @@ fun SongTab(
     val names = presetNames.names
     val countdown = songs.countdown
     val readable = at != null || countdown != null || songs.editable
-    Column(modifier) {
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(if (at == null) 12.dp else 10.dp),
-        ) {
-            songs.failure?.let { SongAlert(readable, it) }
-            if (countdown != null) {
-                SongCountdown(countdown, song)
-            } else if (at != null) {
-                SongBeatHero(song, at, names)
-                if (song.delayMs != null) SongHeldStrip(song)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    song.steps.forEachIndexed { index, step ->
-                        PlayedStepRow(index + 1, step, names[step.preset], at.step, at.beat)
-                    }
-                }
-            } else {
-                SongTempoCard(songs, readable)
-                CountInRow(song.countIn, songs.editable, songs::countIn)
-                StepsHeader(song)
-                if (song.steps.isEmpty()) {
-                    NoSteps(preset, songs.editable, songs::add)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val playing = at != null || countdown != null
+    val files = rememberToneFiles()
+    var listing by remember { mutableStateOf(false) }
+    var creating by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf<String?>(null) }
+    var deleting by remember { mutableStateOf<KeptSong?>(null) }
+    val export = { name: String -> files.create("${name.ifBlank { "song" }}.song.json") { songs.export(name, it) } }
+    val shown = listing && !playing
+    Box(modifier) {
+        Column(Modifier.fillMaxSize().then(if (shown) Modifier.clearAndSetSemantics {} else Modifier)) {
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(if (at == null) 12.dp else 10.dp),
+            ) {
+                SongHeader(
+                    songs,
+                    playing,
+                    onList = { listing = true },
+                    onRename = { renaming = song.name },
+                    onExport = { export(song.name) },
+                    onDelete = { deleting = songs.songs.firstOrNull { it.name.equals(song.name, ignoreCase = true) } },
+                )
+                songs.failure?.let { SongAlert(readable, it) }
+                if (countdown != null) {
+                    SongCountdown(countdown, song)
+                } else if (at != null) {
+                    SongBeatHero(song, at, names)
+                    if (song.delayMs != null) SongHeldStrip(song)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         song.steps.forEachIndexed { index, step ->
-                            SongStepRow(
-                                index + 1,
-                                step,
-                                names[step.preset],
-                                songs.editable,
-                                last = index == song.steps.lastIndex,
-                                onBeats = { songs.beats(index, it) },
-                                onMove = { songs.move(index, index + it) },
-                                onRemove = { songs.remove(index) },
-                            )
+                            PlayedStepRow(index + 1, step, names[step.preset], at.step, at.beat)
                         }
-                        AddStep(preset ?: 1, songs.editable, songs::add)
+                    }
+                } else {
+                    SongTempoCard(songs, readable)
+                    CountInRow(song.countIn, songs.editable, songs::countIn)
+                    StepsHeader(song)
+                    if (song.steps.isEmpty()) {
+                        NoSteps(preset, songs.editable, songs::add)
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            song.steps.forEachIndexed { index, step ->
+                                SongStepRow(
+                                    index + 1,
+                                    step,
+                                    names[step.preset],
+                                    songs.editable,
+                                    last = index == song.steps.lastIndex,
+                                    onBeats = { songs.beats(index, it) },
+                                    onMove = { songs.move(index, index + it) },
+                                    onRemove = { songs.remove(index) },
+                                )
+                            }
+                            AddStep(preset ?: 1, songs.editable, songs::add)
+                        }
                     }
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            PlayBar(
+                playing = playing,
+                enabled = enabled && readable && song.steps.isNotEmpty(),
+                onPlay = songs::start,
+                onStop = songs::stop,
+            )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        PlayBar(
-            playing = at != null || countdown != null,
-            enabled = enabled && readable && song.steps.isNotEmpty(),
-            onPlay = songs::start,
-            onStop = songs::stop,
+        if (shown) {
+            SongSheet(
+                songs,
+                onClose = {
+                    listing = false
+                    songs.dismiss()
+                },
+                onNew = { creating = true },
+                onImport = { files.open { songs.import(it) } },
+                onRename = { renaming = it },
+                onExport = export,
+                onDelete = { deleting = it },
+            )
+        }
+    }
+    if (creating) {
+        SongNameDialog(
+            title = stringResource(Res.string.song_new_title),
+            done = stringResource(Res.string.song_create),
+            tag = "song_new",
+            doneTag = "song_new_create",
+            initial = "",
+            taken = songs::taken,
+            onDone = {
+                creating = false
+                listing = false
+                songs.create(it)
+            },
+            onCancel = { creating = false },
+        )
+    }
+    renaming?.let { name ->
+        SongNameDialog(
+            title = stringResource(Res.string.song_rename_title),
+            done = stringResource(Res.string.song_rename),
+            tag = "song_rename",
+            doneTag = "song_rename_done",
+            initial = name,
+            taken = songs::taken,
+            onDone = {
+                renaming = null
+                songs.rename(name, it)
+            },
+            onCancel = { renaming = null },
+        )
+    }
+    deleting?.let { kept ->
+        SongDeleteDialog(
+            kept,
+            onDelete = {
+                deleting = null
+                songs.delete(kept.name)
+            },
+            onCancel = { deleting = null },
         )
     }
 }
@@ -412,20 +497,7 @@ private fun SongAlert(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         val ink = colors.error
-        Canvas(Modifier.padding(top = 1.dp).size(22.dp)) {
-            val u = size.width / 24
-            val stroke = Stroke(2.25f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
-            val warning =
-                Path().apply {
-                    moveTo(12 * u, 3 * u)
-                    lineTo(22 * u, 21 * u)
-                    lineTo(2 * u, 21 * u)
-                    close()
-                }
-            drawPath(warning, ink, style = stroke)
-            drawLine(ink, Offset(12 * u, 10 * u), Offset(12 * u, 15 * u), 2.25f * u, StrokeCap.Round)
-            drawLine(ink, Offset(12 * u, 18 * u), Offset(12 * u, 18.5f * u), 2.25f * u, StrokeCap.Round)
-        }
+        WarningMark(ink, 22.dp, Modifier.padding(top = 1.dp))
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 stringResource(if (readable) Res.string.song_unsaved else Res.string.song_unreadable),

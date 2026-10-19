@@ -56,7 +56,7 @@ class SongCommandTest {
         assertEquals(ExitCodes.OK, run("set", "grandmeister_deluxe_40", "120", "5:32", "7:16").code)
         assertEquals(
             listOf(
-                """{"amp":"grandmeister_deluxe_40","tempo":120,"count_in":true,"delay_ms":505}""",
+                """{"amp":"grandmeister_deluxe_40","name":"","tempo":120,"count_in":true,"delay_ms":505}""",
                 """{"step":1,"preset":5,"beats":32}""",
                 """{"step":2,"preset":7,"beats":16}""",
             ),
@@ -68,7 +68,7 @@ class SongCommandTest {
     fun `A song set with no count-in reads back without one`() {
         run("set", "grandmeister_deluxe_40", "120", "5:32", "--no-count-in")
         assertEquals(
-            """{"amp":"grandmeister_deluxe_40","tempo":120,"count_in":false,"delay_ms":505}""",
+            """{"amp":"grandmeister_deluxe_40","name":"","tempo":120,"count_in":false,"delay_ms":505}""",
             run("show", "grandmeister_deluxe_40").out.lines().first(),
         )
     }
@@ -115,6 +115,27 @@ class SongCommandTest {
             ),
             lines,
         )
+    }
+
+    @Test
+    fun `Songs set by name are listed in order, and the one without a name is the one open`() {
+        run("set", "grandmeister_deluxe_40", "120", "5:32", "--name", "Highway Star")
+        run("set", "grandmeister_deluxe_40", "96", "7:16", "7:16", "--name", "Slow blues")
+        run("set", "grandmeister_deluxe_40", "100", "9:8")
+        assertEquals(
+            listOf(
+                """{"name":"Highway Star","open":false,"tempo":120,"steps":1,"ms":16000}""",
+                """{"name":"Slow blues","open":true,"tempo":100,"steps":1,"ms":4800}""",
+            ),
+            run("list", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() },
+        )
+        assertEquals(
+            """{"amp":"grandmeister_deluxe_40","name":"Highway Star","tempo":120,"count_in":true,"delay_ms":505}""",
+            run("show", "grandmeister_deluxe_40", "--name", "highway star").out.lines().first(),
+        )
+        val missing = run("show", "grandmeister_deluxe_40", "--name", "Encore")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, missing.code)
+        assertTrue("no song named 'Encore'" in missing.err, missing.err)
     }
 
     @Test

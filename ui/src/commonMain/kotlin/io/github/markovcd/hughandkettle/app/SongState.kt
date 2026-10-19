@@ -6,7 +6,10 @@ import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.Song
+import io.github.markovcd.hughandkettle.amp.SongFile
+import io.github.markovcd.hughandkettle.amp.SongList
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TapTempo
@@ -17,15 +20,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 
 /**
- * The song of the panel's amp: its tempo and steps, edited and kept on the phone, and played from a tap. A bar
- * of [click]s counts it in, unless its count-in is off. While it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the tempo
- * lock holds that time across the recalls. A song that cannot be read plays nothing, says why in [failure],
- * and is left as it is.
+ * The songs of the panel's amp, kept on the phone in the person's order, and the one open: its tempo and steps,
+ * edited and kept as they change, and played from a tap. A bar of [click]s counts it in, unless its count-in is
+ * off. While it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the
+ * tempo lock holds that time across the recalls; no other song can be opened. An amp with no songs opens on an
+ * untitled one, kept once it has a step or a name. A song that cannot be read plays nothing, says why in
+ * [failure], and is left as it is. The folder is read and written off the main thread, one change at a time.
  */
 class SongState(
     private val store: SongStore,
@@ -34,16 +45,23 @@ class SongState(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val click: () -> Unit = {},
 ) {
-    private var all by mutableStateOf(emptyMap<AmpModel, Song>())
-    private var unreadable by mutableStateOf(emptySet<AmpModel>())
+    private var lists by mutableStateOf(emptyMap<AmpModel, SongList>())
+    private var opened by mutableStateOf(emptyMap<AmpModel, String>())
+
+    /** The untitled song of an amp whose open song is not kept yet. */
+    private var drafts by mutableStateOf(emptyMap<AmpModel, Song>())
+    private var notices by mutableStateOf(emptyMap<AmpModel, SongNotice>())
     private var playing by mutableStateOf<Job?>(null)
     private var taps = TapTempo()
+    private val writes = Mutex()
 
     /** Whether the song turned the tempo lock on, so it turns it off again when it ends. */
     private var locking = false
 
-    var failure by mutableStateOf<String?>(null)
-        private set
+    private var unsaved by mutableStateOf<String?>(null)
+
+    /** Why the open song cannot be read, or why a change could not be saved. */
+    val failure: String? get() = openKept()?.problem ?: unsaved
 
     /** The clicks of the count-in still to come, this one among them, or null while not counting in. */
     var countdown by mutableStateOf<Int?>(null)
@@ -54,23 +72,149 @@ class SongState(
         private set
 
     init {
-        AmpModels.all.forEach { amp ->
-            scope.launch {
-                val read = withContext(io) { store.song(amp) }
-                read.onFailure {
-                    failure = it.message
-                    unreadable = unreadable + amp
-                }
-                all = all + (amp to read.getOrElse { Song(amp) })
+        AmpModels.all.forEach { amp -> scope.launch { writes.withLock { refresh(amp) } } }
+    }
+
+    /** The open song of the panel's amp. */
+    val song: Song
+        get() {
+            val kept = openKept()
+            return kept?.song ?: kept?.let { Song(panel.amp, name = it.name) } ?: drafts[panel.amp] ?: Song(panel.amp)
+        }
+
+    /** The songs kept for the panel's amp, in their order. */
+    val songs: List<KeptSong> get() = lists[panel.amp]?.songs.orEmpty()
+
+    /** Whether the open song is kept, rather than an untitled one not kept yet. */
+    val kept: Boolean get() = openKept() != null
+
+    /** What the song list has to tell: a song carried over, an import set apart or refused, a change refused. */
+    val notice: SongNotice? get() = notices[panel.amp]
+
+    /** Whether the song can be changed: not while it counts in or plays, nor when its file could not be read. */
+    val editable: Boolean get() = playing == null && openKept().let { it == null || it.song != null }
+
+    /** Whether another song can be opened: not while one counts in or plays. */
+    val choosable: Boolean get() = playing == null
+
+    /** Whether a song of the panel's amp is already called [name], regardless of case. */
+    fun taken(name: String): Boolean = lists[panel.amp]?.find(name.trim()) != null
+
+    fun open(name: String) {
+        val amp = panel.amp
+        val kept = lists[amp]?.find(name)
+        if (!choosable || kept?.song == null) return
+        opened = opened + (amp to kept.name)
+        drafts = drafts - amp
+        taps = TapTempo()
+        queue { store.open(amp, kept.name) }
+    }
+
+    /** Makes and opens a song called [name], at the starting tempo with the count-in on and no steps. */
+    fun create(name: String) {
+        val amp = panel.amp
+        val trimmed = name.trim()
+        if (!choosable || trimmed.isEmpty() || taken(trimmed)) return
+        val song = Song(amp, name = trimmed)
+        keep(song, replacing = null)
+        drafts = drafts - amp
+        queue { store.save(song).mapCatching { store.open(amp, trimmed).getOrThrow() } }
+    }
+
+    /** Renames the song [name]; the untitled song, not kept yet, is kept under its new name. */
+    fun rename(
+        name: String,
+        to: String,
+    ) {
+        val trimmed = to.trim()
+        if (trimmed.isEmpty() || !choosable) return
+        if (!kept && name == song.name) return change { it.copy(name = trimmed) }
+        val amp = panel.amp
+        val open = name.equals(song.name, ignoreCase = true)
+        listed(amp) { store.rename(amp, name, trimmed).mapCatching { if (open) store.open(amp, trimmed).getOrThrow() } }
+    }
+
+    /** Keeps a copy of the song [name] right after it, named apart from the rest. */
+    fun duplicate(name: String) {
+        val amp = panel.amp
+        val list = lists[amp] ?: return
+        val song = list.find(name)?.song ?: return
+        val copy = song.copy(name = list.apart(song.name.ifBlank { UNTITLED_COPY }))
+        val position = list.songs.indexOfFirst { it.name == song.name } + 2
+        listed(amp) { store.save(copy).mapCatching { store.move(amp, copy.name, position).getOrThrow() } }
+    }
+
+    fun delete(name: String) {
+        val amp = panel.amp
+        if (!choosable) return
+        listed(amp) { store.delete(amp, name) }
+    }
+
+    /** Moves the song [name] [by] places, up for negative; past either end it stays where it is. */
+    fun move(
+        name: String,
+        by: Int,
+    ) {
+        val amp = panel.amp
+        val list = lists[amp] ?: return
+        val position = list.songs.indexOfFirst { it.name.equals(name, ignoreCase = true) } + 1 + by
+        if (position in 1..list.songs.size) listed(amp) { store.move(amp, name, position) }
+    }
+
+    /** Writes the song [name] in the song file format to what [open] opens. */
+    fun export(
+        name: String,
+        open: () -> OutputStream?,
+    ) {
+        val amp = panel.amp
+        val song = lists[amp]?.find(name)?.song ?: return
+        listed(amp) {
+            try {
+                val stream = open() ?: return@listed Result.failure(IOException("nowhere to write"))
+                stream.use { it.write(SongFile.write(song).toByteArray()) }
+                Result.success(Unit)
+            } catch (e: IOException) {
+                Result.failure(e)
             }
         }
     }
 
-    /** The song of the panel's amp. */
-    val song: Song get() = all[panel.amp] ?: Song(panel.amp)
+    /**
+     * Reads a song file from what [open] opens and keeps its song at the end of the list, named apart from
+     * the rest. A song for another amp model is refused whole.
+     */
+    fun import(open: () -> InputStream?) {
+        val amp = panel.amp
+        listed(amp) {
+            val text =
+                try {
+                    val stream = open() ?: return@listed Result.failure(IOException("nothing to read"))
+                    stream.use(::capped)?.decodeToString()
+                } catch (e: IOException) {
+                    return@listed Result.failure(e)
+                } ?: return@listed Result.failure(IOException("larger than a song file can be"))
+            val other = SongFile.ampOf(text)
+            if (other != null && other != amp.id) {
+                return@listed Result.success(SongNotice.OtherAmp(AmpModels.byId(other)?.name ?: other))
+            }
+            val song = SongFile.read(text).getOrElse { return@listed Result.failure(it) }
+            val list = store.list(amp).getOrElse { return@listed Result.failure(it) }
+            val name = list.apart(song.name.ifBlank { SongStore.CARRIED })
+            store.save(song.copy(name = name)).map {
+                if (name != song.name &&
+                    song.name.isNotBlank()
+                ) {
+                    SongNotice.ImportedAs(song.name, name)
+                } else {
+                    null
+                }
+            }
+        }
+    }
 
-    /** Whether the song can be changed: not while it counts in or plays, nor when its file could not be read. */
-    val editable: Boolean get() = playing == null && panel.amp !in unreadable
+    fun dismiss() {
+        notices = notices - panel.amp
+    }
 
     fun tempo(bpm: Int) = change { it.copy(tempo = bpm.coerceIn(Song.TEMPOS)) }
 
@@ -167,13 +311,107 @@ class SongState(
 
     private fun change(how: (Song) -> Song) {
         if (!editable) return
+        val amp = panel.amp
         val after = how(song)
-        all = all + (after.amp to after)
-        scope.launch { withContext(io) { store.save(after) }.onFailure { failure = it.message } }
+        if (!kept && after.steps.isEmpty() && after.name.isBlank()) {
+            drafts = drafts + (amp to after)
+            return
+        }
+        val first = !kept
+        keep(after, replacing = if (first) null else song.name)
+        drafts = drafts - amp
+        queue {
+            store.save(after, replace = true).mapCatching { if (first) store.open(amp, after.name).getOrThrow() }
+        }
+    }
+
+    /** Shows [song] as the open song of its amp, in place of the kept song named [replacing], else at the end. */
+    private fun keep(
+        song: Song,
+        replacing: String?,
+    ) {
+        val list = lists[song.amp] ?: SongList(emptyList())
+        val at = replacing?.let { name -> list.songs.indexOfFirst { it.name.equals(name, ignoreCase = true) } } ?: -1
+        val entry = KeptSong(song.name, song, null)
+        val songs = if (at < 0) list.songs + entry else list.songs.toMutableList().apply { this[at] = entry }
+        lists = lists + (song.amp to list.copy(songs = songs))
+        opened = opened + (song.amp to song.name)
+    }
+
+    private fun openKept(): KeptSong? = opened[panel.amp]?.let { lists[panel.amp]?.find(it) }
+
+    /** Runs [action] off the main thread after the changes before it, and says why when it fails. */
+    private fun queue(action: () -> Result<Any?>) {
+        scope.launch {
+            writes.withLock {
+                withContext(io) { action() }
+                    .onSuccess { unsaved = null }
+                    .onFailure { unsaved = it.message }
+            }
+        }
+    }
+
+    /** Runs [action] as [queue] does, then reads the list of [amp] afresh and tells what came of it. */
+    private fun listed(
+        amp: AmpModel,
+        action: () -> Result<Any?>,
+    ) {
+        scope.launch {
+            writes.withLock {
+                val result = withContext(io) { action() }
+                result
+                    .onSuccess {
+                        notices =
+                            (it as? SongNotice)?.let { notice -> notices + (amp to notice) } ?: (notices - amp)
+                    }.onFailure {
+                        notices = notices + (
+                            amp to
+                                SongNotice.Failed(
+                                    it.message ?: "${it::class.simpleName}",
+                                )
+                        )
+                    }
+                refresh(amp)
+            }
+        }
+    }
+
+    /** Reads the songs of [amp] and opens the one marked open, else the first that can be read. */
+    private suspend fun refresh(amp: AmpModel) {
+        val read = withContext(io) { store.list(amp) }
+        val list =
+            read.getOrElse {
+                unsaved = it.message
+                return
+            }
+        lists = lists + (amp to list)
+        val open =
+            list.open ?: opened[amp]?.takeIf { list.find(it) != null }
+                ?: list.songs.firstOrNull { it.song != null }?.name
+        opened = if (open != null) opened + (amp to open) else opened - amp
+        list.carried?.let { notices = notices + (amp to SongNotice.Carried(it)) }
     }
 
     companion object {
         /** The beats a step is added with: four bars of four, a short part, lengthened from there. */
         const val NEW_STEP_BEATS = 16
+
+        /** The name a copy of an untitled song is set apart from. */
+        private const val UNTITLED_COPY = "Untitled song"
+
+        // A song file is well under a kilobyte; anything past this is not one.
+        private const val MAX_FILE_BYTES = 64 * 1024
+
+        /** The bytes of [stream], or null when it runs past [MAX_FILE_BYTES]. */
+        private fun capped(stream: InputStream): ByteArray? {
+            val bytes = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = stream.read(buffer)
+                if (read < 0) return bytes.toByteArray()
+                bytes.write(buffer, 0, read)
+                if (bytes.size() > MAX_FILE_BYTES) return null
+            }
+        }
     }
 }

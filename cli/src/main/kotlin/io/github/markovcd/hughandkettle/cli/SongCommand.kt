@@ -2,6 +2,7 @@ package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
@@ -15,18 +16,20 @@ import kotlin.io.path.Path
 import kotlin.time.TimeSource
 
 /**
- * The song of each amp model, the way the app keeps it, in a folder, `--dir` or `~/.hk/songs`: a tempo and
- * a run of presets, each held for its beats. `play` counts in a bar, unless the song was set with
- * `--no-count-in`, then recalls each preset on its beat with the delay time at one repeat a beat, and holds
- * that time across the recalls, as the tempo lock does.
+ * The songs of each amp model, the way the app keeps them, in a folder, `--dir` or `~/.hk/songs`: a tempo and
+ * a run of presets, each held for its beats. `show`, `set` and `play` work on the song `--name` names, else
+ * the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then recalls
+ * each preset on its beat with the delay time at one repeat a beat, and holds that time across the recalls,
+ * as the tempo lock does.
  */
 public object SongCommand : Command {
     override val name: String = "song"
     override val usage: String =
         """
-        hk song show <amp-id> [--dir D]
-        hk song set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in] [--dir D]
-        hk song play <host[:port]> <amp-id> [--dir D]
+        hk song list <amp-id> [--dir D]
+        hk song show <amp-id> [--name N] [--dir D]
+        hk song set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in] [--name N] [--dir D]
+        hk song play <host[:port]> <amp-id> [--name N] [--dir D]
         """.trimIndent()
 
     override fun run(
@@ -39,7 +42,7 @@ public object SongCommand : Command {
         val ampAt = if (verb == "play") 1 else 0
         val enough =
             when (verb) {
-                "show" -> rest.size == 1
+                "list", "show" -> rest.size == 1
                 "set" -> rest.size >= 2
                 "play" -> rest.size == 2
                 else -> false
@@ -54,24 +57,48 @@ public object SongCommand : Command {
                 return ExitCodes.BAD_ARGUMENTS
             }
         val store = SongStore(args.value("dir")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "songs"))
-        if (verb == "set") {
-            val song =
-                parse(amp, rest.drop(1), countIn = !args.flag("no-count-in")).getOrElse {
-                    err.println(it.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
-            store.save(song).onFailure {
-                err.println(it.message)
-                return if (it is IOException) ExitCodes.BAD_FILE else ExitCodes.BAD_ARGUMENTS
-            }
-            print(song, out)
-            return ExitCodes.OK
-        }
-        val song =
-            store.song(amp).getOrElse {
+        val list =
+            store.list(amp).getOrElse {
                 err.println(it.message)
                 return ExitCodes.BAD_FILE
             }
+        if (verb == "list") {
+            list.songs.forEach { print(it, it.name.equals(list.open, ignoreCase = true), out) }
+            return ExitCodes.OK
+        }
+        val named = args.value("name")
+        val kept =
+            if (named != null) {
+                list.find(named)
+            } else {
+                list.open?.let(list::find) ?: list.songs.firstOrNull { it.song != null }
+            }
+        if (verb == "set") {
+            val song =
+                parse(amp, rest.drop(1), countIn = !args.flag("no-count-in"))
+                    .getOrElse {
+                        err.println(it.message)
+                        return ExitCodes.BAD_ARGUMENTS
+                    }.copy(name = kept?.name ?: named?.trim() ?: "")
+            store
+                .save(song, replace = true)
+                .mapCatching { if (kept == null) store.open(amp, song.name).getOrThrow() }
+                .onFailure {
+                    err.println(it.message)
+                    return if (it is IOException) ExitCodes.BAD_FILE else ExitCodes.BAD_ARGUMENTS
+                }
+            print(song, out)
+            return ExitCodes.OK
+        }
+        if (named != null && kept == null) {
+            err.println("${amp.id} has no song named '$named'; hk song list names them")
+            return ExitCodes.BAD_ARGUMENTS
+        }
+        kept?.problem?.let {
+            err.println(it)
+            return ExitCodes.BAD_FILE
+        }
+        val song = kept?.song ?: Song(amp)
         if (verb == "show") {
             print(song, out)
             return ExitCodes.OK
@@ -125,6 +152,7 @@ public object SongCommand : Command {
         out.println(
             Json.line(
                 "amp" to song.amp.id,
+                "name" to song.name,
                 "tempo" to song.tempo,
                 "count_in" to song.countIn,
                 "delay_ms" to song.delayMs,
@@ -132,6 +160,28 @@ public object SongCommand : Command {
         )
         song.steps.forEachIndexed { index, step ->
             out.println(Json.line("step" to index + 1, "preset" to step.preset, "beats" to step.beats))
+        }
+    }
+
+    /** One line of the list: the song's name, whether it is open, and its tempo and length, or why it cannot be read. */
+    private fun print(
+        kept: KeptSong,
+        open: Boolean,
+        out: PrintWriter,
+    ) {
+        val song = kept.song
+        if (song == null) {
+            out.println(Json.line("name" to kept.name, "open" to open, "problem" to kept.problem))
+        } else {
+            out.println(
+                Json.line(
+                    "name" to kept.name,
+                    "open" to open,
+                    "tempo" to song.tempo,
+                    "steps" to song.steps.size,
+                    "ms" to song.length.inWholeMilliseconds,
+                ),
+            )
         }
     }
 

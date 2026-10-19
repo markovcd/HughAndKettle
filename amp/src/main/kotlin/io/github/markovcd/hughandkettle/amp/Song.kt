@@ -8,13 +8,15 @@ import kotlin.time.Duration.Companion.minutes
 /**
  * A run of the amp's presets at one [tempo], in beats per minute: each [step] recalls its preset and holds
  * it for its beats, and the delay time is set to one repeat a beat. With [countIn], a bar of clicks comes
- * first. The clock is the caller's; a song only says what plays when.
+ * first. A song kept on the phone has a [name], unique for its amp; a blank one is untitled. The clock is
+ * the caller's; a song only says what plays when.
  */
 public data class Song(
     val amp: AmpModel,
     val tempo: Int = DEFAULT_TEMPO,
     val steps: List<SongStep> = emptyList(),
     val countIn: Boolean = true,
+    val name: String = "",
 ) {
     init {
         require(tempo in TEMPOS) { "a tempo is ${TEMPOS.first}..${TEMPOS.last} BPM, got $tempo" }

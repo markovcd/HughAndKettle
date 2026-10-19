@@ -1,6 +1,8 @@
 package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
@@ -67,5 +69,50 @@ class SongTabTest {
             assertEquals(listOf(16, 20), beats())
             onNodeWithTag("song_move_down:1").performClick()
             assertEquals(listOf(20, 16), beats())
+        }
+
+    @Test
+    fun `The song list opens from the song's name, and a song tapped in it opens and closes the list`() =
+        runComposeUiTest {
+            songs.create("Highway Star")
+            songs.create("Slow blues")
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            onNodeWithTag("song_list").performClick()
+            onNodeWithTag("song_open:Slow blues").assertIsSelected()
+            onNodeWithTag("song_open:Highway Star").performClick()
+            assertEquals("Highway Star", songs.song.name)
+            onNodeWithTag("song_list_rows").assertDoesNotExist()
+        }
+
+    @Test
+    fun `A new song is named in its dialog, which refuses a name another song has`() =
+        runComposeUiTest {
+            songs.create("Encore")
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            onNodeWithTag("song_list").performClick()
+            onNodeWithTag("song_new").performClick()
+            onNodeWithTag("song_name").performTextReplacement("encore")
+            onNodeWithTag("song_new_create").assertIsNotEnabled()
+            onNodeWithTag("song_name").performTextReplacement("Set opener")
+            onNodeWithTag("song_new_create").performClick()
+            assertEquals("Set opener", songs.song.name)
+            assertEquals(listOf("Encore", "Set opener"), songs.songs.map { it.name })
+        }
+
+    @Test
+    fun `A song is deleted from its menu in the list once the delete is confirmed`() =
+        runComposeUiTest {
+            songs.create("Encore")
+            songs.create("Set opener")
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            onNodeWithTag("song_list").performClick()
+            onNodeWithTag("song_menu:Encore").performClick()
+            onNodeWithTag("song_delete:Encore").performClick()
+            onNodeWithTag("song_delete_cancel").performClick()
+            assertEquals(2, songs.songs.size)
+            onNodeWithTag("song_menu:Encore").performClick()
+            onNodeWithTag("song_delete:Encore").performClick()
+            onNodeWithTag("song_delete_confirm").performClick()
+            assertEquals(listOf("Set opener"), songs.songs.map { it.name })
         }
 }

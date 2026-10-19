@@ -2,6 +2,7 @@ package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.Song
+import io.github.markovcd.hughandkettle.amp.SongFile
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.midi.ControlChange
@@ -16,13 +17,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteRecursively
+import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -77,14 +82,88 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Opened::class, next()::class)
     }
 
+    private fun kept() = store.list(amp).getOrThrow().songs
+
     @Test
     fun `A song edited on the phone is kept for its amp`() {
         songs.tempo(96)
         songs.add()
         songs.beats(0, 32)
-        until("saved") { store.song(amp).getOrNull() == Song(amp, 96, listOf(SongStep(1, 32))) }
+        until("saved") { kept().singleOrNull()?.song == Song(amp, 96, listOf(SongStep(1, 32))) }
         songs.remove(0)
-        until("step removed") { store.song(amp).getOrNull() == Song(amp, 96) }
+        until("step removed") { kept().singleOrNull()?.song == Song(amp, 96) }
+    }
+
+    @Test
+    fun `An untitled song is kept only once it has a step or a name`() {
+        songs.tempo(96)
+        assertEquals(emptyList(), kept())
+        assertEquals(96, songs.song.tempo)
+        songs.rename("", "Set opener")
+        until("kept by its name") { kept().map { it.name } == listOf("Set opener") }
+        assertEquals("Set opener", songs.song.name)
+        assertEquals("Set opener", store.list(amp).getOrThrow().open)
+    }
+
+    @Test
+    fun `A new song opens empty, and the song before is there to open again`() {
+        songs.add()
+        songs.create("Encore")
+        assertEquals(Song(amp, name = "Encore"), songs.song)
+        assertEquals(true, songs.taken("encore"))
+        songs.open("")
+        assertEquals(1, songs.song.steps.size)
+        until("open kept") { store.list(amp).getOrThrow().open == "" }
+    }
+
+    @Test
+    fun `Songs are renamed, duplicated, moved and deleted, and the open one deleted gives way to the first left`() {
+        songs.create("A")
+        songs.add()
+        songs.create("B")
+        songs.rename("B", "Bee")
+        assertEquals("Bee", songs.song.name)
+        songs.duplicate("A")
+        songs.move("Bee", -2)
+        assertEquals(listOf("Bee", "A", "A 2"), songs.songs.map { it.name })
+        songs.delete("Bee")
+        assertEquals(listOf("A", "A 2"), songs.songs.map { it.name })
+        assertEquals("A", songs.song.name)
+        assertEquals(
+            1,
+            songs.songs[1]
+                .song
+                ?.steps
+                ?.size,
+        )
+    }
+
+    @Test
+    fun `A song exported imports back named apart, and one for another amp is refused whole`() {
+        songs.create("Encore")
+        songs.add()
+        val file = ByteArrayOutputStream()
+        songs.export("Encore") { file }
+        songs.import { ByteArrayInputStream(file.toByteArray()) }
+        assertEquals(listOf("Encore", "Encore 2"), songs.songs.map { it.name })
+        assertEquals(SongNotice.ImportedAs("Encore", "Encore 2"), songs.notice)
+        val other = SongFile.write(Song(AmpModels.grandMeister36, name = "Solo"))
+        songs.import { ByteArrayInputStream(other.toByteArray()) }
+        assertEquals(SongNotice.OtherAmp(AmpModels.grandMeister36.name), songs.notice)
+        assertEquals(2, songs.songs.size)
+    }
+
+    @Test
+    fun `The single song an older version kept opens as Song 1 and says so`() {
+        val older = SongStore(folder.resolve("old"))
+        folder.resolve("old").createDirectories()
+        folder.resolve("old/${amp.id}.json").writeText(
+            """{ "version": 1, "amp": "${amp.id}", "tempo": 140, "steps": [ { "preset": 2, "beats": 8 } ] }""",
+        )
+        val carried = SongState(older, panel, scope, Dispatchers.Unconfined)
+        until("carried over") { carried.song.name == "Song 1" }
+        assertEquals(Song(amp, 140, listOf(SongStep(2, 8)), name = "Song 1"), carried.song)
+        assertEquals(SongNotice.Carried("Song 1"), carried.notice)
     }
 
     @Test
@@ -162,7 +241,7 @@ class SongStateTest {
     }
 
     @Test
-    fun `A song stopped part way lets go of the time it held, and cannot be changed while it plays`() {
+    fun `A song stopped part way lets go of the time it held, and no song is changed or opened while it plays`() {
         songs.tempo(60)
         songs.add()
         connected()
@@ -171,6 +250,8 @@ class SongStateTest {
         next()
         songs.tempo(100)
         assertEquals(60, songs.song.tempo)
+        songs.create("Other")
+        assertEquals("", songs.song.name)
         songs.stop()
         assertNull(songs.position)
         assertNull(panel.lock)
