@@ -48,9 +48,8 @@ fun AmpPanel(
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
 ) {
-    // With no link there is nothing to turn; the controls dim to 38% and the link card keeps full contrast.
     val enabled = panel.linked
-    val dim = Modifier.alpha(if (enabled) 1f else DIMMED)
+    val dim = Modifier.dimmedUnless(enabled)
     var picked by rememberSaveable { mutableStateOf(PanelTab.Amp) }
     if (panel.asking) AmpQuestion(panel)
     BoxWithConstraints {
@@ -58,18 +57,7 @@ fun AmpPanel(
         val tabs = if (wide) listOf(PanelTab.Amp, PanelTab.Song, PanelTab.Tones) else PanelTab.entries
         val tab = if (picked in tabs) picked else PanelTab.Amp
         val body: @Composable ColumnScope.() -> Unit = {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    PresetRow(panel, presetNames, enabled, Modifier.widthIn(max = PRESET_WIDTH).then(dim))
-                }
-                LinkButton(panel, discovery)
-                panel.amp.controls.filter { it.section == Section.Header }.forEach {
-                    HeaderSwitch(it, panel, enabled, dim)
-                }
-                SettingsMenu(panel, theme, onTheme)
-            }
-            SwitchingStrip(panel, enabled, dim)
-            if (panel.idle) LinkCard(panel, discovery, Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+            PanelTop(panel, discovery, presetNames) { SettingsMenu(panel, theme, onTheme) }
             val content = Modifier.weight(1f).fillMaxWidth()
             when {
                 tab == PanelTab.Tones -> {
@@ -132,8 +120,5 @@ fun AmpPanel(
     }
 }
 
-private const val DIMMED = 0.38f
-
 // Material's expanded width: a phone or a tablet in landscape, or an unfolded phone.
 private val TWO_PANES_FROM = 840.dp
-private val PRESET_WIDTH = 280.dp
