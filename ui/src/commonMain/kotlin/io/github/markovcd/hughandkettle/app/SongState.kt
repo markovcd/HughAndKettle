@@ -36,7 +36,7 @@ class SongState(
 ) {
     private var all by mutableStateOf(emptyMap<AmpModel, Song>())
     private var unreadable by mutableStateOf(emptySet<AmpModel>())
-    private var playing: Job? = null
+    private var playing by mutableStateOf<Job?>(null)
     private var taps = TapTempo()
 
     /** Whether the song turned the tempo lock on, so it turns it off again when it ends. */
@@ -70,7 +70,7 @@ class SongState(
     val song: Song get() = all[panel.amp] ?: Song(panel.amp)
 
     /** Whether the song can be changed: not while it counts in or plays, nor when its file could not be read. */
-    val editable: Boolean get() = position == null && countdown == null && panel.amp !in unreadable
+    val editable: Boolean get() = playing == null && panel.amp !in unreadable
 
     fun tempo(bpm: Int) = change { it.copy(tempo = bpm.coerceIn(Song.TEMPOS)) }
 
