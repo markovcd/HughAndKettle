@@ -270,17 +270,28 @@ class PanelState(
      * Recalls [preset], counted from 1 as the amp shows it. Under a trim the recall goes behind the amp's mute,
      * unless it is muted already, so the preset's own volume never sounds.
      */
-    fun recall(preset: Int) {
-        val recall = amp.recall(preset)
+    fun recall(preset: Int) = recall(amp.recall(preset), emptyList())
+
+    /** Sends a step of a song: its preset recalled as [recall] recalls one, then the rest of [messages]. */
+    fun cue(messages: List<MidiMessage>) {
+        val preset = messages.filterIsInstance<ProgramChange>().firstOrNull() ?: return send(messages)
+        recall(preset, messages - preset)
+    }
+
+    private fun recall(
+        recall: ProgramChange,
+        then: List<MidiMessage>,
+    ) {
         val held = trim
         val mute = amp.control("mute")
         if (held == null || held.trim == 0 || mute == null || state.values[mute.id]?.let(mute::isOn) == true) {
-            send(recall)
+            send(listOf(recall) + then)
             return
         }
         val (next, messages) = held.recall(recall, mute)
-        trim = next
-        transmit(messages)
+        trim = then.fold(next) { trimmed, message -> trimmed.sent(message) }
+        // One transmit, so the recall and what follows it reach the amp in order.
+        transmit(messages + then)
         scope.launch {
             delay(VolumeTrim.muteLimit)
             val (unmuted, lift) = trim?.takeIf { it.muting != null }?.unmuted() ?: return@launch
@@ -288,9 +299,6 @@ class PanelState(
             lift?.let { transmit(listOf(it)) }
         }
     }
-
-    /** Sends [messages] as they are: a step of a song. */
-    fun cue(messages: List<MidiMessage>) = send(messages)
 
     /** Sends every value [tone] holds, in order, so a channel switch lands before the knobs it carries. */
     fun recall(tone: Tone) {

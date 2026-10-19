@@ -148,6 +148,20 @@ class SongStateTest {
     }
 
     @Test
+    fun `A song step under a trim recalls its preset behind the mute, as a tapped recall does`() {
+        val mute = amp.control("mute")!!
+        connected()
+        panel.trim(-20)
+        songs.tempo(400)
+        songs.countIn(false)
+        songs.add()
+        songs.start()
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 127)), next())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        songs.stop()
+    }
+
+    @Test
     fun `A song stopped part way lets go of the time it held, and cannot be changed while it plays`() {
         songs.tempo(60)
         songs.add()
