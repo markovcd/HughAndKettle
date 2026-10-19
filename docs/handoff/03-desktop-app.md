@@ -99,6 +99,14 @@ Amp, FX and Tones side by side in a resizable window, without tabs. Mouse wheel 
 right-click menus, a menu bar in place of the ⋮ menu, keyboard shortcuts (step through tones, tap
 tempo). The phone layouts stay as they are. The user may want to design this in Claude Design first.
 
+**Done when** the window has all of that and the phone's layouts are unchanged. Done, built from this
+plan without a canvas: four panes (Amp, FX, Song, Tones; the song came after this plan) under the
+shared `PanelTop`; the wheel turns a knob a step a notch, on the phone too; hints on knobs, tap tempo and
+the tempo lock (`LocalHints`); a right-click on a tone opens its menu; a menu bar of Link, Amp, Tones,
+Song and Theme, whose items are `DesktopCommands`: Ctrl+Up and Ctrl+Down step through the tones
+(`ToneShelf.step`), Ctrl+T taps the tempo, Ctrl+P plays or stops the song. The window opens at
+1440 × 900 and goes no smaller than 1200 × 720.
+
 ## Step 6: packaging and release
 
 - Linux: a `.deb` and a portable folder with a bundled runtime, built in the gate container.

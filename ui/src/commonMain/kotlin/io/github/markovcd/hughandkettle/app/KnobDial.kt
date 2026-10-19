@@ -30,6 +30,19 @@ internal object KnobDial {
         return (startValue + steps).coerceIn(0, MAX)
     }
 
+    /**
+     * The value after the mouse wheel turns [notches] toward the user; away turns up, a step a notch.
+     * A touchpad reports parts of a notch, and any part moves a whole step.
+     */
+    fun valueAfterWheel(
+        value: Int,
+        notches: Float,
+    ): Int {
+        if (notches == 0f) return value
+        val steps = notches.roundToInt().takeIf { it != 0 } ?: if (notches > 0) 1 else -1
+        return (value - steps).coerceIn(0, MAX)
+    }
+
     /** Whether moving from [from] to [to] arrives at or passes a tick value. */
     fun reachesTick(
         from: Int,

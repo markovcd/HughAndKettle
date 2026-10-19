@@ -102,8 +102,31 @@ class ToneShelf(
         stopping = true
     }
 
+    /** The name of the tone last recalled from the shelf, which stepping moves on from. */
+    var recalled by mutableStateOf<String?>(null)
+        private set
+
     fun recall(tone: Tone) {
-        if (fits(tone)) panel.recall(tone)
+        if (!fits(tone)) return
+        panel.recall(tone)
+        recalled = tone.name
+    }
+
+    /**
+     * Recalls the tone for the amp [by] places on from the one last recalled, down the shelf for positive,
+     * and returns it. From none, it starts at the first or the last; past either end it stays on the end one.
+     */
+    fun step(by: Int): Tone? {
+        val fitting = tones.filter(::fits)
+        if (fitting.isEmpty()) return null
+        val at = fitting.indexOfFirst { it.name == recalled }
+        val next =
+            when {
+                at >= 0 -> at + by
+                by > 0 -> by - 1
+                else -> fitting.size + by
+            }.coerceIn(fitting.indices)
+        return fitting[next].also(::recall)
     }
 
     fun rename(

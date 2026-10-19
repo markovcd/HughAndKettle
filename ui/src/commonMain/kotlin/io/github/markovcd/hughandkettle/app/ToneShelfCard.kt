@@ -55,8 +55,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The tones on the phone: save the panel as one, read the amp's presets into them, tap one to recall
- * it, and a menu per tone to move, rename, export or delete it. Tests find the parts by `tone_save`,
- * `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tone:<name>`, `tone_menu:<name>`
+ * it, and a menu per tone, behind its dots or a right-click, to move, rename, export or delete it.
+ * Tests find the parts by `tone_save`, `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tone:<name>`, `tone_menu:<name>`
  * and the menu's `tone_delete` and kin, and the dialog's field by `tone_name`.
  */
 @Composable
@@ -200,7 +200,7 @@ private fun ToneRow(
     var menu by remember { mutableStateOf(false) }
     val recallable = enabled && shelf.fits(tone)
     val colors = MaterialTheme.colorScheme
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.onSecondaryClick { menu = true }, verticalAlignment = Alignment.CenterVertically) {
         Column(
             Modifier
                 .weight(1f)

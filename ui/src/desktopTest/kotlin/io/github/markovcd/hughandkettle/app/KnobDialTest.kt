@@ -47,4 +47,19 @@ class KnobDialTest {
         assertFalse(KnobDial.reachesTick(10, 20))
         assertFalse(KnobDial.reachesTick(64, 64))
     }
+
+    @Test
+    fun `A wheel notch away turns the knob up one step, and toward turns it down`() {
+        assertEquals(51, KnobDial.valueAfterWheel(50, notches = -1f))
+        assertEquals(49, KnobDial.valueAfterWheel(50, notches = 1f))
+        assertEquals(47, KnobDial.valueAfterWheel(50, notches = 3f))
+    }
+
+    @Test
+    fun `A touchpad's part of a notch still moves one step, and the wheel stops at the ends`() {
+        assertEquals(51, KnobDial.valueAfterWheel(50, notches = -0.1f))
+        assertEquals(50, KnobDial.valueAfterWheel(50, notches = 0f))
+        assertEquals(127, KnobDial.valueAfterWheel(127, notches = -1f))
+        assertEquals(0, KnobDial.valueAfterWheel(0, notches = 1f))
+    }
 }

@@ -45,6 +45,8 @@
     <string name="tone_delete_confirm">Delete the tone “%1$s”?</string>
     <string name="tone_move_up">Move up</string>
     <string name="tone_move_down">Move down</string>
+    <string name="tone_next">Next tone</string>
+    <string name="tone_previous">Previous tone</string>
     <string name="tone_imported">Imported “%1$s”</string>
     <string name="tone_imported_skipped">Imported “%1$s”, leaving out: %2$s</string>
     <string name="tone_imported_presets">Presets imported as tones: %1$d</string>
@@ -64,7 +66,11 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
     <string name="theme_system">As the phone</string>
+    <string name="theme_system_desktop">As the system</string>
     <string name="tap">Tap tempo</string>
+    <string name="hint_knob">Drag or scroll to turn. Hold still before dragging for fine steps; arrow keys step once.</string>
+    <string name="hint_tap">Tap on the beat, or press Ctrl+T, to set the time from it</string>
+    <string name="hint_lock">Keeps this time when a preset or tone is recalled</string>
     <string name="tempo_lock">Tempo lock</string>
     <string name="tempo_held">Held</string>
     <string name="bpm">BPM</string>

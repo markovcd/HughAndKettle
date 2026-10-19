@@ -13,6 +13,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.hint_knob
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * A knob with its name above and its value below, in a 150 dp cell: in the amp's unit where the manual
@@ -33,7 +36,9 @@ internal fun KnobCell(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(control.name, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 2)
-        Knob(value = value, onValue = onValue, description = control.name, enabled = enabled)
+        Hint(stringResource(Res.string.hint_knob)) {
+            Knob(value = value, onValue = onValue, description = control.name, enabled = enabled)
+        }
         Text(
             text = if (scale == null) "$value" else "${scale.amount(value)} ${scale.unit}",
             style = MaterialTheme.typography.headlineSmall,

@@ -37,6 +37,9 @@ import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.Tempo
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.bpm
+import io.github.markovcd.hughandkettle.ui.hint_knob
+import io.github.markovcd.hughandkettle.ui.hint_lock
+import io.github.markovcd.hughandkettle.ui.hint_tap
 import io.github.markovcd.hughandkettle.ui.tap
 import io.github.markovcd.hughandkettle.ui.tempo_held
 import io.github.markovcd.hughandkettle.ui.tempo_lock
@@ -90,7 +93,9 @@ internal fun TempoCell(
     ) {
         Column(Modifier.width(96.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(contentAlignment = Alignment.Center) {
-                Knob(value ?: 0, { panel.set(control, it) }, control.name, enabled = enabled, size = 72.dp)
+                Hint(stringResource(Res.string.hint_knob)) {
+                    Knob(value ?: 0, { panel.set(control, it) }, control.name, enabled = enabled, size = 72.dp)
+                }
                 if (locked) {
                     Box(
                         Modifier.offset(y = 9.dp),
@@ -125,24 +130,28 @@ internal fun TempoCell(
                     modifier = Modifier.padding(bottom = 5.dp),
                 )
             }
-            OutlinedButton(
-                onClick = { panel.tap(control, System.nanoTime().nanoseconds) },
-                enabled = enabled,
-                shape = RoundedCornerShape(12.dp),
-                colors =
-                    ButtonDefaults.outlinedButtonColors(
-                        containerColor = colors.surfaceContainerHigh,
-                        contentColor = colors.primary,
-                    ),
-                modifier = Modifier.fillMaxWidth().height(44.dp).testTag("tap:${control.id}"),
-            ) {
-                Text(
-                    stringResource(Res.string.tap),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+            Hint(stringResource(Res.string.hint_tap)) {
+                OutlinedButton(
+                    onClick = { panel.tap(control, System.nanoTime().nanoseconds) },
+                    enabled = enabled,
+                    shape = RoundedCornerShape(12.dp),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            containerColor = colors.surfaceContainerHigh,
+                            contentColor = colors.primary,
+                        ),
+                    modifier = Modifier.fillMaxWidth().height(44.dp).testTag("tap:${control.id}"),
+                ) {
+                    Text(
+                        stringResource(Res.string.tap),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
-            LockButton(locked, held, enabled, { panel.lock(control, it) }, Modifier.testTag("lock:${control.id}"))
+            Hint(stringResource(Res.string.hint_lock)) {
+                LockButton(locked, held, enabled, { panel.lock(control, it) }, Modifier.testTag("lock:${control.id}"))
+            }
         }
     }
 }

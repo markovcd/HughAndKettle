@@ -218,4 +218,28 @@ class ToneShelfTest {
             assertEquals(ToneNotice.Read(3, listOf(3)), reader.notice)
         }
     }
+
+    @Test
+    fun `Stepping goes through the tones for the amp in order, stopping at either end`() {
+        set("gain" to 40)
+        listOf("One", "Two", "Three").forEach(shelf::save)
+        val stepped = listOf(1, 1, -1, -1, -1, 1, 1, 1, 1).map { shelf.step(it) }
+        assertEquals(
+            listOf("One", "Two", "One", "One", "One", "Two", "Three", "Three", "Three"),
+            stepped.map { it?.name },
+        )
+        assertEquals("Three", shelf.recalled)
+    }
+
+    @Test
+    fun `Stepping back from no tone starts at the last, and skips tones for another amp`() {
+        set("gain" to 40)
+        listOf("One", "Two").forEach(shelf::save)
+        panel.choose(AmpModels.grandMeisterDeluxe40)
+        panel.set(AmpModels.grandMeisterDeluxe40.control("gain")!!, 30)
+        shelf.save("Deluxe")
+        panel.choose(amp)
+        assertEquals("Two", shelf.step(-1)?.name)
+        assertEquals("Two", shelf.step(1)?.name)
+    }
 }

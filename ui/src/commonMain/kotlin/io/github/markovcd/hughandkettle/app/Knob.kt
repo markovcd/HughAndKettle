@@ -22,6 +22,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -41,7 +42,7 @@ import kotlin.math.sin
  *
  * Turning is a straight drag from anywhere in the knob: up or right turns up, down or left turns down.
  * Holding still for the long-press time before dragging gives fine mode. Nothing eases: the notch, the
- * arc and the value follow the finger, and [onValue] fires on every step.
+ * arc and the value follow the finger, and [onValue] fires on every step. The mouse wheel turns it a step a notch.
  */
 @Composable
 public fun Knob(
@@ -88,6 +89,19 @@ public fun Knob(
                     }
                 move(current + step)
                 true
+            }.pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+
+                        if (event.type != PointerEventType.Scroll) continue
+                        val change = event.changes.first()
+                        move(KnobDial.valueAfterWheel(current, change.scrollDelta.y))
+                        // Taken here, so the pane around the knob does not scroll too.
+                        change.consume()
+                    }
+                }
             }.pointerInput(enabled) {
                 if (!enabled) return@pointerInput
                 awaitEachGesture {
