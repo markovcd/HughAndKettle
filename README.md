@@ -24,6 +24,8 @@ Needs JDK 21, and an Android SDK with `ANDROID_HOME` pointing at it (or `local.p
 | The app on a connected phone or emulator | `./gradlew :app:installDebug` |
 | The desktop app in a window: amp, effects, song and tones side by side, a menu bar with shortcuts, keeping its things in `~/.hk` beside `hk`'s | `./gradlew :desktop:run` |
 | The desktop app as a folder that runs on Linux or Windows with Java 21, under `desktop/build/install/hughandkettle` (`bin/hughandkettle`, or `bin\hughandkettle.bat`) | `./gradlew :desktop:installDist` |
+| The desktop app's Linux packages: a `.deb` under `desktop/build/compose/binaries/main/deb`, and a folder carrying its own runtime as `desktop/build/packages/hughandkettle-linux-x64.tar.gz` | `./gradlew :desktop:packageDeb :desktop:portableLinux` |
+| The desktop app's Windows MSIX, on Windows, signed with a throwaway certificate whose `.cer` lands beside it | `gradlew.bat :desktop:createDistributable` then `desktop\packaging\msix.ps1 -Version 0.0.0 -Out build\msix\hughandkettle.msix` |
 | Try a release with throwaway keys, publishing nothing | `./release.sh` |
 
 Test reports with a duration per test land in `<module>/build/test-results/test/*.xml`.

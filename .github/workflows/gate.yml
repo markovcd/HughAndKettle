@@ -1,6 +1,7 @@
 # The gate on every push to main and every pull request. It runs gate.sh, which builds the gate
 # container; the job needs Docker and nothing else, holds no secrets and can write nothing. A newer
-# push to the same branch cancels an older run.
+# push to the same branch cancels an older run. The msix job builds the desktop app's Windows package
+# beside it, since jpackage cannot cross-build; it signs with a throwaway certificate.
 name: Gate
 
 on:
@@ -30,4 +31,21 @@ jobs:
             build/gate-artifacts
             build/gate.log
           if-no-files-found: ignore
+          retention-days: 7
+
+  msix:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: ./gradlew.bat :desktop:createDistributable --no-daemon --console=plain
+      - run: desktop/packaging/msix.ps1 -Version 0.0.0 -Out build/msix/hughandkettle.msix
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: msix
+          path: build/msix
           retention-days: 7

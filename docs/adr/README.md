@@ -17,3 +17,4 @@ sentence stating the decision. Check here before proposing a change of shape (th
 | [0010](0010-preset-names-live-on-the-phone-and-presets-read-into-tones.md) | Preset names live on the phone, per amp model, and the amp's presets are read into tones |
 | [0011](0011-the-grandmeister-apps-preset-files-import-as-tones.md) | The GrandMeister app's preset files import as tones |
 | [0012](0012-the-screens-are-shared-with-a-desktop-app-through-compose-multiplatform.md) | The screens are shared with a desktop app through Compose Multiplatform |
+| [0013](0013-the-desktop-app-ships-as-a-deb-a-linux-folder-and-a-signed-msix.md) | The desktop app ships as a `.deb`, a Linux folder with its own runtime, and an MSIX signed with a certificate of its own |

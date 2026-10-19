@@ -44,6 +44,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: the song has a tab of its own, with a tapped tempo, the preset names on its steps and a big beat count while it plays; the volume trim sits on a dial that lights when it trims a recall.
 - App and `hk song play`: a song counts in a bar of clicks before its first step, unless its count-in is switched off.
 - App: a song step's beats can be typed, its − and + go to the ends of bars, and steps move up and down.
+- Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.
 
 ### Fixes
 

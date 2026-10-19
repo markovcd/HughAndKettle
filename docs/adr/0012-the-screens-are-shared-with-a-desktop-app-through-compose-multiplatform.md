@@ -29,8 +29,8 @@ target (AGP's KMP library plugin, with Android Lint applied) and a `desktop` JVM
 - Fonts and text are Compose resources in `ui`.
 - `ui` does not use explicit API mode: it is the app's screens split from their shell, not a
   published library, and files keep their visibility when they move.
-- The desktop build links Skia's native library for the machine building it; the lock files hold the
-  gate's Linux x64 one.
+- The desktop build carries Skia's native libraries for Linux x64 and Windows x64, so the gate and the
+  Windows runner that builds the MSIX restore against the same lock files.
 
 ## Consequences
 

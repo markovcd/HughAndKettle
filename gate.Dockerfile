@@ -18,8 +18,10 @@ ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 
 # libgl1, libx11-6 and libfontconfig1: Skia's native library, which the desktop UI tests load, links them.
+# fakeroot and binutils: jpackage builds the desktop .deb with them.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip ca-certificates libgl1 libx11-6 libfontconfig1 \
+       fakeroot binutils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p $ANDROID_HOME/cmdline-tools \
@@ -47,11 +49,15 @@ ENV ORG_GRADLE_PROJECT_releaseVersion=$RELEASE_VERSION
 
 COPY . .
 RUN ./gradlew build --no-daemon --console=plain
+# The desktop app's Linux packages, from what passed: the .deb and the portable folder as a tarball.
+RUN ./gradlew :desktop:packageDeb :desktop:portableLinux --no-daemon --console=plain
 
 FROM scratch AS artifacts
 COPY --from=gate /src/app/build/outputs/apk /apk
 COPY --from=gate /src/cli/build/distributions /cli
 COPY --from=gate /src/desktop/build/install /desktop
+COPY --from=gate /src/desktop/build/compose/binaries/main/deb /desktop-packages
+COPY --from=gate /src/desktop/build/packages /desktop-packages
 COPY --from=gate /src/midi/build/test-results /test-results/midi
 COPY --from=gate /src/amp/build/test-results /test-results/amp
 COPY --from=gate /src/wmi/build/test-results /test-results/wmi

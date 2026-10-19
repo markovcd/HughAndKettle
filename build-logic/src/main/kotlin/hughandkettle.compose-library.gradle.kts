@@ -50,8 +50,8 @@ kotlin {
             implementation(catalog.findLibrary("junit-jupiter").get())
             runtimeOnly(catalog.findLibrary("junit-platform-launcher").get())
             implementation(catalog.findLibrary("compose-mp-ui-test").get())
-            // Skia's native library for the machine running the tests.
-            implementation(desktopSkia)
+            // Skia's native libraries, of which the tests load the one for the machine running them.
+            desktopSkia.forEach { implementation(it) }
         }
     }
 }

@@ -1,19 +1,13 @@
 import org.gradle.api.Project
 
 /**
- * Compose's desktop runtime with Skia's native library for the machine running the build.
+ * Compose's desktop runtime with Skia's native libraries for Linux and Windows on x64, both on every machine.
  *
- * The lock files hold the gate's (Linux x64) one; packaging for each platform is the release's job.
+ * One set for all, so the lock files hold the same thing whether the gate (Linux) or the MSIX job (Windows)
+ * resolves them; each package carries the other platform's native too, a few megabytes it never loads.
  */
-val Project.desktopSkia: String
+val Project.desktopSkia: List<String>
     get() {
-        val os = System.getProperty("os.name").lowercase()
-        val platform =
-            when {
-                os.startsWith("windows") -> "windows"
-                os.startsWith("mac") -> "macos"
-                else -> "linux"
-            }
-        val arch = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x64"
-        return "org.jetbrains.compose.desktop:desktop-jvm-$platform-$arch:${catalog.version("composeMultiplatform")}"
+        val version = catalog.version("composeMultiplatform")
+        return listOf("linux-x64", "windows-x64").map { "org.jetbrains.compose.desktop:desktop-jvm-$it:$version" }
     }

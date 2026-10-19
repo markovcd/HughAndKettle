@@ -3,6 +3,7 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.compose.ComposeExtension
 import org.jetbrains.compose.desktop.DesktopExtension
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -18,15 +19,8 @@ kotlin {
     }
 }
 
-// Skia's natives for the runnable folder, so the one folder starts on Linux and on Windows alike.
-val folderSkia: Configuration by configurations.creating
-
 dependencies {
-    // Skia's native library for the machine building it; packaging per platform is a later step.
-    implementation(desktopSkia)
-    val compose = catalog.version("composeMultiplatform")
-    folderSkia("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:$compose")
-    folderSkia("org.jetbrains.compose.desktop:desktop-jvm-windows-x64:$compose")
+    desktopSkia.forEach { implementation(it) }
     testImplementation(kotlin("test"))
     testImplementation(catalog.findLibrary("compose-mp-ui-test").get())
     testImplementation(catalog.findLibrary("junit-jupiter").get())
@@ -47,7 +41,7 @@ dependencyLocking {
 }
 
 // A folder that runs on any machine with Java 21, the way `hk`'s does: lib/ and the start scripts in bin/.
-// Built with every build, so the gate's artifacts carry it; installers with their own runtime are the release's.
+// Built with every build, so the gate's artifacts carry it. The packages below carry a runtime of their own.
 val folderLib =
     tasks.register<Sync>("folderLib") {
         into(layout.buildDirectory.dir("folder-lib"))
@@ -57,7 +51,6 @@ val folderLib =
             configurations
                 .named("runtimeClasspath")
                 .flatMap { it.incoming.artifacts.resolvedArtifacts }
-                .zip(folderSkia.incoming.artifacts.resolvedArtifacts) { a, b -> a + b }
                 .map { all ->
                     all.associate {
                         val module = it.id.componentIdentifier as? ModuleComponentIdentifier
@@ -86,8 +79,43 @@ val installDist =
 
 tasks.named("assemble") { dependsOn(installDist) }
 
+// The packages, each with its own Java runtime: a .deb and a portable folder (`createDistributable`) on Linux,
+// and on Windows the folder the MSIX is packed from. The version is the release's, or 0.0.0 for any other build.
+val desktop = the<ComposeExtension>().extensions.getByType<DesktopExtension>()
+desktop.application.nativeDistributions {
+    targetFormats(TargetFormat.Deb)
+    packageName = "hughandkettle"
+    packageVersion = buildVersion().name.substringBefore('-')
+    description = "Remote for Hughes & Kettner amps over a WMI-1 or a USB MIDI cable"
+    vendor = "Hugh & Kettle"
+    licenseFile.set(rootProject.file("LICENSE"))
+    // What the app reaches beyond java.base: AWT and Java's sound and MIDI, preferences, and Skia's unsafe access.
+    modules("java.desktop", "java.prefs", "jdk.unsupported")
+    linux {
+        iconFile.set(project.file("src/main/resources/icon.png"))
+        appCategory = "sound"
+        menuGroup = "AudioVideo;Audio"
+        shortcut = true
+    }
+    windows {
+        iconFile.set(project.file("packaging/icon.ico"))
+    }
+}
+
+// The portable Linux folder as one archive, which keeps the launcher's execute bit that a zip of the folder loses.
+val portableLinux =
+    tasks.register<Tar>("portableLinux") {
+        from(tasks.named("createDistributable")) {
+            // Gradle writes the files without their execute bit; the launcher and the runtime's tools need it.
+            eachFile { if (file.canExecute()) permissions { unix("rwxr-xr-x") } }
+        }
+        archiveFileName.set("hughandkettle-linux-x64.tar.gz")
+        destinationDirectory.set(layout.buildDirectory.dir("packages"))
+        compression = Compression.GZIP
+    }
+
 // The module's build file names the main class after this plugin applies.
 afterEvaluate {
-    val main = the<ComposeExtension>().extensions.getByType<DesktopExtension>().application.mainClass
+    val main = desktop.application.mainClass
     folderScripts.configure { mainClass.set(main) }
 }

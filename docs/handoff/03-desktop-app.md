@@ -114,3 +114,9 @@ Song and Theme, whose items are `DesktopCommands`: Ctrl+Up and Ctrl+Down step th
 - Both checksummed and signed with the release key like the APK (ADR 0006). An unsigned Windows
   installer shows a SmartScreen warning; buying a code-signing certificate is the user's call.
 - Changelog, README and site name the desktop builds.
+
+**Done** as ADR 0013 records: the gate builds the `.deb` and the portable folder (a tarball carrying its
+own runtime); a Windows job in the Gate and Release workflows builds an MSIX rather than an `.msi`,
+signed with a certificate of its own; all three go into the signed `SHA256SUMS`. The window, the
+`.deb` and the MSIX share one icon, drawn from the app's. The real Windows certificate waits on the
+user (TODO.md).

@@ -13,6 +13,7 @@ that lands it.
 - Play a song through the amp with `hk song play` and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's.
 - Send MIDI clock from the Syntakt into the amp with the delay on and say whether the delay time follows it; neither manual lists clock, so the guess is that it is ignored. Note what the undocumented controller 36 that tap tempo sends does.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
+- Make the Windows signing certificate, commit its public half as `release/msix.cer` and set its two secrets ([release/README.md](release/README.md#the-windows-certificate)).
 
 ## Code
 

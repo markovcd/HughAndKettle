@@ -5,6 +5,10 @@
 # publishes nothing, which is how a release is tried.
 #
 #   ./release.sh [X.Y.Z] [--publish]
+#   ./release.sh [X.Y.Z] --print-version     prints the version a release would have, and stops
+#
+# The Windows MSIX is built and signed on a Windows runner (desktop/packaging/msix.ps1), since jpackage
+# cannot cross-build; MSIX_FILE names it, and a published release needs it.
 #
 # Real keys come from the environment, never from the tree:
 #   RELEASE_SSH_KEY_FILE          private key pairing with release/allowed_signers (signs SHA256SUMS)
@@ -14,10 +18,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 publish=false
+print_version=false
 version=""
 for arg in "$@"; do
     case "$arg" in
         --publish) publish=true ;;
+        --print-version) print_version=true ;;
         *) version="$arg" ;;
     esac
 done
@@ -35,6 +41,7 @@ if [ -z "$version" ]; then
 fi
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || refuse "version must be X.Y.Z, got '$version'"
 tag="v$version"
+if $print_version; then echo "$version"; exit 0; fi
 
 # --- Checks, stopping on the first that fails.
 [ -z "$(git status --porcelain)" ] || refuse "the tree is not clean"
@@ -76,11 +83,23 @@ else
     keystore="$out/throwaway.jks"
 fi
 if $publish && $throwaway; then refuse "--publish needs the real keys; see the header of this script"; fi
+if [ -n "${MSIX_FILE:-}" ]; then
+    [ -f "$MSIX_FILE" ] || refuse "MSIX_FILE '$MSIX_FILE' does not exist"
+elif $publish; then
+    refuse "--publish needs MSIX_FILE, the Windows package; see the header of this script"
+fi
 
 # --- The gate, on this exact commit, stamped with the version.
 GATE_BUILD_ARGS="--build-arg RELEASE_VERSION=$version" ./gate.sh
 cp build/gate-artifacts/apk/release/app-release-unsigned.apk "$out/unsigned.apk"
 cp build/gate-artifacts/cli/hk-*.zip "$out/hk-$version.zip" 2>/dev/null || cp build/gate-artifacts/cli/*.zip "$out/hk-$version.zip"
+cp build/gate-artifacts/desktop-packages/hughandkettle_*.deb "$out/hughandkettle-$version.deb"
+cp build/gate-artifacts/desktop-packages/hughandkettle-linux-x64.tar.gz "$out/hughandkettle-$version-linux-x64.tar.gz"
+packages=("hughandkettle-$version.apk" "hk-$version.zip" "hughandkettle-$version.deb" "hughandkettle-$version-linux-x64.tar.gz")
+if [ -n "${MSIX_FILE:-}" ]; then
+    cp "$MSIX_FILE" "$out/hughandkettle-$version.msix"
+    packages+=("hughandkettle-$version.msix")
+fi
 
 # --- Sign the APK with apksigner from the gate image's build tools, and the checksums with the SSH key.
 docker run --rm \
@@ -90,7 +109,7 @@ docker run --rm \
         --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
         --out /release/hughandkettle-'"$version"'.apk /release/unsigned.apk' "$ANDROID_KEY_ALIAS"
 rm "$out/unsigned.apk"
-(cd "$out" && sha256sum "hughandkettle-$version.apk" "hk-$version.zip" > SHA256SUMS)
+(cd "$out" && sha256sum "${packages[@]}" > SHA256SUMS)
 ssh-keygen -Y sign -f "$ssh_key" -n hughandkettle "$out/SHA256SUMS" > /dev/null
 ssh-keygen -Y verify -f "$signers" -I hughandkettle -n hughandkettle -s "$out/SHA256SUMS.sig" < "$out/SHA256SUMS" > /dev/null \
     || refuse "the signature does not verify against $signers"
@@ -113,5 +132,5 @@ git commit -q -m "Release $tag" -m "The Unreleased section of the changelog is n
 git tag -a "$tag" -m "Release $tag"
 git push origin main "$tag"
 gh release create "$tag" --title "$tag" --notes "$notes" \
-    "$out/hughandkettle-$version.apk" "$out/hk-$version.zip" "$out/SHA256SUMS" "$out/SHA256SUMS.sig"
+    "${packages[@]/#/$out/}" "$out/SHA256SUMS" "$out/SHA256SUMS.sig"
 echo "release: $tag published"
