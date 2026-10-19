@@ -34,11 +34,9 @@ public object CableCommand : Command {
         if (words == listOf("list")) return list(out, err)
         val part = words.getOrNull(1)
         val seconds =
-            args.value("seconds")?.let {
-                args.int("seconds", 0).getOrElse { failure ->
-                    err.println(failure.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
+            args.optionalInt("seconds").getOrElse {
+                err.println(it.message)
+                return ExitCodes.BAD_ARGUMENTS
             }
         val wanted =
             when (words.firstOrNull()) {
@@ -154,7 +152,7 @@ public object CableCommand : Command {
             return ExitCodes.NO_LINK
         }
         try {
-            ListenCommand.await(CountDownLatch(1), seconds)
+            RunLength.await(CountDownLatch(1), seconds)
         } finally {
             device.close()
         }

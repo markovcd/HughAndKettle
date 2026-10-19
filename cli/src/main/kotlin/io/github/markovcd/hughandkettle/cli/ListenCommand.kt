@@ -6,9 +6,7 @@ import io.github.markovcd.hughandkettle.wmi.WmiDefaults
 import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.concurrent.thread
 import kotlin.time.TimeSource
 
 /**
@@ -28,11 +26,9 @@ public object ListenCommand : Command {
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
         val seconds =
-            args.value("seconds")?.let {
-                args.int("seconds", 0).getOrElse { failure ->
-                    err.println(failure.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
+            args.optionalInt("seconds").getOrElse {
+                err.println(it.message)
+                return ExitCodes.BAD_ARGUMENTS
             }
         if (target == null || (seconds != null && seconds < 1)) {
             err.println(usage)
@@ -60,7 +56,7 @@ public object ListenCommand : Command {
                     err.println("cannot reach ${target.host}:${target.port}: ${it.message}")
                     return ExitCodes.NO_LINK
                 }
-        link.use { await(ended, seconds) }
+        link.use { RunLength.await(ended, seconds) }
         val reason = lostBecause.get() ?: return ExitCodes.OK
         err.println("link lost: $reason")
         return ExitCodes.NO_LINK
@@ -79,28 +75,10 @@ public object ListenCommand : Command {
             )
         val keeper = LinkKeeper(onState = { print(LinkJson.fields(it)) }, onMessage = { print(MidiJson.fields(it)) })
         keeper.connect(address)
-        await(CountDownLatch(1), seconds)
+        RunLength.await(CountDownLatch(1), seconds)
         keeper.close()
         // Bounded by the link's connect timeout: an open still in flight is waited out and closed.
         keeper.awaitClosed(WmiDefaults.ConnectTimeout * 2)
         return ExitCodes.OK
-    }
-
-    /** Waits for [ended], [seconds] if given, or else stdin closing. */
-    internal fun await(
-        ended: CountDownLatch,
-        seconds: Int?,
-    ) {
-        if (seconds != null) {
-            ended.await(seconds.toLong(), TimeUnit.SECONDS)
-            return
-        }
-        thread(name = "listen-stdin", isDaemon = true) {
-            while (System.`in`.read() >= 0) {
-                // Input is ignored; closing it is the signal to stop.
-            }
-            ended.countDown()
-        }
-        ended.await()
     }
 }

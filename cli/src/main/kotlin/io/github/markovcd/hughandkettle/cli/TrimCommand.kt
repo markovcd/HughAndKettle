@@ -7,13 +7,7 @@ import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.midi.SystemExclusive
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
-import kotlin.concurrent.thread
 import kotlin.time.TimeSource
 
 /**
@@ -27,9 +21,6 @@ public object TrimCommand : Command {
     override val name: String = "trim"
     override val usage: String = "hk trim <host[:port]> <amp-id> <-127..127> [--recall N] [--seconds N]"
 
-    /** What the link's reader hands the loop when the run is over. */
-    private object Ended
-
     override fun run(
         args: Options,
         out: PrintWriter,
@@ -38,18 +29,14 @@ public object TrimCommand : Command {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
         val amount = args.positional.getOrNull(2)?.toIntOrNull()
         val seconds =
-            args.value("seconds")?.let {
-                args.int("seconds", 0).getOrElse { failure ->
-                    err.println(failure.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
+            args.optionalInt("seconds").getOrElse {
+                err.println(it.message)
+                return ExitCodes.BAD_ARGUMENTS
             }
         val preset =
-            args.value("recall")?.let {
-                args.int("recall", 0).getOrElse { failure ->
-                    err.println(failure.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
+            args.optionalInt("recall").getOrElse {
+                err.println(it.message)
+                return ExitCodes.BAD_ARGUMENTS
             }
         if (target == null || args.positional.size != 3 || (seconds != null && seconds < 1)) {
             err.println(usage)
@@ -78,26 +65,12 @@ public object TrimCommand : Command {
                 }
                 amp.recall(it)
             }
-        val heard = LinkedBlockingQueue<Any>()
-        val lostBecause = AtomicReference<String?>()
         val link =
-            WmiLink
-                .open(
-                    target.host,
-                    target.port,
-                    onMessage = heard::put,
-                    onClosed = {
-                        lostBecause.set(it)
-                        heard.put(Ended)
-                    },
-                ).getOrElse {
-                    err.println("cannot reach $target: ${it.message}")
-                    return ExitCodes.NO_LINK
-                }
-        thread(name = "trim-until", isDaemon = true) {
-            ListenCommand.await(CountDownLatch(1), seconds)
-            heard.put(Ended)
-        }
+            QueuedLink.open(target).getOrElse {
+                err.println(it.message)
+                return ExitCodes.NO_LINK
+            }
+        link.endAfter(seconds)
         val started = TimeSource.Monotonic.markNow()
 
         fun print(vararg fields: Pair<String, Any?>) =
@@ -126,8 +99,8 @@ public object TrimCommand : Command {
             }
             while (true) {
                 val wait = muteDeadline?.let { (it - started.elapsedNow().inWholeMilliseconds).coerceAtLeast(0) }
-                val next = if (wait == null) heard.take() else heard.poll(wait, TimeUnit.MILLISECONDS)
-                if (next == null) {
+                val next = link.next(wait)
+                if (next == QueuedLink.Next.Quiet) {
                     val (unmuted, lift) = answers.unmuted()
                     answers = unmuted
                     muteDeadline = null
@@ -135,7 +108,7 @@ public object TrimCommand : Command {
                     if (!send(listOfNotNull(lift))) return ExitCodes.NO_LINK
                     continue
                 }
-                val message = next as? MidiMessage ?: break
+                val message = (next as? QueuedLink.Next.Heard)?.message ?: break
                 describe(message, volume.controller)?.let { print(*it) }
                 val answered = answers.heard(message)
                 answers = answered.answers
@@ -143,7 +116,7 @@ public object TrimCommand : Command {
                 if (!send(answered.replies)) return ExitCodes.NO_LINK
             }
         }
-        val reason = lostBecause.get() ?: return ExitCodes.OK
+        val reason = link.lost ?: return ExitCodes.OK
         err.println("link lost: $reason")
         return ExitCodes.NO_LINK
     }

@@ -26,11 +26,9 @@ public object FakeWmiCommand : Command {
                 return ExitCodes.BAD_ARGUMENTS
             }
         val seconds =
-            args.value("seconds")?.let {
-                args.int("seconds", 0).getOrElse { failure ->
-                    err.println(failure.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
+            args.optionalInt("seconds").getOrElse {
+                err.println(it.message)
+                return ExitCodes.BAD_ARGUMENTS
             }
         if (seconds != null && seconds < 1) {
             err.println(usage)

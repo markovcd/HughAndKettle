@@ -19,6 +19,9 @@ public class Options private constructor(
             ?: Result.failure(IllegalArgumentException("--$name needs a whole number, got '$raw'"))
     }
 
+    /** An integer option, or null when it is not given; a value that is not a whole number is reported, not thrown. */
+    public fun optionalInt(name: String): Result<Int?> = if (named[name] == null) Result.success(null) else int(name, 0)
+
     public companion object {
         private const val FLAG = ""
 

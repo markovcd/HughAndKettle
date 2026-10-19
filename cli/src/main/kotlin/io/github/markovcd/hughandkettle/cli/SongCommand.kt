@@ -9,12 +9,8 @@ import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.IOException
 import java.io.PrintWriter
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 import kotlin.time.TimeSource
 
@@ -32,9 +28,6 @@ public object SongCommand : Command {
         hk song set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in] [--dir D]
         hk song play <host[:port]> <amp-id> [--dir D]
         """.trimIndent()
-
-    /** What the link's reader hands the loop when the link is gone. */
-    private object Ended
 
     override fun run(
         args: Options,
@@ -149,22 +142,11 @@ public object SongCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val heard = LinkedBlockingQueue<Any>()
-        val lostBecause = AtomicReference<String?>()
         val link =
-            WmiLink
-                .open(
-                    target.host,
-                    target.port,
-                    onMessage = heard::put,
-                    onClosed = {
-                        lostBecause.set(it)
-                        heard.put(Ended)
-                    },
-                ).getOrElse {
-                    err.println("cannot reach $target: ${it.message}")
-                    return ExitCodes.NO_LINK
-                }
+            QueuedLink.open(target).getOrElse {
+                err.println(it.message)
+                return ExitCodes.NO_LINK
+            }
         val time = song.delayTime
         var answers =
             RecallAnswers(
@@ -221,8 +203,12 @@ public object SongCommand : Command {
                     }
                 val wait = (until - started.elapsedNow()).inWholeMilliseconds
                 if (next >= song.steps.size && wait <= 0) break
-                val message = heard.poll(wait.coerceAtLeast(0), TimeUnit.MILLISECONDS) ?: continue
-                if (message !is MidiMessage) break
+                val message =
+                    when (val next = link.next(wait)) {
+                        is QueuedLink.Next.Heard -> next.message
+                        QueuedLink.Next.Quiet -> continue
+                        QueuedLink.Next.Over -> break
+                    }
                 val answered = answers.heard(message)
                 answers = answered.answers
                 val restore = answered.restored ?: continue
@@ -230,7 +216,7 @@ public object SongCommand : Command {
                 out.println(Json.line("ms" to ms(), "restored" to restore.value, "delay_ms" to song.delayMs))
             }
         }
-        lostBecause.get()?.let {
+        link.lost?.let {
             err.println("link lost: $it")
             return ExitCodes.NO_LINK
         }
