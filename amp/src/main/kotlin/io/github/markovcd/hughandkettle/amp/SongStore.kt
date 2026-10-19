@@ -1,23 +1,15 @@
 package io.github.markovcd.hughandkettle.amp
 
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import kotlin.io.path.exists
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
 /**
  * The [Song] of each amp model, kept in one folder as `<amp-id>.json`, version 1:
@@ -33,17 +25,9 @@ import kotlin.io.path.writeText
 public class SongStore(
     private val folder: Path,
 ) {
-    private val json = Json { prettyPrint = true }
-
     public fun song(amp: AmpModel): Result<Song> {
         val file = fileOf(amp)
-        val text =
-            try {
-                if (!file.exists()) return Result.success(Song(amp))
-                file.readText()
-            } catch (e: IOException) {
-                return Result.failure(IOException("cannot read $file: ${e.message}", e))
-            }
+        val text = JsonFile.text(file).getOrElse { return Result.failure(it) } ?: return Result.success(Song(amp))
         return read(amp, text).fold(
             { Result.success(it) },
             { Result.failure(IllegalArgumentException("$file ${it.message}", it)) },
@@ -55,9 +39,7 @@ public class SongStore(
         song(song.amp).onFailure { return Result.failure(it) }
         return try {
             Files.createDirectories(folder)
-            val temporary = folder.resolve(".${song.amp.id}.json.tmp")
-            temporary.writeText(write(song))
-            Files.move(temporary, fileOf(song.amp), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            JsonFile.place(fileOf(song.amp), write(song))
             Result.success(Unit)
         } catch (e: IOException) {
             Result.failure(IOException("cannot write a song in $folder: ${e.message}", e))
@@ -67,41 +49,26 @@ public class SongStore(
     private fun fileOf(amp: AmpModel): Path = folder.resolve("${amp.id}.json")
 
     private fun write(song: Song): String =
-        json.encodeToString(
-            JsonObject.serializer(),
-            buildJsonObject {
-                put("version", VERSION)
-                put("amp", song.amp.id)
-                put("tempo", song.tempo)
-                put("count_in", song.countIn)
-                putJsonArray("steps") {
-                    song.steps.forEach {
-                        addJsonObject {
-                            put("preset", it.preset)
-                            put("beats", it.beats)
-                        }
+        JsonFile.write(VERSION) {
+            put("amp", song.amp.id)
+            put("tempo", song.tempo)
+            put("count_in", song.countIn)
+            putJsonArray("steps") {
+                song.steps.forEach {
+                    addJsonObject {
+                        put("preset", it.preset)
+                        put("beats", it.beats)
                     }
                 }
-            },
-        )
+            }
+        }
 
     private fun read(
         amp: AmpModel,
         text: String,
     ): Result<Song> {
-        val root =
-            try {
-                Json.parseToJsonElement(text) as? JsonObject
-            } catch (e: SerializationException) {
-                return failure("is not JSON: ${e.message?.lineSequence()?.first()}")
-            } ?: return failure("is not a JSON object")
-        val version = root.int("version")
-        when {
-            version == null -> return failure("has no version")
-            version > VERSION -> return failure("is version $version, from a newer Hugh & Kettle; this reads $VERSION")
-            version < 1 -> return failure("has version $version; versions start at 1")
-        }
-        val ampId = (root["amp"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        val root = JsonFile.read(text, VERSION).getOrElse { return Result.failure(it) }
+        val ampId = JsonFile.string(root, "amp")
         if (ampId != amp.id) return failure("is for amp '$ampId', not '${amp.id}'")
         val tempo = root.int("tempo")?.takeIf { it in Song.TEMPOS }
         if (tempo ==
@@ -145,7 +112,7 @@ public class SongStore(
         return Result.success(Song(amp, tempo, kept, countIn))
     }
 
-    private fun JsonObject.int(key: String): Int? = (this[key] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
+    private fun JsonObject.int(key: String): Int? = JsonFile.int(this, key)
 
     private fun failure(why: String): Result<Song> = Result.failure(IllegalArgumentException(why))
 

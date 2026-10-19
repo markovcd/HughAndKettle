@@ -3,14 +3,12 @@ package io.github.markovcd.hughandkettle.amp
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 import kotlin.io.path.readLines
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
 /**
  * The tones kept in one folder: a file per tone, `<n>.json` in [ToneFile]'s format, and an `order`
@@ -152,11 +150,7 @@ public class ToneStore(
     private fun write(
         file: String,
         text: String,
-    ) {
-        val temporary = folder.resolve(".$file.tmp")
-        temporary.writeText(text)
-        Files.move(temporary, folder.resolve(file), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-    }
+    ) = JsonFile.place(folder.resolve(file), text)
 
     private fun nextFile(entries: List<Entry>): String {
         val taken = entries.map { it.file }.toSet() + jsonFiles().getOrDefault(emptyList())
