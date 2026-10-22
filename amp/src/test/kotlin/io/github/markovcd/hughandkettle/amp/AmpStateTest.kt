@@ -98,6 +98,26 @@ class AmpStateTest {
     }
 
     @Test
+    fun `After a recall an effect the amp did not report is on when its level in the block is above 0`() {
+        val grandMeister = AmpModels.grandMeisterDeluxe40
+        val block = ValueBlock(mapOf(28 to 0, 29 to 120, 1 to 200), preset = 3).message()
+        val state = AmpState(grandMeister).after(ProgramChange(MidiChannel.Default, 2)).after(block)
+        assertEquals(
+            mapOf("delay" to 0, "reverb" to 127, "modulation" to 127),
+            state.values.filterKeys { it in setOf("delay", "reverb", "modulation") },
+        )
+    }
+
+    @Test
+    fun `An effect switch the amp reported keeps its report over its level`() {
+        val grandMeister = AmpModels.grandMeisterDeluxe40
+        val delayOn = ControlReport(53, 127).message()
+        val block = ValueBlock(mapOf(28 to 0), preset = 3).message()
+        val state = AmpState(grandMeister).after(ProgramChange(MidiChannel.Default, 2)).after(delayOn).after(block)
+        assertEquals(127, state.values["delay"])
+    }
+
+    @Test
     fun `Other messages change nothing`() {
         assertEquals(start, start.after(SystemRealtime(0xF8)))
     }

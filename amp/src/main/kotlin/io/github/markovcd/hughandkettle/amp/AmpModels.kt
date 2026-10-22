@@ -45,14 +45,14 @@ public object AmpModels {
             Control("noise_gate", "Noise gate", 63, Switch, PowerAmp),
             Control("modulation", "Modulation", 52, Switch, Fx),
             Control("modulation_type", "Modulation type", 12, modulationTypes, Fx, needs = "modulation", fine = true),
-            Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx, needs = "modulation"),
+            Control("modulation_intensity", "Modulation intensity", 1, Knob, Fx, needs = "modulation", level = true),
             Control("modulation_speed", "Modulation speed", 26, Knob, Fx, needs = "modulation"),
             Control("delay", "Delay", 53, Switch, Fx),
             Control("delay_time", "Delay time", 4, Knob, Fx, Scale(51, 1360, "ms"), needs = "delay"),
             Control("delay_feedback", "Delay feedback", 27, Knob, Fx, needs = "delay"),
-            Control("delay_volume", "Delay volume", 28, Knob, Fx, needs = "delay"),
+            Control("delay_volume", "Delay volume", 28, Knob, Fx, needs = "delay", level = true),
             Control("reverb", "Reverb", 54, Switch, Fx),
-            Control("reverb_volume", "Reverb volume", 29, Knob, Fx, needs = "reverb"),
+            Control("reverb_volume", "Reverb volume", 29, Knob, Fx, needs = "reverb", level = true),
             Control("fx_loop", "FX loop", 55, Switch, Fx),
         )
 

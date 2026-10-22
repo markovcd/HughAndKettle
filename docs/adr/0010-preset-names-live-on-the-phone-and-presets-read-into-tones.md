@@ -35,4 +35,6 @@ and imported.
 
 The value block's flags are decoded (docs/wmi-1.md, "The value block"): a tone read from a preset
 holds its channel, boost, noise gate, FX loop and power soak as well as its knobs. The effect
-switches are not in the block, so a tone holds one only when the amp reported it during the recall.
+switches are not in the block, so one the amp did not report during the recall is taken as on when
+its level (delay volume, reverb volume, modulation intensity) is above 0, as the amp stores an effect
+switched off.

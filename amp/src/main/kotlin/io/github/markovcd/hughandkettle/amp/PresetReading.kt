@@ -8,7 +8,7 @@ import io.github.markovcd.hughandkettle.midi.SystemExclusive
  * Reading the amp's presets into tones, one at a time: recall a preset, and take what the amp says
  * up to the [ValueBlock] naming that preset as its tone. The caller sends [next], hands on every
  * message it hears through [after], and calls [skip] when the block does not come in time.
- * A tone holds only what the amp reported, which leaves out an effect switch it did not report.
+ * A tone holds only what the amp reported, with an effect switch it did not report taken from its level.
  */
 public class PresetReading private constructor(
     public val names: PresetNames,

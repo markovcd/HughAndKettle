@@ -38,7 +38,8 @@ public object Gm40Memory {
     private val switches = mapOf("boost" to "boost", "noiseGate" to "noise_gate", "fxLoop" to "fx_loop")
 
     // The effect each level switches on.
-    private val effects = mapOf("reverbLevel" to "reverb", "delayLevel" to "delay", "modIntensity" to "modulation")
+    private val effects =
+        knobs.mapNotNull { (field, id) -> amp.control(id)!!.takeIf { it.level }?.let { field to it.needs!! } }.toMap()
 
     /** The tones in [bytes]; two presets may share a name. */
     public fun read(bytes: ByteArray): Result<TonesRead> {

@@ -9,7 +9,8 @@ import io.github.markovcd.hughandkettle.midi.MidiChannel
  * [id] is written into tone files and is never renamed once shipped; [name] is what a person reads.
  * [scale] is what the knob's value means on the amp, where the manual gives it. [needs] is the id of
  * the effect switch this control is heard through, so it does nothing while that switch is off.
- * [fine] says the amp [reports][ControlReport] it in 256 steps rather than 128.
+ * [fine] says the amp [reports][ControlReport] it in 256 steps rather than 128. [level] says the amp
+ * stores the effect it [needs] switched off as this knob at 0.
  */
 public data class Control(
     val id: String,
@@ -20,11 +21,13 @@ public data class Control(
     val scale: Scale? = null,
     val needs: String? = null,
     val fine: Boolean = kind == ControlKind.Knob,
+    val level: Boolean = false,
 ) {
     init {
         require(id.matches(Regex("[a-z][a-z0-9_]*"))) { "control id must be snake_case, got '$id'" }
         require(controller in 0..127) { "controller must be 0..127, got $controller" }
         require(scale == null || kind == ControlKind.Knob) { "only a knob has a scale, and '$id' is not one" }
+        require(!level || needs != null) { "a level is an effect's, and '$id' needs no effect" }
     }
 
     /** Whether this is a time knob, one whose scale is in milliseconds: it takes a tapped beat and a tempo lock. */

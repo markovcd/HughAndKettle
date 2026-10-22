@@ -24,8 +24,10 @@ public data class AmpState(
 
     /**
      * The state after [message]. A control change or the amp's [ControlReport] sets its control, and
-     * the amp's [ValueBlock] sets its channel and every value it carries. A program change recalls a preset, whose stored
-     * values the app has not seen until the amp's block arrives, so every value becomes unknown.
+     * the amp's [ValueBlock] sets its channel and every value it carries. The block carries no effect
+     * switch, so one still unknown is taken from its [level][Control.level]. A program change recalls a
+     * preset, whose stored values the app has not seen until the amp's block arrives, so every value
+     * becomes unknown.
      * Anything else changes nothing.
      */
     public fun after(message: MidiMessage): AmpState =
@@ -43,12 +45,13 @@ public data class AmpState(
                     }
 
                     block != null -> {
-                        block.values.entries.fold(onChannel(block.channel).copy(preset = block.preset ?: preset)) {
-                            state,
-                            (controller, value),
-                            ->
-                            state.set(controller) { it.fromReport(value) }
-                        }
+                        block.values.entries
+                            .fold(onChannel(block.channel).copy(preset = block.preset ?: preset)) {
+                                state,
+                                (controller, value),
+                                ->
+                                state.set(controller) { it.fromReport(value) }
+                            }.withEffectsFromLevels()
                     }
 
                     else -> {
@@ -69,6 +72,14 @@ public data class AmpState(
     private fun onChannel(channel: Int): AmpState {
         val control = amp.control("channel") ?: return this
         return copy(values = values + (control.id to control.selected(channel).value))
+    }
+
+    private fun withEffectsFromLevels(): AmpState {
+        val effects =
+            amp.controls
+                .filter { it.level && it.needs !in values }
+                .mapNotNull { level -> values[level.id]?.let { level.needs!! to if (it > 0) 127 else 0 } }
+        return copy(values = values + effects)
     }
 
     private fun set(
