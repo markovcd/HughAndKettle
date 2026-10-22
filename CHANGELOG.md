@@ -43,7 +43,7 @@ section becomes a version's section when `release.sh` ships it.
 - App and `hk song`: a song recalls the amp's presets on their beats at one tempo, with the delay time set to that tempo.
 - App: the song has a tab of its own, with a tapped tempo, the preset names on its steps and a big beat count while it plays; the volume trim sits on a dial that lights when it trims a recall.
 - App and `hk song play`: a song counts in a bar of clicks before its first step, unless its count-in is switched off.
-- App: a song step's beats can be typed, its − and + go to the ends of bars, and steps move up and down.
+- App: a song step's beats can be typed and its − and + go to the ends of bars.
 - App and `hk song`: songs are kept by name, many to an amp model, and opened, made, renamed, duplicated, put in order, deleted, exported and imported from a list on the Song tab; the one song kept before opens as "Song 1".
 - App: a song step held down can be dragged to its place among the others.
 - Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.

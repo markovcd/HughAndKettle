@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -61,15 +62,15 @@ class SongTabTest {
         }
 
     @Test
-    fun `A step is moved with its arrows`() =
+    fun `A step is moved up and down by its accessibility actions`() =
         runComposeUiTest {
             setContent { SongTab(songs, names, preset = 5, enabled = true) }
             onNodeWithTag("song_add").performClick()
             onNodeWithTag("song_beats_up:1").performClick()
             onNodeWithTag("song_add").performClick()
-            onNodeWithTag("song_move_up:2").performClick()
+            onNodeWithTag("song_step:2").performCustomAccessibilityActionWithLabel("Move step 2 up")
             assertEquals(listOf(16, 20), beats())
-            onNodeWithTag("song_move_down:1").performClick()
+            onNodeWithTag("song_step:1").performCustomAccessibilityActionWithLabel("Move step 1 down")
             assertEquals(listOf(20, 16), beats())
         }
 

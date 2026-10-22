@@ -39,8 +39,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -65,11 +67,11 @@ import io.github.markovcd.hughandkettle.ui.song_remove
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One step of a song while it can be changed: arrows to move it up and down around its number, its preset
- * and the preset's name, its beats stepped to the ends of bars of four or typed in a tap on them, and remove.
- * Tests find it by `song_step:<n>` and its parts by `song_move_up:<n>`, `song_move_down:<n>`,
- * `song_beats_down:<n>`, `song_beats:<n>`, `song_beats_up:<n>` and `song_remove:<n>`, counted from 1; the typed
- * beats by `song_beats_field` and `song_beats_done`.
+ * One step of a song while it can be changed: its preset and the preset's name, its beats stepped to the ends
+ * of bars of four or typed in a tap on them, and remove. It is moved by dragging, or by its accessibility
+ * actions. Tests find it by `song_step:<n>` and its parts by `song_beats_down:<n>`, `song_beats:<n>`,
+ * `song_beats_up:<n>` and `song_remove:<n>`, counted from 1; the typed beats by `song_beats_field` and
+ * `song_beats_done`.
  */
 @Composable
 internal fun SongStepRow(
@@ -86,6 +88,8 @@ internal fun SongStepRow(
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
     var typing by remember { mutableStateOf(false) }
+    val up = stringResource(Res.string.song_move_up, n)
+    val down = stringResource(Res.string.song_move_down, n)
     if (typing) {
         BeatsDialog(n, step.beats, onDone = {
             onBeats(it)
@@ -99,28 +103,17 @@ internal fun SongStepRow(
             .clip(shape)
             .background(colors.surfaceContainer)
             .border(1.dp, colors.outlineVariant, shape)
-            .padding(start = 2.dp, end = 6.dp)
-            .testTag("song_step:$n"),
+            .padding(start = 14.dp, end = 6.dp)
+            .semantics {
+                customActions =
+                    listOfNotNull(
+                        CustomAccessibilityAction(up) { true.also { onMove(-1) } }.takeIf { enabled && n > 1 },
+                        CustomAccessibilityAction(down) { true.also { onMove(1) } }.takeIf { enabled && !last },
+                    )
+            }.testTag("song_step:$n"),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Chevron(
-                up = true,
-                stringResource(Res.string.song_move_up, n),
-                enabled && n > 1,
-                { onMove(-1) },
-                "song_move_up:$n",
-            )
-            StepNumber { Text("$n", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.primary) }
-            Chevron(
-                up = false,
-                stringResource(Res.string.song_move_down, n),
-                enabled && !last,
-                { onMove(1) },
-                "song_move_down:$n",
-            )
-        }
         PresetName(step.preset, name, colors.onSurfaceVariant, Modifier.weight(1f))
         RoundButton(
             up = false,
@@ -254,40 +247,6 @@ internal fun PlayedStepRow(
     }
 }
 
-/** An arrow moving a step up or down, wide enough to hit beside the step's number. */
-@Composable
-private fun Chevron(
-    up: Boolean,
-    description: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    tag: String,
-) {
-    val ink = MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        Modifier
-            .size(width = 40.dp, height = 18.dp)
-            .alpha(if (enabled) 1f else MOVE_DISABLED)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = description }
-            .testTag(tag),
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.size(width = 16.dp, height = 10.dp)) {
-            val u = size.width / 16
-            val tip = if (up) 2 * u else 8 * u
-            val foot = if (up) 8 * u else 2 * u
-            val arrow =
-                Path().apply {
-                    moveTo(3 * u, foot)
-                    lineTo(8 * u, tip)
-                    lineTo(13 * u, foot)
-                }
-            drawPath(arrow, ink, style = Stroke(2 * u, cap = StrokeCap.Round, join = StrokeJoin.Round))
-        }
-    }
-}
-
 /** Asks for a step's beats as a number, taken only when it is 1 to the most a step lasts. */
 @Composable
 private fun BeatsDialog(
@@ -372,4 +331,3 @@ private fun PresetName(
 
 private const val DISABLED = 0.38f
 private const val PLAYED = 0.6f
-private const val MOVE_DISABLED = 0.25f
