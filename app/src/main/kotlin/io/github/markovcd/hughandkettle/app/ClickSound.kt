@@ -5,12 +5,11 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 
 /**
- * The metronome click, held loaded so it sounds as soon as it is asked for rather than after a sound is
- * decoded.
+ * The metronome click, loaded when it is made so the first click of a count-in sounds as soon as it is asked
+ * for, on its beat, rather than after the track is built.
  */
 class ClickSound {
-    private val track: AudioTrack by lazy {
-        val samples = ClickSamples.samples
+    private val track: AudioTrack =
         AudioTrack
             .Builder()
             .setAudioAttributes(
@@ -27,10 +26,9 @@ class ClickSound {
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .build(),
             ).setTransferMode(AudioTrack.MODE_STATIC)
-            .setBufferSizeInBytes(samples.size * 2)
+            .setBufferSizeInBytes(ClickSamples.samples.size * 2)
             .build()
-            .also { it.write(samples, 0, samples.size) }
-    }
+            .also { it.write(ClickSamples.samples, 0, ClickSamples.samples.size) }
 
     /** Sounds one click, cutting off one still sounding. */
     fun play() {
