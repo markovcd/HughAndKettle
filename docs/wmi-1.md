@@ -62,14 +62,24 @@ modulation type report 0 to 255, twice MIDI's resolution; switches and the other
   does not land where a change on 56 does (20 at 30 reported 8 of 255; 56 at 100 reported 201), so
   the app's Gain and Volume send on 56 and 57 and leave 20 and 7 alone. Master is not on MIDI.
 - Modulation is one knob, 12, whose sweep runs chorus, flanger, phaser, tremolo from the bottom.
-- The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95).
+  Heard on 2026-10-22: the panel's clearest chorus, flanger, phaser and tremolo reported 0, 73, 167
+  and 255, and a change on 12 at the middle of each quarter of 0..127 (15, 47, 79, 111) sounds as
+  that effect.
+- The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95, 127).
 - Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, so the sweep looks even.
 - Noise gate (63) and FX loop (55) report as their switches. Turning the noise gate's intensity
   knob reports nothing, so like Master it is not on MIDI.
 - The cab emulation controls on the back report nothing, as the MIDI chart's lack of them says.
 - The footswitch's switches send the chart's controllers (modulation 52, delay 53, boost 64), and the
   box passes them on to the client ahead of the amp's report. Tap tempo sends delay time (4) with
-  controller 36 at 0 or 64, which the manual does not list.
+  controller 36 at 0 or 64, which the manual does not list. 36 is 4's low byte, as MIDI pairs
+  controllers 0 to 31 with 32 to 63: the amp reports `2 * <4> + 1` when 36 is 64 and `2 * <4>` when
+  it is 0, so the two together reach all 256 steps of the delay time. A change on 4 at 50 then 36 at
+  64 reported 101.
+- MIDI clock (`F8`, with start and stop) does nothing: 20 seconds of it at 40 BPM left the delay
+  time where it was, by ear and in the amp's reports.
+- Two links opened within a second or two of each other once lost the second link's messages: the
+  box neither echoed them nor did the amp report them. Seen once, not reproduced.
 
 ## Storing a preset
 
@@ -88,7 +98,7 @@ After a channel switch, a preset recall, or a client's first bytes after the amp
 sends
 
 ```text
-F0 00 20 44 00 10 00 0A 00 40 <a> <b> <preset> <14 values as hi lo> <hi> <flags> <check> F7
+F0 00 20 44 00 10 00 0A 00 40 <a> <b> <preset> <15 values as hi lo> <switches> <flags> <check> F7
 ```
 
 Read on 2026-10-13 by setting known values, switching to Crunch and back to Clean:
@@ -114,10 +124,18 @@ Read on 2026-10-13 by setting known values, switching to Crunch and back to Clea
 
 - Pairs 1 to 7 belong to the channel: Crunch's came back as its own, and Clean's kept the values set
   on it before the switch. Pairs 8 to 13 are shared by every channel.
-- The low two bits of the flags byte are the channel (Clean `40`, Crunch `41`, Ultra seen as `47`);
-  the other bits are likely the switches and are not yet decoded. `<preset>` is the preset counted
+- The flags byte, read on 2026-10-22 by changing one setting at a time: bits 0 and 1 are the channel
+  (0 Clean to 3 Ultra), bit 2 is boost, bit 3 the FX loop, and bits 4 to 6 the power soak's step, 0
+  for Speaker Off, then 1 W, 5 W, 20 W and 4 for full power. Bit 0 of `<switches>` is the noise gate;
+  its other bits were 0 throughout. Boost is kept per channel, so Crunch's flags kept its boost while
+  Clean's was switched; the noise gate, the FX loop and the power soak are shared. The effect switches
+  are not in the block: turning modulation or delay on or off changed no byte of it. `<preset>` is the preset counted
   from 0 after a store or recall; `<a> <b>` were `00 00` then, and `7F 7F` after a channel switch,
-  likely meaning the panel no longer matches a stored preset. The check is `4E` xor every byte from
+  likely meaning the panel no longer matches a stored preset. A recall from the footswitch sends the
+  block alone, with no separate report of the delay time, though one recall reported the delay and
+  modulation switches (53 and 52 at 127) just ahead of it. The block comes about 120 ms after the
+  program change, so under a volume trim a footswitch recall plays its stored volume that long, a
+  short jump heard as acceptable. The check is `4E` xor every byte from
   `<a>` to the flags.
 - Two stored presets carried 0 for delay volume and modulation intensity, which had been 160 and 201
   just before: likely how an effect switched off is stored. H&K's own preset files agree: they keep

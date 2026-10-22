@@ -34,7 +34,7 @@ section becomes a version's section when `release.sh` ships it.
 - App and `hk tone read`: read the amp's presets into tones named after them.
 - The app and `hk state` follow the knobs, switches and selectors turned on the amp, as the amp reports them.
 - The GrandMeister Deluxe 40 power soak shows its steps by wattage.
-- After a preset recall or channel switch, the app and `hk state` show the knobs the amp reports it is set to.
+- After a preset recall or channel switch, the app and `hk state` show the channel, knobs and switches the amp reports it is set to.
 - The release APK is shrunk by R8.
 - App: shows which WiFi network the phone is on, named once location is allowed.
 - App and `hk tone import`: import H&K's GrandMeister Deluxe 40 preset files (`.gm40memory`) as tones.

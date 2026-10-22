@@ -67,8 +67,8 @@ as `set` does (`gain=100 channel=lead`), `recall` sends each value the tone hold
 and reports a control the amp does not have. `import` also takes a preset file of H&K's GrandMeister
 Deluxe 40 Remote app (`.gm40memory`, such as the artist files on hughes-and-kettner.com/presets):
 each named preset becomes a tone, numbered apart from a tone of the same name unless `--replace` is
-given, printed one per line and then as a `{"presets":N}` line. `tone read` recalls each preset and saves the knobs the
-amp reports for it as a tone named after the preset; it reads every preset unless given one or a
+given, printed one per line and then as a `{"presets":N}` line. `tone read` recalls each preset and saves the channel,
+knobs and switches the amp reports for it as a tone named after the preset; it reads every preset unless given one or a
 range, and a preset that sends nothing within 2 s is skipped and said on stderr. `preset` names the
 amp's presets in `--dir` (`~/.hk/preset-names` by default), the way the app does; `tone read` finds
 them there or in `--names`. `song` keeps the songs of each amp model in `--dir` (`~/.hk/songs` by default),

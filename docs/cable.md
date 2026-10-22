@@ -69,3 +69,14 @@ its own.
 
 The answers settle the "unknown" rows of [docs/wmi-1.md](wmi-1.md) about the amp, the channel
 question in phase 0, and what phase 2 builds on.
+
+## What a Mac found
+
+Read on 2026-10-22 with a DOREMiDi cable, a MacBook Air and the GrandMeister Deluxe 40. `hk cable list`
+named it `DOREMiDi`, with both directions. Sending works: mute on and off and a preset recall each
+landed, and the amp echoed each control change on its Out/Thru as it does over the WMI-1.
+
+Hearing the amp does not: Java's MIDI input on macOS hands over every system exclusive the amp sends
+as 14 bytes of `F7` and zeros or noise, so no report or value block can be read, and `hk cable listen`
+prints junk control changes in their place. The same reports read whole over the WMI-1, so the fault
+is the Java runtime's, not the amp's. Linux and Windows are untried.

@@ -87,6 +87,17 @@ class AmpStateTest {
     }
 
     @Test
+    fun `The amp's block sets the channel, the switches and the power soak it carries`() {
+        val grandMeister = AmpModels.grandMeisterDeluxe40
+        val ultra = ValueBlock(mapOf(64 to 127, 55 to 0, 63 to 127, 30 to 89), preset = 2, channel = 3).message()
+        val state = AmpState(grandMeister).after(ultra)
+        assertEquals(
+            mapOf("channel" to 111, "boost" to 127, "fx_loop" to 0, "noise_gate" to 127, "power_soak" to 89),
+            state.values.filterKeys { it in setOf("channel", "boost", "fx_loop", "noise_gate", "power_soak") },
+        )
+    }
+
+    @Test
     fun `Other messages change nothing`() {
         assertEquals(start, start.after(SystemRealtime(0xF8)))
     }

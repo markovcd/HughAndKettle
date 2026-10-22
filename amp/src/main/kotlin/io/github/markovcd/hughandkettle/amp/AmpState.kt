@@ -24,7 +24,7 @@ public data class AmpState(
 
     /**
      * The state after [message]. A control change or the amp's [ControlReport] sets its control, and
-     * the amp's [ValueBlock] sets every knob it carries. A program change recalls a preset, whose stored
+     * the amp's [ValueBlock] sets its channel and every value it carries. A program change recalls a preset, whose stored
      * values the app has not seen until the amp's block arrives, so every value becomes unknown.
      * Anything else changes nothing.
      */
@@ -43,7 +43,10 @@ public data class AmpState(
                     }
 
                     block != null -> {
-                        block.values.entries.fold(copy(preset = block.preset ?: preset)) { state, (controller, value) ->
+                        block.values.entries.fold(onChannel(block.channel).copy(preset = block.preset ?: preset)) {
+                            state,
+                            (controller, value),
+                            ->
                             state.set(controller) { it.fromReport(value) }
                         }
                     }
@@ -62,6 +65,11 @@ public data class AmpState(
                 this
             }
         }
+
+    private fun onChannel(channel: Int): AmpState {
+        val control = amp.control("channel") ?: return this
+        return copy(values = values + (control.id to control.selected(channel).value))
+    }
 
     private fun set(
         controller: Int,

@@ -54,9 +54,12 @@ output.
 - [x] Whether `send ... cc 9 127` mutes the amp on port 2000; if not, the port or the failure: it mutes
   on 1470; 2000 refuses.
 - [x] The box's address in access-point mode: 192.168.1.1.
-- [ ] What `hk listen` prints while a knob is turned, a channel is switched and a preset is changed on
-  the amp, with the FSM footswitch and without. This is the single most valuable capture.
-- [ ] Whether switching the channel within a preset changes the gain, EQ and volume the amp plays.
+- [x] What `hk listen` prints while a knob is turned, a channel is switched and a preset is changed on
+  the amp, with the FSM footswitch and without. This is the single most valuable capture: a report
+  per control moved and a value block per channel switch or recall (`docs/wmi-1.md`, 2026-10-13 and
+  2026-10-22).
+- [x] Whether switching the channel within a preset changes the gain, EQ and volume the amp plays:
+  it does, each channel keeping its own gain, EQ, volume and boost.
   The manuals say "your choice of channel determines the knob's assignment", which may mean each
   channel keeps values of its own; if so, `AmpState` forgets those values on a channel switch.
 - [x] Which amp model it is: a GrandMeister Deluxe 40 (the user, 2026-10-12).

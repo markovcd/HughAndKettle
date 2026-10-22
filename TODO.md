@@ -9,9 +9,7 @@ that lands it.
 - Run phase 0 of the [implementation plan](docs/handoff/01-implementation-plan.md#phase-0-confirm-the-link-on-hardware) on the hardware and paste the output; everything after it waits on this.
 - While the WMI-1 is missing, run the [cable test](docs/cable.md#the-test) instead and paste what it asks for.
 - Try phase 1 on a phone with the real box: it finds the box, connects, survives screen-off and recovers from a power cycle ([plan, phase 1](docs/handoff/01-implementation-plan.md#phase-1-the-link-on-the-phone)).
-- Step through presets with the footswitch under `hk trim <host> grandmeister_deluxe_40 -40` and say whether the stored volume is heard before the trim lands; the printed milliseconds show how long it plays.
-- Play a song through the amp with `hk song play` and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's.
-- Send MIDI clock from the Syntakt into the amp with the delay on and say whether the delay time follows it; neither manual lists clock, so the guess is that it is ignored. Note what the undocumented controller 36 that tap tempo sends does.
+- Play a song through the amp with `hk song play` against a click, on two presets with very different delay times, and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's. On 2026-10-22 each recall left within 9 ms of its beat and the song's delay time was back 130 ms later; by ear it could not be judged without a click.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 - Make the Windows signing certificate, commit its public half as `release/msix.cer` and set its two secrets ([release/README.md](release/README.md#the-windows-certificate)).
 
@@ -21,7 +19,9 @@ that lands it.
 - Parked: keep a preset file whole, named, read-only if wanted and shared as one, rather than as loose tones.
 - Parked: set the WMI-1's name, access point channel, password and home WiFi, as WMI Connect does, likely through the WiFly module's `$$$` command mode over TCP. A wrong setting locks the app out until a factory reset.
 - Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names. `AmpModels` carries numbered placeholders until then.
-- Decode the rest of the amp's value block: its flags byte and pairs 14 and 15 ([wmi-1.md](docs/wmi-1.md#the-value-block)).
+- Decode the rest of the amp's value block: pairs 14 and 15, and the switches byte's upper bits ([wmi-1.md](docs/wmi-1.md#the-value-block)).
+- Read the amp's system exclusive over a cable on macOS, where Java's MIDI input garbles it ([cable.md](docs/cable.md#what-a-mac-found)); until then `hk cable listen` there prints junk.
+- Send the delay time in the amp's 256 steps: controller 4 with its low byte on 36 at 0 or 64, as tap tempo does ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
 - Time the delay at a few settings to confirm 51 ms to 1360 ms is spread evenly over 0..127; the amp's reports suggest it is, and `Scale` takes it as even.
 - The [desktop app](docs/handoff/03-desktop-app.md), one item per step, in order.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.

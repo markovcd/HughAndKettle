@@ -36,3 +36,9 @@ the file through a first-party `BinaryPlist` reader, with no dependency.
 - A preset file from a later version of the app (its `version` is 1 today) is refused whole.
 - The modulation type numbering and the power soak step order are read from H&K's files, not from
   the amp; a tone that recalls the wrong step is the sign either is off.
+
+## Amendment (2026-10-22)
+
+The amp's own orders are confirmed on the GrandMeister Deluxe 40: its power soak steps Off, 1 W, 5 W,
+20 W, 40 W from the bottom, and its modulation types chorus, flanger, phaser, tremolo (docs/wmi-1.md).
+Which number H&K's files give each is still read from the files alone.

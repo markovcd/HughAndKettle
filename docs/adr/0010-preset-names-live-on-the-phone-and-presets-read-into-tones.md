@@ -30,3 +30,9 @@ and imported.
   switches.
 - Writing a tone back into a preset still waits on the amp's store gesture over MIDI.
 - Names are not in a tone file and are not exported; they are a few lines to type again.
+
+## Amendment (2026-10-22)
+
+The value block's flags are decoded (docs/wmi-1.md, "The value block"): a tone read from a preset
+holds its channel, boost, noise gate, FX loop and power soak as well as its knobs. The effect
+switches are not in the block, so a tone holds one only when the amp reported it during the recall.
