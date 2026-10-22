@@ -81,6 +81,7 @@ internal fun SongStepRow(
     onBeats: (Int) -> Unit,
     onMove: (Int) -> Unit,
     onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
@@ -92,7 +93,7 @@ internal fun SongStepRow(
         }, onCancel = { typing = false })
     }
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .height(64.dp)
             .clip(shape)

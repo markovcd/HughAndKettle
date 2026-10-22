@@ -1,11 +1,13 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.PresetNameStore
@@ -69,6 +71,21 @@ class SongTabTest {
             assertEquals(listOf(16, 20), beats())
             onNodeWithTag("song_move_down:1").performClick()
             assertEquals(listOf(20, 16), beats())
+        }
+
+    @Test
+    fun `A step held and dragged past the one above trades places with it`() =
+        runComposeUiTest {
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            repeat(3) { onNodeWithTag("song_add").performClick() }
+            onNodeWithTag("song_beats_up:3").performClick()
+            onNodeWithTag("song_step:3").performTouchInput {
+                down(center)
+                advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+                repeat(5) { moveBy(Offset(0f, -height * 0.2f)) }
+                up()
+            }
+            assertEquals(listOf(16, 20, 16), beats())
         }
 
     @Test

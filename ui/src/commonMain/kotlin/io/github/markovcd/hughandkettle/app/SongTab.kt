@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +41,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
@@ -134,7 +141,8 @@ fun SongTab(
                     if (song.steps.isEmpty()) {
                         NoSteps(preset, songs.editable, songs::add)
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(STEP_GAP)) {
+                            val drag = remember { StepDrag() }
                             song.steps.forEachIndexed { index, step ->
                                 SongStepRow(
                                     index + 1,
@@ -145,6 +153,7 @@ fun SongTab(
                                     onBeats = { songs.beats(index, it) },
                                     onMove = { songs.move(index, index + it) },
                                     onRemove = { songs.remove(index) },
+                                    modifier = Modifier.dragged(drag, index, songs),
                                 )
                             }
                             AddStep(preset ?: 1, songs.editable, songs::add)
@@ -554,6 +563,53 @@ private fun Note(ink: Color) {
     TabMark(PanelTab.Song, ink, 32.dp)
 }
 
+/**
+ * A step lifted by a long press and dragged up or down the list, trading places with each step it passes
+ * halfway over. The gesture stays with the place the press began in, so [drag] says which step is lifted.
+ */
+@Composable
+private fun Modifier.dragged(
+    drag: StepDrag,
+    index: Int,
+    songs: SongState,
+): Modifier {
+    val gap = with(LocalDensity.current) { STEP_GAP.toPx() }
+    var height by remember { mutableIntStateOf(0) }
+    return onSizeChanged { height = it.height }
+        .zIndex(if (drag.step == index) 1f else 0f)
+        .graphicsLayer {
+            if (drag.step == index) {
+                translationY = drag.lift
+                shadowElevation = 8.dp.toPx()
+            }
+        }.pointerInput(Unit) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = {
+                    if (songs.editable) drag.step = index
+                    drag.lift = 0f
+                },
+                onDrag = { change, amount ->
+                    val at = drag.step ?: return@detectDragGesturesAfterLongPress
+                    change.consume()
+                    drag.lift += amount.y
+                    val row = height + gap
+                    val last = songs.song.steps.lastIndex
+                    if (drag.lift > row / 2 && at < last) {
+                        songs.move(at, at + 1)
+                        drag.step = at + 1
+                        drag.lift -= row
+                    } else if (drag.lift < -row / 2 && at > 0) {
+                        songs.move(at, at - 1)
+                        drag.step = at - 1
+                        drag.lift += row
+                    }
+                },
+                onDragEnd = { drag.drop() },
+                onDragCancel = { drag.drop() },
+            )
+        }
+}
+
 /** A dashed outline of [color] with rounded corners. */
 private fun Modifier.dashed(
     color: Color,
@@ -567,5 +623,6 @@ private fun Modifier.dashed(
         )
     }
 
+private val STEP_GAP = 8.dp
 private const val UNREADABLE = 0.6f
 private const val DISABLED = 0.38f
