@@ -28,12 +28,13 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 /**
  * The songs of the panel's amp, kept on the phone in the person's order, and the one open: its tempo and steps,
  * edited and kept as they change, and played from a tap. A bar of [click]s counts it in, unless its count-in is
- * off. While it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the
+ * off, each played the sound output's [lag] ahead of its beat so it is heard on the beat the amp switches on. While it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the
  * tempo lock holds that time across the recalls; no other song can be opened. An amp with no songs opens on an
  * untitled one, kept once it has a step or a name. A song that cannot be read plays nothing, says why in
  * [failure], and is left as it is. The folder is read and written off the main thread, one change at a time.
@@ -44,6 +45,7 @@ class SongState(
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val click: () -> Unit = {},
+    private val lag: suspend () -> Duration = { Duration.ZERO },
 ) {
     private var lists by mutableStateOf(emptyMap<AmpModel, SongList>())
     private var opened by mutableStateOf(emptyMap<AmpModel, String>())
@@ -266,14 +268,17 @@ class SongState(
         val time = song.amp.controls.firstOrNull(Control::timed)
         playing =
             scope.launch {
-                // Measured from the first step, so the count-in runs in negative time.
-                val started = TimeSource.Monotonic.markNow() + song.lead
                 val counts = if (song.countIn) Song.COUNT_IN_BEATS else 0
+                if (counts > 0) countdown = counts
+                val late = if (counts > 0) lag().coerceIn(Duration.ZERO, MOST_LAG) else Duration.ZERO
+                // Measured from the first step, so the count-in runs in negative time.
+                val started = TimeSource.Monotonic.markNow() + song.lead + late
                 repeat(counts) {
                     countdown = counts - it
                     click()
-                    delay(song.beat * (it + 1) - song.lead - started.elapsedNow())
+                    delay(song.beat * (it + 1) - song.lead - late - started.elapsedNow())
                 }
+                delay(-started.elapsedNow())
                 countdown = null
                 var cued = -1
                 while (true) {
@@ -395,6 +400,9 @@ class SongState(
     companion object {
         /** The beats a step is added with: four bars of four, a short part, lengthened from there. */
         const val NEW_STEP_BEATS = 16
+
+        /** The most a click is played ahead of its beat; a sound output slower than this is mismeasured. */
+        private val MOST_LAG = 500.milliseconds
 
         /** The name a copy of an untitled song is set apart from. */
         private const val UNTITLED_COPY = "Untitled song"

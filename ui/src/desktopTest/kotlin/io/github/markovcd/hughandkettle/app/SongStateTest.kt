@@ -33,7 +33,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.test.fail
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
@@ -49,7 +51,7 @@ class SongStateTest {
     private val panel = PanelState(amp, holder, scope, flowOf(null))
     private val store = SongStore(folder.resolve("songs"))
     private val clicks = AtomicInteger()
-    private val songs = SongState(store, panel, scope, Dispatchers.Unconfined) { clicks.incrementAndGet() }
+    private val songs = SongState(store, panel, scope, Dispatchers.Unconfined, click = { clicks.incrementAndGet() })
 
     @AfterTest
     @OptIn(ExperimentalPathApi::class)
@@ -224,6 +226,27 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(4, clicks.get())
         songs.stop()
+    }
+
+    @Test
+    fun `A count-in plays its clicks the sound output's lag ahead, so the first preset comes that much later`() {
+        val heard = ArrayList<Duration>()
+        val began = TimeSource.Monotonic.markNow()
+        val lagging =
+            SongState(store, panel, scope, Dispatchers.Unconfined, { heard += began.elapsedNow() }) { 300.milliseconds }
+        connected()
+        lagging.tempo(400)
+        lagging.add()
+        lagging.start()
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        val switched = began.elapsedNow()
+        lagging.stop()
+        // A bar at 400 BPM is 600 ms and the clicks went 300 ms ahead of it; delay rounds to whole milliseconds.
+        assertEquals(4, heard.size)
+        assertTrue(
+            switched - heard.first() >= 890.milliseconds,
+            "the preset came ${switched - heard.first()} after the first click",
+        )
     }
 
     @Test

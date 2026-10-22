@@ -49,7 +49,7 @@ section becomes a version's section when `release.sh` ships it.
 
 ### Fixes
 
-- The first click of a song's count-in sounds on its beat, not late while the click is loaded.
+- A song's count-in clicks are heard on the beat the amp switches on: the phone plays them ahead by the lag of its sound output, measured at Play.
 - A real WMI-1 is found and reached: its ports are 48437 and 1470, and the link pings it so it stays up and passes on what the amp says.
 - App: a phone on the WMI-1's own WiFi finds and reaches it while mobile data is on.
 - App: asks for Android 17's local network access, without which it cannot reach the WMI-1.
