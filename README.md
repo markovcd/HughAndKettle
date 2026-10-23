@@ -34,24 +34,25 @@ Test reports with a duration per test land in `<module>/build/test-results/test/
 
 ```sh
 hk discover [--seconds N] [--port N] [--first] [--raw]   # hear WMI-1 status broadcasts; one JSON line per box
-hk send <host[:port]> cc <controller> <value> [--channel 1..16] [--keep-open N] [--verbose]
-hk send <host[:port]> pc <program> [--channel 1..16] [--keep-open N] [--verbose]
-hk send <host[:port]> raw <hex bytes> [--keep-open N] [--verbose]
-hk listen <host[:port]> [--seconds N] [--reconnect] [--verbose]  # print every message the amp sends
+# <target> is a WMI-1, <host[:port]>, or a USB MIDI cable plugged into this machine, cable:<name>
+hk send <target> cc <controller> <value> [--channel 1..16] [--keep-open N] [--verbose]
+hk send <target> pc <program> [--channel 1..16] [--keep-open N] [--verbose]
+hk send <target> raw <hex bytes> [--keep-open N] [--verbose]
+hk listen <target> [--seconds N] [--reconnect] [--verbose]  # print every message the amp sends
 hk cable list | send <name> cc|pc|raw ... [--channel 1..16] | listen <name> [--seconds N]  # a USB MIDI cable, no WMI-1
-hk set <host[:port]> <amp-id> <control-id> <0..127 | on | off | option>
-hk set <host[:port]> <amp-id> preset <1..128>
-hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
-hk lock <host[:port]> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay time across preset recalls
-hk trim <host[:port]> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
-hk randomize <host[:port]> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new values behind each effect heard on
+hk set <target> <amp-id> <control-id> <0..127 | on | off | option>
+hk set <target> <amp-id> preset <1..128>
+hk state <target> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
+hk lock <target> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay time across preset recalls
+hk trim <target> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
+hk randomize <target> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new values behind each effect heard on
 hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> | tone:<name>:<beats> ... [--no-count-in]  # takes --name N, --dir D
-hk song play <host[:port]> <amp-id> [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat, delay time at the tempo
-hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
+hk song play <target> <amp-id> [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat, delay time at the tempo
+hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <target> <name>
 hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <name>  # a rename follows into the songs
 hk tone pin <name> | unpin <name>                           # a pinned tone is one the app's − and + step through
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
-hk tone read <host[:port]> <amp-id> [<preset>[-<preset>]] [--replace] [--names D]  # the amp's presets into tones
+hk tone read <target> <amp-id> [<preset>[-<preset>]] [--replace] [--names D]  # the amp's presets into tones
 hk preset list <amp-id> | name <amp-id> <preset> <name> | unname <amp-id> <preset>  # takes --dir D
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast] [--seconds N]
 hk latency [--count N]                                      # send-to-parsed time against a local fake WMI-1

@@ -32,3 +32,11 @@ API 23 that exposes such a cable with no permission prompt, and the JDK carries 
   merges the two; the cable cannot.
 - A cable pulled out mid-song is shown failed and is picked again by hand once plugged back in.
 - The amp is not remembered per cable as it is per WMI-1; the panel keeps whichever amp is picked.
+
+## Amendment (2026-10-23)
+
+Below `ui`, a WMI-1 link and a cable are both an `AmpLink`: `WmiLink` in `wmi`, `JavaCableLink` in `midi`.
+Every `hk` command that drives the amp takes `cable:<name>` where it takes a WMI-1's address, so the
+tempo lock, the trim, songs and randomizing work over a cable from a laptop too. The desktop app opens its
+cables through the same `JavaCableLink`. `hk listen --reconnect` stays a WMI-1's alone: a cable is not
+retried.

@@ -6,24 +6,19 @@ import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.OtherMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.midi.hexToBytes
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Sends one message to a WMI-1 and prints what went out. `--keep-open N` holds the link N seconds
+ * Sends one message to the amp over a WMI-1 or a cable and prints what went out. `--keep-open N` holds the link N seconds
  * afterwards, so a banner or a reply can be read on stderr with `--verbose`.
  */
 public object SendCommand : Command {
     override val name: String = "send"
     override val usage: String =
         """
-        hk send <host[:port]> cc <controller> <value> [--channel 1..16] [--keep-open N] [--verbose]
-        hk send <host[:port]> pc <program> [--channel 1..16] [--keep-open N] [--verbose]
-        hk send <host[:port]> raw <hex bytes> [--keep-open N] [--verbose]
+        hk send ${AmpTarget.USAGE} cc <controller> <value> [--channel 1..16] [--keep-open N] [--verbose]
+        hk send ${AmpTarget.USAGE} pc <program> [--channel 1..16] [--keep-open N] [--verbose]
+        hk send ${AmpTarget.USAGE} raw <hex bytes> [--keep-open N] [--verbose]
         """.trimIndent()
 
     override fun run(
@@ -31,40 +26,23 @@ public object SendCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
+        val target = args.positional.getOrNull(0)?.let(AmpTarget::parse)
         val message = target?.let { message(args.positional.drop(1), args, err) }
         val keepOpen = args.int("keep-open", 0).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || message == null || keepOpen < 0) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val ended = CountDownLatch(1)
-        val lostBecause = AtomicReference<String?>()
         val link =
-            WmiLink
-                .open(
-                    target.host,
-                    target.port,
-                    onBytes = { if (args.flag("verbose")) err.println(Received.line(it)) },
-                    onClosed = { reason ->
-                        lostBecause.set(reason)
-                        ended.countDown()
-                    },
-                ).getOrElse {
-                    err.println("cannot reach ${target.host}:${target.port}: ${it.message}")
-                    return ExitCodes.NO_LINK
-                }
+            QueuedLink
+                .open(target, onBytes = { if (args.flag("verbose")) err.println(Received.line(it)) })
+                .orExit(err, ExitCodes.NO_LINK) { return it }
         link.use {
-            it.send(message).getOrElse { failure ->
-                err.println("send failed: ${failure.message}")
-                return ExitCodes.NO_LINK
-            }
-            out.println(
-                Json.line("host" to target.host, "port" to target.port, *MidiJson.fields(message).toTypedArray()),
-            )
-            ended.await(keepOpen.toLong(), TimeUnit.SECONDS)
+            it.sendAll(listOf(message)).orExit(err, ExitCodes.NO_LINK) { code -> return code }
+            out.println(Json.line(*it.where.toTypedArray(), *MidiJson.fields(message).toTypedArray()))
+            it.hearFor(keepOpen * 1000L) {}
         }
-        lostBecause.get()?.let { err.println("link lost: $it") }
+        link.lost?.let { err.println("link lost: $it") }
         return ExitCodes.OK
     }
 

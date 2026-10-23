@@ -7,15 +7,10 @@ import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneImport
 import io.github.markovcd.hughandkettle.amp.ToneStore
-import io.github.markovcd.hughandkettle.midi.MidiMessage
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.IOException
 import java.io.PrintWriter
 import java.nio.file.Path
-import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 import kotlin.io.path.readBytes
 import kotlin.io.path.writeText
@@ -32,8 +27,8 @@ public object ToneCommand : Command {
         """
         hk tone list [--dir D]
         hk tone save <amp-id> <name> [<control-id>=<value> ...] [--replace] [--dir D]
-        hk tone recall <host[:port]> <name> [--dir D]
-        hk tone read <host[:port]> <amp-id> [<preset>[-<preset>]] [--replace] [--dir D] [--names D]
+        hk tone recall ${AmpTarget.USAGE} <name> [--dir D]
+        hk tone read ${AmpTarget.USAGE} <amp-id> [<preset>[-<preset>]] [--replace] [--dir D] [--names D]
         hk tone rename <name> <new-name> [--dir D] [--songs D]
         hk tone move <name> <position> [--dir D]
         hk tone pin|unpin <name> [--dir D]    (a pinned tone is one the app's − and + step through)
@@ -127,30 +122,18 @@ public object ToneCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = WmiAddress.parse(address)
+        val target = AmpTarget.parse(address)
         if (target == null) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
         val tone = found(store, name, err) ?: return ExitCodes.NOTHING_FOUND
-        val link =
-            WmiLink.open(target.host, target.port).getOrElse {
-                err.println("cannot reach $target: ${it.message}")
-                return ExitCodes.NO_LINK
-            }
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
         val messages = tone.recall()
-        link.use {
-            messages.forEach { message ->
-                it.send(message).getOrElse { failure ->
-                    err.println("send failed: ${failure.message}")
-                    return ExitCodes.NO_LINK
-                }
-            }
-        }
+        link.use { it.sendAll(messages) }.orExit(err, ExitCodes.NO_LINK) { return it }
         out.println(
             Json.line(
-                "host" to target.host,
-                "port" to target.port,
+                *link.where.toTypedArray(),
                 "tone" to tone.name,
                 "amp" to tone.amp.id,
                 "sent" to messages.size,
@@ -170,7 +153,7 @@ public object ToneCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = WmiAddress.parse(rest[0])
+        val target = AmpTarget.parse(rest[0])
         if (target == null) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
@@ -178,29 +161,23 @@ public object ToneCommand : Command {
         val amp = AmpArgument.parse(rest[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val presets = presets(amp, rest.getOrNull(2)).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val names = PresetCommand.store(args).names(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
-        val heard = LinkedBlockingQueue<MidiMessage>()
-        val lostBecause = AtomicReference<String?>()
-        val link =
-            WmiLink
-                .open(target.host, target.port, onMessage = heard::put, onClosed = lostBecause::set)
-                .getOrElse {
-                    err.println("cannot reach $target: ${it.message}")
-                    return ExitCodes.NO_LINK
-                }
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
         var reading = PresetReading.of(names, presets)
         link.use {
             while (true) {
                 val preset = reading.preset ?: break
-                it.send(reading.next!!).getOrElse { failure ->
-                    err.println("send failed: ${failure.message}")
-                    return ExitCodes.NO_LINK
-                }
+                it.sendAll(listOfNotNull(reading.next)).orExit(err, ExitCodes.NO_LINK) { code -> return code }
                 val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(PER_PRESET_SECONDS)
                 while (reading.preset == preset) {
-                    val message = heard.poll(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)
-                    reading = if (message == null) reading.skip() else reading.after(message)
+                    val wait = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
+                    reading =
+                        when (val next = it.next(wait)) {
+                            is QueuedLink.Next.Heard -> reading.after(next.message)
+                            QueuedLink.Next.Quiet -> reading.skip()
+                            QueuedLink.Next.Over -> break
+                        }
                 }
-                lostBecause.get()?.let { reason ->
+                link.lost?.let { reason ->
                     err.println("link lost: $reason")
                     return ExitCodes.NO_LINK
                 }

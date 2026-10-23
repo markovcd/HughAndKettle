@@ -1,12 +1,7 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpState
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Listens to an amp for `--seconds` and prints what it said as one snapshot: the values of the
@@ -15,41 +10,25 @@ import java.util.concurrent.atomic.AtomicReference
  */
 public object StateCommand : Command {
     override val name: String = "state"
-    override val usage: String = "hk state <host[:port]> <amp-id> [--seconds N]"
+    override val usage: String = "hk state ${AmpTarget.USAGE} <amp-id> [--seconds N]"
 
     override fun run(
         args: Options,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
+        val target = args.positional.getOrNull(0)?.let(AmpTarget::parse)
         val seconds = args.int("seconds", DEFAULT_SECONDS).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || args.positional.size != 2 || seconds < 1) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
         val amp = AmpArgument.parse(args.positional[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
-        val state = AtomicReference(AmpState(amp))
-        val ended = CountDownLatch(1)
-        val lostBecause = AtomicReference<String?>()
-        val link =
-            WmiLink
-                .open(
-                    target.host,
-                    target.port,
-                    onMessage = { message -> state.updateAndGet { it.after(message) } },
-                    onClosed = { reason ->
-                        lostBecause.set(reason)
-                        ended.countDown()
-                    },
-                ).getOrElse {
-                    err.println("cannot reach $target: ${it.message}")
-                    return ExitCodes.NO_LINK
-                }
-        link.use { ended.await(seconds.toLong(), TimeUnit.SECONDS) }
-        val heard = state.get()
-        out.println(Json.line("amp" to amp.id, "preset" to heard.preset, "values" to heard.values))
-        val reason = lostBecause.get() ?: return ExitCodes.OK
+        var state = AmpState(amp)
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
+        link.use { it.hearFor(seconds * 1000L) { message -> state = state.after(message) } }
+        out.println(Json.line("amp" to amp.id, "preset" to state.preset, "values" to state.values))
+        val reason = link.lost ?: return ExitCodes.OK
         err.println("link lost: $reason")
         return ExitCodes.NO_LINK
     }

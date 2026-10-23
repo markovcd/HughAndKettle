@@ -54,6 +54,23 @@ class CliTest {
     }
 
     @Test
+    fun `Every command that drives the amp takes a cable, and one no cable matches is no link`() {
+        listOf(
+            listOf("set", "cable:no-such-cable-here", "grandmeister_deluxe_40", "gain", "10"),
+            listOf("send", "cable:no-such-cable-here", "pc", "1"),
+            listOf("state", "cable:no-such-cable-here", "grandmeister_deluxe_40", "--seconds", "1"),
+            listOf("listen", "cable:no-such-cable-here", "--seconds", "1"),
+            listOf("lock", "cable:no-such-cable-here", "grandmeister_deluxe_40", "--seconds", "1"),
+            listOf("trim", "cable:no-such-cable-here", "grandmeister_deluxe_40", "5", "--seconds", "1"),
+            listOf("randomize", "cable:no-such-cable-here", "grandmeister_deluxe_40", "--seconds", "1"),
+        ).forEach { args ->
+            val run = run(*args.toTypedArray())
+            assertEquals(ExitCodes.NO_LINK, run.code, "${args.first()}: ${run.err}")
+            assertTrue("MIDI" in run.err, "${args.first()}: ${run.err}")
+        }
+    }
+
+    @Test
     fun `Sending a control change reaches the WMI-1 and prints one JSON line`() {
         val run = run("send", "127.0.0.1:${fake.port}", "cc", "20", "100", "--channel", "2")
         assertEquals(ExitCodes.OK, run.code, run.err)

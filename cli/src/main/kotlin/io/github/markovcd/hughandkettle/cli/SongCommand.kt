@@ -10,7 +10,6 @@ import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.midi.MidiMessage
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import java.io.IOException
 import java.io.PrintWriter
 import kotlin.io.path.Path
@@ -31,7 +30,7 @@ public object SongCommand : Command {
         hk song list <amp-id> [--dir D]
         hk song show <amp-id> [--name N] [--dir D]
         hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats> ... [--no-count-in] [--name N] [--dir D]
-        hk song play <host[:port]> <amp-id> [--name N] [--dir D] [--tones D]
+        hk song play ${AmpTarget.USAGE} <amp-id> [--name N] [--dir D] [--tones D]
         """.trimIndent()
 
     override fun run(
@@ -99,7 +98,7 @@ public object SongCommand : Command {
             err.println("${amp.id} has no song to play; hk song set makes one")
             return ExitCodes.BAD_ARGUMENTS
         }
-        val target = WmiAddress.parse(rest[0])
+        val target = AmpTarget.parse(rest[0])
         if (target == null) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
@@ -200,7 +199,7 @@ public object SongCommand : Command {
     private fun play(
         song: Song,
         tones: ToneStore,
-        target: WmiAddress,
+        target: AmpTarget,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
@@ -219,15 +218,8 @@ public object SongCommand : Command {
 
         fun ms() = started.elapsedNow().inWholeMilliseconds
         link.use {
-            fun send(messages: List<MidiMessage>): Boolean {
-                for (message in messages) {
-                    it.send(message).getOrElse { failure ->
-                        err.println("send failed: ${failure.message}")
-                        return false
-                    }
-                }
-                return true
-            }
+            fun send(messages: List<MidiMessage>): Boolean =
+                it.sendAll(messages).onFailure { failure -> err.println(failure.message) }.isSuccess
             var next = 0
             var counted = 0
             while (true) {

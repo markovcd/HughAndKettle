@@ -1,10 +1,7 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModel
-import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.midi.MidiMessage
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
-import io.github.markovcd.hughandkettle.wmi.WmiLink
 import java.io.PrintWriter
 
 /** Sets one control of an amp by name, or recalls a preset, and prints what went out. */
@@ -12,8 +9,8 @@ public object SetCommand : Command {
     override val name: String = "set"
     override val usage: String =
         """
-        hk set <host[:port]> <amp-id> <control-id> <0..127 | on | off | option>
-        hk set <host[:port]> <amp-id> preset <1..128>
+        hk set ${AmpTarget.USAGE} <amp-id> <control-id> <0..127 | on | off | option>
+        hk set ${AmpTarget.USAGE} <amp-id> preset <1..128>
         """.trimIndent()
 
     override fun run(
@@ -21,7 +18,7 @@ public object SetCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
+        val target = args.positional.getOrNull(0)?.let(AmpTarget::parse)
         if (target == null || args.positional.size != 4) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
@@ -29,21 +26,11 @@ public object SetCommand : Command {
         val amp = AmpArgument.parse(args.positional[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val (message, fields) =
             setting(amp, args.positional[2], args.positional[3]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
-        val link =
-            WmiLink.open(target.host, target.port).getOrElse {
-                err.println("cannot reach $target: ${it.message}")
-                return ExitCodes.NO_LINK
-            }
-        link.use {
-            it.send(message).getOrElse { failure ->
-                err.println("send failed: ${failure.message}")
-                return ExitCodes.NO_LINK
-            }
-        }
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
+        link.use { it.sendAll(listOf(message)) }.orExit(err, ExitCodes.NO_LINK) { return it }
         out.println(
             Json.line(
-                "host" to target.host,
-                "port" to target.port,
+                *link.where.toTypedArray(),
                 "amp" to amp.id,
                 *fields.toTypedArray(),
                 *MidiJson.fields(message).toTypedArray(),

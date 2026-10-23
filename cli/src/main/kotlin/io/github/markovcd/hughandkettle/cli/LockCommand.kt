@@ -3,7 +3,6 @@ package io.github.markovcd.hughandkettle.cli
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.TempoLock
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import java.io.PrintWriter
 import kotlin.time.TimeSource
 
@@ -15,14 +14,14 @@ import kotlin.time.TimeSource
  */
 public object LockCommand : Command {
     override val name: String = "lock"
-    override val usage: String = "hk lock <host[:port]> <amp-id> [<0..127 | 520ms>] [--seconds N]"
+    override val usage: String = "hk lock ${AmpTarget.USAGE} <amp-id> [<0..127 | 520ms>] [--seconds N]"
 
     override fun run(
         args: Options,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
+        val target = args.positional.getOrNull(0)?.let(AmpTarget::parse)
         val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || args.positional.size !in 2..3 || (seconds != null && seconds < 1)) {
             err.println(usage)
@@ -66,10 +65,7 @@ public object LockCommand : Command {
                     ?.takeIf { it != before }
                     ?.let { value -> print("held", value) }
                 val restore = answered.restored ?: continue
-                it.send(restore).getOrElse { failure ->
-                    err.println("send failed: ${failure.message}")
-                    return ExitCodes.NO_LINK
-                }
+                it.sendAll(listOf(restore)).orExit(err, ExitCodes.NO_LINK) { code -> return code }
                 print("restored", restore.value)
             }
         }

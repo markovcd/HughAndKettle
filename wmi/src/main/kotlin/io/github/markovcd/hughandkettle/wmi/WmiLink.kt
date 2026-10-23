@@ -1,8 +1,8 @@
 package io.github.markovcd.hughandkettle.wmi
 
+import io.github.markovcd.hughandkettle.midi.AmpLink
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.MidiStreamParser
-import java.io.Closeable
 import java.io.IOException
 import java.io.OutputStream
 import java.net.InetSocketAddress
@@ -26,7 +26,7 @@ public class WmiLink private constructor(
     private val onBytes: (ByteArray) -> Unit,
     private val onClosed: (reason: String?) -> Unit,
     private val pingInterval: Duration,
-) : Closeable {
+) : AmpLink {
     private val output: OutputStream = socket.getOutputStream()
     private var closed = false
 
@@ -66,7 +66,7 @@ public class WmiLink private constructor(
             }
         }
 
-    public fun send(message: MidiMessage): Result<Unit> =
+    override fun send(message: MidiMessage): Result<Unit> =
         runCatching {
             synchronized(output) {
                 output.write(message.encode())

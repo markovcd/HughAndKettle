@@ -6,7 +6,6 @@ import io.github.markovcd.hughandkettle.amp.VolumeTrim
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.midi.SystemExclusive
-import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import java.io.PrintWriter
 import kotlin.time.TimeSource
 
@@ -19,14 +18,14 @@ import kotlin.time.TimeSource
  */
 public object TrimCommand : Command {
     override val name: String = "trim"
-    override val usage: String = "hk trim <host[:port]> <amp-id> <-127..127> [--recall N] [--seconds N]"
+    override val usage: String = "hk trim ${AmpTarget.USAGE} <amp-id> <-127..127> [--recall N] [--seconds N]"
 
     override fun run(
         args: Options,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
+        val target = args.positional.getOrNull(0)?.let(AmpTarget::parse)
         val amount = args.positional.getOrNull(2)?.toIntOrNull()
         val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val preset = args.optionalInt("recall").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
@@ -64,16 +63,13 @@ public object TrimCommand : Command {
 
         var answers = RecallAnswers(trim = VolumeTrim.of(volume, amount))
         link.use {
-            fun send(messages: List<MidiMessage>): Boolean {
-                for (message in messages) {
-                    it.send(message).getOrElse { failure ->
-                        err.println("send failed: ${failure.message}")
-                        return false
-                    }
-                    print("direction" to "sent", *MidiJson.fields(message).toTypedArray())
-                }
-                return true
-            }
+            fun send(messages: List<MidiMessage>): Boolean =
+                it
+                    .sendAll(
+                        messages,
+                    ) { message -> print("direction" to "sent", *MidiJson.fields(message).toTypedArray()) }
+                    .onFailure { failure -> err.println(failure.message) }
+                    .isSuccess
             var muteDeadline: Long? = null
             if (recall != null) {
                 val (behind, messages) = answers.recall(recall, mute, muted = false)

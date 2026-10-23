@@ -1,18 +1,17 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.midi.JavaCable
+import io.github.markovcd.hughandkettle.midi.JavaCableLink
 import io.github.markovcd.hughandkettle.midi.JavaCables
 import io.github.markovcd.hughandkettle.midi.MidiStreamParser
 import java.io.PrintWriter
 import java.util.concurrent.CountDownLatch
-import javax.sound.midi.MidiMessage
-import javax.sound.midi.Receiver
 import kotlin.time.TimeSource
 
 /**
  * Drives the amp over a USB MIDI cable plugged into this machine, with no WMI-1: lists the cables,
  * sends one message, or prints every message the amp sends until `--seconds` pass or stdin closes. A
- * cable is named by any part of its name.
+ * cable is named by any part of its name; every other command that drives the amp takes it as `cable:<name>`.
  */
 public object CableCommand : Command {
     override val name: String = "cable"
@@ -90,24 +89,19 @@ public object CableCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val device = cable.toAmp
-        if (device == null) {
+        if (cable.toAmp == null) {
             err.println("${cable.name} takes no messages to send")
             return ExitCodes.NO_LINK
         }
         // A raw message may hold several; each goes out whole, as the parser cuts them.
         val messages = MidiStreamParser().feed(message.encode())
-        runCatching {
-            device.open()
-            try {
-                device.receiver.use { receiver -> messages.forEach { receiver.send(JavaCables.toJava(it), -1) } }
-            } finally {
-                device.close()
+        JavaCableLink
+            .open(cable)
+            .mapCatching { link -> link.use { it.write(message.encode()).getOrThrow() } }
+            .getOrElse {
+                err.println("cannot send on ${cable.name}: ${it.message}")
+                return ExitCodes.NO_LINK
             }
-        }.getOrElse {
-            err.println("cannot send on ${cable.name}: ${it.message}")
-            return ExitCodes.NO_LINK
-        }
         messages.forEach { out.println(Json.line("cable" to cable.name, *MidiJson.fields(it).toTypedArray())) }
         return ExitCodes.OK
     }
@@ -124,34 +118,16 @@ public object CableCommand : Command {
             return ExitCodes.NO_LINK
         }
         val opened = TimeSource.Monotonic.markNow()
-        val parser = MidiStreamParser()
-        val printer =
-            object : Receiver {
-                override fun send(
-                    message: MidiMessage,
-                    timeStamp: Long,
-                ) {
+        val link =
+            JavaCableLink
+                .open(JavaCable(cable.name, cable.description, toAmp = null, fromAmp = device)) { message ->
                     val ms = opened.elapsedNow().inWholeMilliseconds
-                    synchronized(parser) { parser.feed(message.message) }.forEach {
-                        synchronized(out) { out.println(Json.line("ms" to ms, *MidiJson.fields(it).toTypedArray())) }
-                    }
+                    synchronized(out) { out.println(Json.line("ms" to ms, *MidiJson.fields(message).toTypedArray())) }
+                }.getOrElse {
+                    err.println("cannot listen on ${cable.name}: ${it.message}")
+                    return ExitCodes.NO_LINK
                 }
-
-                override fun close() = Unit
-            }
-        runCatching {
-            device.open()
-            device.transmitter.receiver = printer
-        }.getOrElse {
-            device.close()
-            err.println("cannot listen on ${cable.name}: ${it.message}")
-            return ExitCodes.NO_LINK
-        }
-        try {
-            RunLength.await(CountDownLatch(1), seconds)
-        } finally {
-            device.close()
-        }
+        link.use { RunLength.await(CountDownLatch(1), seconds) }
         return ExitCodes.OK
     }
 }
