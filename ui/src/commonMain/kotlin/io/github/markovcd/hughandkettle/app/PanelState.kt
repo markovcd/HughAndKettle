@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
+import io.github.markovcd.hughandkettle.amp.EffectRoll
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.TempoLock
@@ -23,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 import kotlin.time.Duration
 
 /**
@@ -74,6 +76,10 @@ class PanelState(
 
     /** How many recalled presets and channels the trim has moved the volume of, so the panel can show each one. */
     var trimmed by mutableStateOf(0)
+        private set
+
+    /** The last effects randomized, offered for undo until it is taken or a preset is recalled. */
+    var rolled by mutableStateOf<EffectRoll?>(null)
         private set
 
     /** The last box a link reached, offered first. */
@@ -181,6 +187,7 @@ class PanelState(
         state = AmpState(amp)
         moved = emptySet()
         taps = TapTempo()
+        rolled = null
         answers = RecallAnswers(trim = trimFor(amp, trim?.trim ?: 0))
     }
 
@@ -260,6 +267,23 @@ class PanelState(
         answers = answers.copy(lock = if (on) TempoLock(control, state.values[control.id]) else null)
     }
 
+    /** The effects that are on and a randomize would change, its locked time aside. */
+    val rollable: List<Control> get() = EffectRoll.effects(state, lock?.control)
+
+    /** Gives the controls behind every effect that is on new values from [random], all but a locked time. */
+    fun randomize(random: Random = Random.Default) {
+        val roll = EffectRoll.of(state, random, lock?.control) ?: return
+        send(roll.changes)
+        rolled = roll
+    }
+
+    /** Puts back the values the last randomize changed. */
+    fun undoRoll() {
+        val roll = rolled ?: return
+        rolled = null
+        send(roll.undo)
+    }
+
     /** Adds [amount] to the volume of every preset recalled and channel switched to from now on, and to the channel on now. */
     fun trim(amount: Int) {
         val (next, change) = trim?.retrimmed(amount) ?: return
@@ -327,8 +351,10 @@ class PanelState(
 
     private fun transmit(messages: List<MidiMessage>) {
         state = messages.fold(state) { before, message -> before.after(message) }
+        val recalled = messages.any { it is ProgramChange }
+        if (recalled) rolled = null
         moved =
-            if (messages.any { it is ProgramChange }) {
+            if (recalled) {
                 emptySet()
             } else {
                 moved - messages.filterIsInstance<ControlChange>().mapNotNull { amp.controlFor(it) }.toSet()
@@ -351,6 +377,7 @@ class PanelState(
     private fun heard(message: MidiMessage) {
         val before = state
         state = before.after(message)
+        if (message is ProgramChange) rolled = null
         moved =
             if (message is ProgramChange) {
                 emptySet()

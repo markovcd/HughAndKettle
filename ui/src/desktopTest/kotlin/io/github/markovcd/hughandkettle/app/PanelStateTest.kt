@@ -18,12 +18,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -273,6 +276,67 @@ class PanelStateTest {
         until("delay time at 70") { it.state.values["delay_time"] == 70 }
         // An answer goes out as the block is taken in, so one would be on loopback well inside 200 ms.
         assertEquals(null, seen.poll(200, TimeUnit.MILLISECONDS))
+    }
+
+    /** The panel with modulation and delay on, reverb off and every knob behind them at 64. */
+    private fun effectsOn() {
+        val amp = AmpModels.blackSpirit200
+        listOf("modulation" to 127, "delay" to 127, "reverb" to 0).forEach { (id, value) ->
+            panel.set(amp.control(id)!!, value)
+        }
+        amp.controls.filter { it.needs == "modulation" || it.needs == "delay" }.forEach { panel.set(it, 64) }
+    }
+
+    @Test
+    fun `Randomizing changes the effects that are on and leaves the rest alone`() {
+        effectsOn()
+        val before = panel.state.values
+        panel.randomize(Random(5))
+        val changed =
+            panel.state.values
+                .filter { (id, value) -> before[id] != value }
+                .keys
+        assertEquals(setOf("modulation", "delay"), panel.rollable.map { it.id }.toSet())
+        assertTrue(
+            changed.all {
+                AmpModels.blackSpirit200.control(it)!!.needs in setOf("modulation", "delay")
+            },
+            "changed $changed",
+        )
+        assertEquals(
+            before.filterKeys { it in setOf("modulation", "delay", "reverb") },
+            panel.state.values.filterKeys {
+                it in
+                    setOf("modulation", "delay", "reverb")
+            },
+        )
+    }
+
+    @Test
+    fun `Randomizing under a tempo lock keeps the delay time`() {
+        effectsOn()
+        panel.lock(AmpModels.blackSpirit200.control("delay_time")!!, on = true)
+        repeat(20) { panel.randomize(Random(it)) }
+        assertEquals(64, panel.state.values["delay_time"])
+    }
+
+    @Test
+    fun `Undo puts back the values randomizing changed, once`() {
+        effectsOn()
+        val before = panel.state.values
+        panel.randomize(Random(5))
+        panel.undoRoll()
+        assertEquals(before, panel.state.values)
+        assertNull(panel.rolled)
+    }
+
+    @Test
+    fun `A preset recalled after randomizing takes the undo away`() {
+        effectsOn()
+        panel.randomize(Random(5))
+        assertNotNull(panel.rolled)
+        panel.recall(3)
+        assertNull(panel.rolled)
     }
 
     @Test

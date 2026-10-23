@@ -128,6 +128,14 @@
     <string name="effect_switched_off">Off</string>
     <string name="effect_expand">Show %1$s</string>
     <string name="effect_collapse">Hide %1$s</string>
+    <string name="fx_randomize">Randomize effects</string>
+    <string name="fx_randomize_changes">Changes %1$s.</string>
+    <string name="fx_randomize_kept">%1$s stays</string>
+    <string name="fx_randomize_locked">locked.</string>
+    <string name="fx_randomize_none">Turn on an effect to randomize it.</string>
+    <string name="fx_randomized">%1$s randomized</string>
+    <string name="fx_randomize_undo">Undo</string>
+    <string name="names_and">%1$s and %2$s</string>
     <string name="songs">Songs</string>
     <string name="song_untitled">Untitled song</string>
     <string name="song_list_open">Open song list. Open song: %1$s</string>

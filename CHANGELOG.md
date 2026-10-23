@@ -53,6 +53,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: tones are pinned from the Tones tab, which outlines the tone loaded; Ctrl+Up and Ctrl+Down step through the pinned tones and wrap around.
 - App: a song step can be a tone, added in the Tones mode, and a step whose tone was deleted is marked and keeps the sound before it.
 - Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.
+- App: a dice on the FX tab randomizes the effects that are on, keeping a locked delay time, with an undo (`hk randomize`).
 
 ### Fixes
 

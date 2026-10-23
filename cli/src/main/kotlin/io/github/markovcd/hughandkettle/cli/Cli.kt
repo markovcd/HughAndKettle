@@ -14,6 +14,7 @@ public object Cli {
             ListenCommand,
             LockCommand,
             TrimCommand,
+            RandomizeCommand,
             SongCommand,
             CableCommand,
             DiscoverCommand,
@@ -34,6 +35,7 @@ public object Cli {
             "recall",
             "tones",
             "songs",
+            "seed",
         )
 
     public fun run(

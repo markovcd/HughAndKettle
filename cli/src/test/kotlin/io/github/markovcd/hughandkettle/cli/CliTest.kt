@@ -294,6 +294,47 @@ class CliTest {
     }
 
     @Test
+    fun `Randomizing changes the knobs behind the effects heard on and prints how to put them back`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val rolling =
+            started(
+                "randomize",
+                "127.0.0.1:${fake.port}",
+                "black_spirit_200",
+                "--seconds",
+                "1",
+                "--keep-time",
+                "--seed",
+                "4",
+            )
+        assertTrue(next() is FakeWmiEvent.Opened)
+        fake.emit(ControlChange(MidiChannel(1), 53, 127))
+        fake.emit(ControlChange(MidiChannel(1), 27, 50))
+        fake.emit(ControlChange(MidiChannel(1), 52, 0))
+        val run = rolling.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val sent =
+            generateSequence { seen.poll(1, TimeUnit.SECONDS) }
+                .takeWhile { it != FakeWmiEvent.Closed }
+                .mapNotNull { (it as? FakeWmiEvent.Received)?.message as? ControlChange }
+                .toList()
+        assertEquals(listOf(27, 28), sent.map { it.controller })
+        assertTrue(
+            run.out.startsWith("""{"amp":"black_spirit_200","effects":["delay"],"sent":{"delay_feedback":"""),
+            run.out,
+        )
+        assertTrue(run.out.trim().endsWith(""""undo":{"delay_feedback":50}}"""), run.out)
+    }
+
+    @Test
+    fun `Randomizing with no effect heard on sends nothing and exits with the nothing-found code`() {
+        val run = run("randomize", "127.0.0.1:${fake.port}", "black_spirit_200", "--seconds", "1")
+        assertEquals(ExitCodes.NOTHING_FOUND, run.code)
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Closed, next())
+    }
+
+    @Test
     fun `Latency prints the spread of N messages to a fake WMI-1, smallest first`() {
         val run = run("latency", "--count", "20")
         assertEquals(ExitCodes.OK, run.code, run.err)
