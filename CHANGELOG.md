@@ -48,7 +48,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: a song step held down can be dragged to its place among the others.
 - `hk song`: a song step can be a tone as well as a preset (`tone:<name>:<beats>`); a tone renamed is renamed in its songs.
 - `hk tone pin` and `unpin`: pin a tone to the app's header; `hk tone list` says which are pinned.
-- App: one header row on every tab whose − and + step through the presets or the pinned tones, as the menu says and remembers; a tap on it opens the presets by bank or the pinned tones, and Muted or Offline shows beside it.
+- App: one header row on every tab whose − and + step through the presets or the pinned tones, as the menu says and remembers; a tap on it opens the presets by bank or the pinned tones; Offline shows beside it, and a muted amp marks the menu's corner.
 - App: the header's menu holds the amp, the mute, the link and the theme; the desktop's menu bar has the mute and what − and + step through.
 - App: tones are pinned from the Tones tab, which outlines the tone loaded; Ctrl+Up and Ctrl+Down step through the pinned tones and wrap around.
 - App: a song step can be a tone, added in the Tones mode, and a step whose tone was deleted is marked and keeps the sound before it.

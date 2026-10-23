@@ -94,6 +94,7 @@ internal fun TonePicker(
                         ) {
                             Text(
                                 "${index + 1}",
+                                style = MaterialTheme.typography.labelLarge,
                                 color = if (now) colors.primary else colors.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.width(24.dp),

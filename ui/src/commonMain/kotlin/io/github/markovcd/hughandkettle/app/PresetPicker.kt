@@ -191,12 +191,13 @@ private fun PresetTile(
         ) {
             Text(
                 "$preset",
+                style = MaterialTheme.typography.headlineSmall,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
                 color = if (lit) colors.onPrimary else colors.onSurface,
             )
             Text(
                 name ?: stringResource(Res.string.preset_no_name),
+                style = MaterialTheme.typography.bodyMedium,
                 fontSize = 11.sp,
                 fontStyle = if (name == null) FontStyle.Italic else FontStyle.Normal,
                 color = if (lit) colors.onPrimary else colors.onSurfaceVariant,

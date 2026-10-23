@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.longClick
@@ -194,7 +195,7 @@ class SwitcherRowTest {
         }
 
     @Test
-    fun `Offline the chip opens the menu, muted the chip unmutes, and linked the menu disconnects`() =
+    fun `Offline the chip opens the menu, linked the menu mutes and unmutes and disconnects`() =
         runComposeUiTest {
             shown()
             onNodeWithTag("status_offline").performClick()
@@ -204,14 +205,23 @@ class SwitcherRowTest {
             onNodeWithTag("status_linked").assertExists()
             onNodeWithTag("menu_mute").performClick()
             waitUntil("muted", timeoutMillis = 5_000) { mute.isOn(panel.state.values[mute.id] ?: 0) }
-            // Picking the amp it is on already closes the menu, which a tap on the chip would only dismiss.
-            onNodeWithTag("menu_amp").performClick()
-            onNodeWithTag("amp:${amp.id}").performClick()
-            onNodeWithTag("status_muted").performClick()
+            onNodeWithTag("menu_mute").performClick()
             waitUntil("unmuted", timeoutMillis = 5_000) { panel.state.values[mute.id] == 0 }
-            onNodeWithTag("status_muted").assertDoesNotExist()
-            onNodeWithTag("header_menu").performClick()
             onNodeWithTag("menu_connect").performClick()
             waitUntil("idle", timeoutMillis = 5_000) { panel.idle }
+        }
+
+    @Test
+    fun `Muted, the menu's corner shows the mute mark in place of the linked dot, and no chip`() =
+        runComposeUiTest {
+            shown()
+            linked()
+            panel.set(mute, 127)
+            onNode(hasTestTag("status_muted") and hasContentDescription("Muted")).assertExists()
+            onNode(hasTestTag("status_muted") and hasText("Muted")).assertDoesNotExist()
+            onNodeWithTag("status_linked").assertDoesNotExist()
+            panel.set(mute, 0)
+            onNodeWithTag("status_muted").assertDoesNotExist()
+            onNodeWithTag("status_linked").assertExists()
         }
 }

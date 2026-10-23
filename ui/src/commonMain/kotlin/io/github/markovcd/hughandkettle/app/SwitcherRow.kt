@@ -56,11 +56,11 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The header on every tab: − and + around what they step through, the amp's presets or the pinned tones as
- * [mode] says and on while [enabled], a status chip while muted or offline, and the [menu] behind its dots, where the desktop has
- * none. A tap on the middle opens the preset or tone picker; with no tone pinned it goes to the Tones tab
+ * [mode] says and on while [enabled], a chip while offline, and the [menu] behind its dots, where the desktop has
+ * none. While muted, a mute mark takes the linked dot's place on the dots' corner. A tap on the middle opens the preset or tone picker; with no tone pinned it goes to the Tones tab
  * through [onTones]. While a song plays, − and + are off. Tests find the row by `switcher`, its parts by
- * `switcher_prev`, `switcher_next`, `switcher_pick`, `switcher_caption` and `switcher_line`, the chips by
- * `status_muted` and `status_offline`, the menu by `header_menu` and the link dialog by `link_dialog`.
+ * `switcher_prev`, `switcher_next`, `switcher_pick`, `switcher_caption` and `switcher_line`, the mute mark by
+ * `status_muted`, the chip by `status_offline`, the menu by `header_menu` and the link dialog by `link_dialog`.
  */
 @Composable
 fun SwitcherRow(
@@ -108,7 +108,11 @@ fun SwitcherRow(
             }
         }
         StepButton("+", stringResource(Res.string.switcher_next), steps, { step(1) }, "switcher_next")
-        Status(panel, onOffline = { if (menu != null) menuOpen = true })
+        Offline(panel, onOpen = { if (menu != null) menuOpen = true })
+        val mute = panel.amp.control("mute")
+        val muted = linked && mute != null && mute.isOn(panel.state.values[mute.id] ?: 0)
+        // With no menu to carry it, as on the desktop, the mark stands at the end of the row.
+        if (menu == null && muted) MutedMark()
         if (menu != null) {
             Box {
                 val words = stringResource(Res.string.header_menu)
@@ -116,7 +120,9 @@ fun SwitcherRow(
                     onClick = { menuOpen = true },
                     modifier = Modifier.size(44.dp).testTag("header_menu").semantics { contentDescription = words },
                 ) { DotsMark(MaterialTheme.colorScheme.onSurfaceVariant) }
-                if (linked) {
+                if (muted) {
+                    MutedMark(Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp))
+                } else if (linked) {
                     Box(
                         Modifier
                             .align(Alignment.TopEnd)
@@ -188,7 +194,7 @@ private fun PresetMiddle(
     val slot = preset?.let(panel.amp::slotOf)
     Caption(stringResource(Res.string.preset))
     Row(Modifier.testTag("switcher_line"), verticalAlignment = Alignment.CenterVertically) {
-        Text(preset?.toString() ?: "–", fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(preset?.toString() ?: "–", style = MaterialTheme.typography.headlineSmall, fontSize = 24.sp, maxLines = 1)
         val under = name ?: slot?.let { stringResource(Res.string.preset_bank_slot, it.bank, it.slot) }
         under?.let {
             Text(
@@ -229,8 +235,9 @@ private fun ToneMiddle(shelf: ToneShelf) {
                 TabMark(PanelTab.Tones, colors.primary, 18.dp)
                 Text(
                     loaded.name,
+                    style = MaterialTheme.typography.titleLarge,
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -239,6 +246,7 @@ private fun ToneMiddle(shelf: ToneShelf) {
             pinned.isNotEmpty() -> {
                 Text(
                     stringResource(Res.string.switcher_none_loaded),
+                    style = MaterialTheme.typography.bodyMedium,
                     fontSize = 16.sp,
                     fontStyle = FontStyle.Italic,
                     color = colors.onSurfaceVariant,
@@ -249,6 +257,7 @@ private fun ToneMiddle(shelf: ToneShelf) {
             else -> {
                 Text(
                     stringResource(Res.string.switcher_no_pinned),
+                    style = MaterialTheme.typography.bodyMedium,
                     fontSize = 16.sp,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,
@@ -263,61 +272,49 @@ private fun ToneMiddle(shelf: ToneShelf) {
 private fun Caption(text: String) {
     Text(
         text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
         fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         modifier = Modifier.testTag("switcher_caption"),
     )
 }
 
-/** A filled amber chip while muted, a tap away from unmuting; a red one while offline, a tap away from the menu. */
+/** A red chip while offline, a tap away from the menu. */
 @Composable
-private fun Status(
+private fun Offline(
     panel: PanelState,
-    onOffline: () -> Unit,
+    onOpen: () -> Unit,
 ) {
+    if (panel.linked) return
     val colors = MaterialTheme.colorScheme
-    val mute = panel.amp.control("mute")
-    val muted = mute != null && mute.isOn(panel.state.values[mute.id] ?: 0)
-    when {
-        !panel.linked -> {
-            Surface(
-                onClick = onOffline,
-                shape = CircleShape,
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.error),
-                modifier = Modifier.testTag("status_offline"),
-            ) {
-                Text(
-                    stringResource(Res.string.status_offline),
-                    color = colors.error,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                )
-            }
-        }
-
-        muted -> {
-            Surface(
-                onClick = { panel.set(mute, 0) },
-                shape = CircleShape,
-                color = colors.primary,
-                modifier = Modifier.testTag("status_muted"),
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    MuteMark(colors.onPrimary, 16.dp)
-                    Text(
-                        stringResource(Res.string.status_muted),
-                        color = colors.onPrimary,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
-        }
+    Surface(
+        onClick = onOpen,
+        shape = CircleShape,
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.error),
+        modifier = Modifier.testTag("status_offline"),
+    ) {
+        Text(
+            stringResource(Res.string.status_offline),
+            color = colors.error,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
     }
+}
+
+/** The amp muted, at a glance: a small amber disc with the struck speaker in the dark ink. */
+@Composable
+private fun MutedMark(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val words = stringResource(Res.string.status_muted)
+    Box(
+        modifier
+            .size(14.dp)
+            .background(colors.primary, CircleShape)
+            .semantics { contentDescription = words }
+            .testTag("status_muted"),
+        contentAlignment = Alignment.Center,
+    ) { MuteMark(colors.onPrimary, 10.dp) }
 }
