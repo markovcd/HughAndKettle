@@ -23,20 +23,12 @@ public object LockCommand : Command {
         err: PrintWriter,
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
-        val seconds =
-            args.optionalInt("seconds").getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || args.positional.size !in 2..3 || (seconds != null && seconds < 1)) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(args.positional[1]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(args.positional[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val time = amp.controls.firstOrNull(Control::timed)
         val scale = time?.scale
         if (time == null || scale == null) {
@@ -45,16 +37,9 @@ public object LockCommand : Command {
         }
         val given =
             args.positional.getOrNull(2)?.let { text ->
-                ControlValue.parse(time, text).getOrElse {
-                    err.println(it.message)
-                    return ExitCodes.BAD_ARGUMENTS
-                }
+                ControlValue.parse(time, text).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
             }
-        val link =
-            QueuedLink.open(target).getOrElse {
-                err.println(it.message)
-                return ExitCodes.NO_LINK
-            }
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
         link.endAfter(seconds)
         val started = TimeSource.Monotonic.markNow()
 

@@ -28,16 +28,8 @@ public object TrimCommand : Command {
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
         val amount = args.positional.getOrNull(2)?.toIntOrNull()
-        val seconds =
-            args.optionalInt("seconds").getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
-        val preset =
-            args.optionalInt("recall").getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        val preset = args.optionalInt("recall").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || args.positional.size != 3 || (seconds != null && seconds < 1)) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
@@ -46,11 +38,7 @@ public object TrimCommand : Command {
             err.println("a trim takes -127..127, got '${args.positional[2]}'")
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(args.positional[1]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(args.positional[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val volume = amp.control("volume")
         val mute = amp.control("mute")
         if (volume == null || mute == null) {
@@ -65,11 +53,7 @@ public object TrimCommand : Command {
                 }
                 amp.recall(it)
             }
-        val link =
-            QueuedLink.open(target).getOrElse {
-                err.println(it.message)
-                return ExitCodes.NO_LINK
-            }
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
         link.endAfter(seconds)
         val started = TimeSource.Monotonic.markNow()
 

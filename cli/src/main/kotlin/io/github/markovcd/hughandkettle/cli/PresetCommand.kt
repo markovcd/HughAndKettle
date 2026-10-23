@@ -37,18 +37,10 @@ public object PresetCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(rest[0]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(rest[0]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val store = store(args, "dir")
         if (verb == "list") {
-            val names =
-                store.names(amp).getOrElse {
-                    err.println(it.message)
-                    return ExitCodes.BAD_FILE
-                }
+            val names = store.names(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
             names.names.toSortedMap().forEach { (preset, name) ->
                 out.println(
                     Json.line(

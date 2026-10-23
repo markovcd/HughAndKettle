@@ -33,11 +33,7 @@ public object CableCommand : Command {
         val words = args.positional
         if (words == listOf("list")) return list(out, err)
         val part = words.getOrNull(1)
-        val seconds =
-            args.optionalInt("seconds").getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val wanted =
             when (words.firstOrNull()) {
                 "send" -> part != null

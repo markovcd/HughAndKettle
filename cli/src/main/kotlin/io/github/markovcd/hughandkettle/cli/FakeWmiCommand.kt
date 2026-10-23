@@ -20,16 +20,8 @@ public object FakeWmiCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val port =
-            args.int("port", WmiDefaults.MIDI_PORT).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
-        val seconds =
-            args.optionalInt("seconds").getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val port = args.int("port", WmiDefaults.MIDI_PORT).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (seconds != null && seconds < 1) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS

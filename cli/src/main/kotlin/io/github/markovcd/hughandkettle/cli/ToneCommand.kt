@@ -95,11 +95,7 @@ public object ToneCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val amp =
-            AmpArgument.parse(rest[0]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(rest[0]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val values = LinkedHashMap<String, Int>()
         for (pair in rest.drop(2)) {
             val id = pair.substringBefore('=')
@@ -113,10 +109,8 @@ public object ToneCommand : Command {
             values[id] =
                 ControlValue
                     .parse(control, pair.substringAfter('='))
-                    .getOrElse {
-                        err.println(it.message)
-                        return ExitCodes.BAD_ARGUMENTS
-                    }.value
+                    .orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+                    .value
         }
         if (rest[1].isBlank()) {
             err.println("a tone needs a name")
@@ -181,21 +175,9 @@ public object ToneCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(rest[1]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
-        val presets =
-            presets(amp, rest.getOrNull(2)).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
-        val names =
-            PresetCommand.store(args).names(amp).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_FILE
-            }
+        val amp = AmpArgument.parse(rest[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        val presets = presets(amp, rest.getOrNull(2)).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        val names = PresetCommand.store(args).names(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
         val heard = LinkedBlockingQueue<MidiMessage>()
         val lostBecause = AtomicReference<String?>()
         val link =

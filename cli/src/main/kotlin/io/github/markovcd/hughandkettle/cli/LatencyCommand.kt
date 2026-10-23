@@ -22,11 +22,7 @@ public object LatencyCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val count =
-            args.int("count", DEFAULT_COUNT).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val count = args.int("count", DEFAULT_COUNT).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (count !in 1..MAX_COUNT || args.positional.isNotEmpty()) {
             err.println(usage)
             err.println("--count is 1..$MAX_COUNT")

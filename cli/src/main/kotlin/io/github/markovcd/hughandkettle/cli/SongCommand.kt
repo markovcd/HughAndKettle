@@ -53,17 +53,9 @@ public object SongCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(rest[ampAt]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(rest[ampAt]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val store = SongStore(args.value("dir")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "songs"))
-        val list =
-            store.list(amp).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_FILE
-            }
+        val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
         if (verb == "list") {
             list.songs.forEach { print(it, it.name.equals(list.open, ignoreCase = true), out) }
             return ExitCodes.OK
@@ -78,10 +70,8 @@ public object SongCommand : Command {
         if (verb == "set") {
             val song =
                 parse(amp, rest.drop(1), countIn = !args.flag("no-count-in"))
-                    .getOrElse {
-                        err.println(it.message)
-                        return ExitCodes.BAD_ARGUMENTS
-                    }.copy(name = kept?.name ?: named?.trim() ?: "")
+                    .orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+                    .copy(name = kept?.name ?: named?.trim() ?: "")
             store
                 .save(song, replace = true)
                 .mapCatching { if (kept == null) store.open(amp, song.name).getOrThrow() }
@@ -214,11 +204,7 @@ public object SongCommand : Command {
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
-        val link =
-            QueuedLink.open(target).getOrElse {
-                err.println(it.message)
-                return ExitCodes.NO_LINK
-            }
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
         val time = song.delayTime
         var answers =
             RecallAnswers(

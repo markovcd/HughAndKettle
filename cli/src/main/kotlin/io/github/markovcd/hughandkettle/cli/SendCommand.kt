@@ -33,11 +33,7 @@ public object SendCommand : Command {
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
         val message = target?.let { message(args.positional.drop(1), args, err) }
-        val keepOpen =
-            args.int("keep-open", 0).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val keepOpen = args.int("keep-open", 0).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || message == null || keepOpen < 0) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS

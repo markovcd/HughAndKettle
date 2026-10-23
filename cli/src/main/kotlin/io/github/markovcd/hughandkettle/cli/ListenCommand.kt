@@ -25,11 +25,7 @@ public object ListenCommand : Command {
         err: PrintWriter,
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
-        val seconds =
-            args.optionalInt("seconds").getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || (seconds != null && seconds < 1)) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS

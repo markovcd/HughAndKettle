@@ -23,20 +23,12 @@ public object StateCommand : Command {
         err: PrintWriter,
     ): Int {
         val target = args.positional.getOrNull(0)?.let(WmiAddress::parse)
-        val seconds =
-            args.int("seconds", DEFAULT_SECONDS).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val seconds = args.int("seconds", DEFAULT_SECONDS).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (target == null || args.positional.size != 2 || seconds < 1) {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(args.positional[1]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(args.positional[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val state = AtomicReference(AmpState(amp))
         val ended = CountDownLatch(1)
         val lostBecause = AtomicReference<String?>()

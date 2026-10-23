@@ -26,16 +26,9 @@ public object SetCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        val amp =
-            AmpArgument.parse(args.positional[1]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+        val amp = AmpArgument.parse(args.positional[1]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val (message, fields) =
-            setting(amp, args.positional[2], args.positional[3]).getOrElse {
-                err.println(it.message)
-                return ExitCodes.BAD_ARGUMENTS
-            }
+            setting(amp, args.positional[2], args.positional[3]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val link =
             WmiLink.open(target.host, target.port).getOrElse {
                 err.println("cannot reach $target: ${it.message}")
