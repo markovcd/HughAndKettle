@@ -289,7 +289,7 @@ class SongState(
                             panel.lock(time, on = true)
                             locking = true
                         }
-                        panel.cue(song.cue(at.step))
+                        panel.cue(song.cue(at.step) { null })
                         cued = at.step
                     }
                     position = at

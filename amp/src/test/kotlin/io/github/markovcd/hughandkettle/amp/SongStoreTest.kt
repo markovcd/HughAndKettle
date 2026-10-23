@@ -82,6 +82,23 @@ class SongStoreTest {
     }
 
     @Test
+    fun `A tone renamed is renamed in every song of its amp that steps on it, and in no other`() {
+        val lead = SongStep(beats = 8, tone = "Lead solo")
+        store.save(Song(amp, 120, listOf(SongStep(5, 16), lead), name = "A")).getOrThrow()
+        store.save(song("B")).getOrThrow()
+        val written = folder.resolve("songs/${amp.id}/2.json").readText()
+        store.renameTone(amp, "LEAD SOLO", "Solo").getOrThrow()
+        assertEquals(listOf(SongStep(5, 16), lead.copy(tone = "Solo")), list().find("A")?.song?.steps)
+        assertEquals(written, folder.resolve("songs/${amp.id}/2.json").readText())
+    }
+
+    @Test
+    fun `A tone renamed that no song steps on writes nothing`() {
+        store.renameTone(amp, "Lead solo", "Solo").getOrThrow()
+        assertTrue(!folder.resolve("songs").toFile().exists())
+    }
+
+    @Test
     fun `The open song is remembered across a rename and forgotten with its song`() {
         listOf("A", "B").forEach { store.save(song(it)).getOrThrow() }
         store.open(amp, "B").getOrThrow()

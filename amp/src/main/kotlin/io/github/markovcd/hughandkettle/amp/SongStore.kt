@@ -94,6 +94,37 @@ public class SongStore(
             }
         }
 
+    /**
+     * Renames the tone [name] to [to] in every song of [amp] that steps on it; a song that cannot be read is
+     * left alone, and with no song stepping on it nothing is written.
+     */
+    public fun renameTone(
+        amp: AmpModel,
+        name: String,
+        to: String,
+    ): Result<Unit> {
+        val entries = read(amp).getOrElse { return Result.failure(it) }
+        if (entries.none { entry ->
+                entry.kept.song
+                    ?.steps
+                    .orEmpty()
+                    .any { it.isTone(name) }
+            }
+        ) {
+            return Result.success(Unit)
+        }
+        return change(amp) { entries ->
+            Result.success(
+                entries.map { entry ->
+                    val song = entry.kept.song
+                    if (song == null || song.steps.none { it.isTone(name) }) return@map entry
+                    val steps = song.steps.map { if (it.isTone(name)) it.copy(tone = to) else it }
+                    Entry(entry.file, entry.kept.copy(song = song.copy(steps = steps)))
+                },
+            )
+        }
+    }
+
     /** Deletes the song [name], read or not. */
     public fun delete(
         amp: AmpModel,

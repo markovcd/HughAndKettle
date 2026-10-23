@@ -8,6 +8,7 @@ import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TempoLock
+import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import java.io.IOException
@@ -17,10 +18,11 @@ import kotlin.time.TimeSource
 
 /**
  * The songs of each amp model, the way the app keeps them, in a folder, `--dir` or `~/.hk/songs`: a tempo and
- * a run of presets, each held for its beats. `show`, `set` and `play` work on the song `--name` names, else
- * the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then recalls
- * each preset on its beat with the delay time at one repeat a beat, and holds that time across the recalls,
- * as the tempo lock does.
+ * a run of presets and tones, each held for its beats. `show`, `set` and `play` work on the song `--name` names,
+ * else the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then
+ * recalls each preset, or sends each tone kept in `--tones` or `~/.hk/tones`, on its beat with the delay time at
+ * one repeat a beat, and holds that time across the recalls, as the tempo lock does. A step whose tone is
+ * missing sets the delay time alone.
  */
 public object SongCommand : Command {
     override val name: String = "song"
@@ -28,8 +30,8 @@ public object SongCommand : Command {
         """
         hk song list <amp-id> [--dir D]
         hk song show <amp-id> [--name N] [--dir D]
-        hk song set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in] [--name N] [--dir D]
-        hk song play <host[:port]> <amp-id> [--name N] [--dir D]
+        hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats> ... [--no-count-in] [--name N] [--dir D]
+        hk song play <host[:port]> <amp-id> [--name N] [--dir D] [--tones D]
         """.trimIndent()
 
     override fun run(
@@ -112,10 +114,14 @@ public object SongCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        return play(song, target, out, err)
+        return play(song, tones(args), target, out, err)
     }
 
-    /** A song from `<bpm> <preset>:<beats> ...`; anything else is reported, not thrown. */
+    /** The folder of tones [args] point at with `--tones`. */
+    private fun tones(args: Options): ToneStore =
+        ToneStore(args.value("tones")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "tones"))
+
+    /** A song from `<bpm> <preset>:<beats> tone:<name>:<beats> ...`; anything else is reported, not thrown. */
     private fun parse(
         amp: AmpModel,
         words: List<String>,
@@ -130,6 +136,18 @@ public object SongCommand : Command {
                 )
         val steps =
             words.drop(1).map { word ->
+                if (word.startsWith(TONE)) {
+                    val name = word.removePrefix(TONE).substringBeforeLast(':', "").trim()
+                    val beats = word.substringAfterLast(':').toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
+                    if (name.isEmpty() || beats == null) {
+                        return Result.failure(
+                            IllegalArgumentException(
+                                "a tone step is tone:<name>:<beats>, beats 1..${SongStep.MOST_BEATS}, got '$word'",
+                            ),
+                        )
+                    }
+                    return@map SongStep(beats = beats, tone = name)
+                }
                 val parts = word.split(':')
                 val preset = parts.getOrNull(0)?.toIntOrNull()?.takeIf { it in 1..amp.presetCount }
                 val beats = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
@@ -159,9 +177,12 @@ public object SongCommand : Command {
             ),
         )
         song.steps.forEachIndexed { index, step ->
-            out.println(Json.line("step" to index + 1, "preset" to step.preset, "beats" to step.beats))
+            out.println(Json.line("step" to index + 1, sound(step), "beats" to step.beats))
         }
     }
+
+    /** What a step plays, as its line names it: `"preset": 5` or `"tone": "Lead solo"`. */
+    private fun sound(step: SongStep): Pair<String, Any?> = step.tone?.let { "tone" to it } ?: ("preset" to step.preset)
 
     /** One line of the list: the song's name, whether it is open, and its tempo and length, or why it cannot be read. */
     private fun print(
@@ -185,9 +206,10 @@ public object SongCommand : Command {
         }
     }
 
-    /** Plays [song] on the amp behind [target] from now to its last beat, holding its delay time. */
+    /** Plays [song] on the amp behind [target] from now to its last beat, holding its delay time; tones come from [tones]. */
     private fun play(
         song: Song,
+        tones: ToneStore,
         target: WmiAddress,
         out: PrintWriter,
         err: PrintWriter,
@@ -230,14 +252,18 @@ public object SongCommand : Command {
                     continue
                 }
                 if (next < song.steps.size && started.elapsedNow() >= song.startOf(next)) {
-                    val cue = song.cue(next)
+                    val step = song.steps[next]
+                    val tone = step.tone?.let(tones::find)?.takeIf { it.amp == song.amp }
+                    val cue = song.cue(next) { tone }
                     answers = answers.sent(cue)
                     if (!send(cue)) return ExitCodes.NO_LINK
+                    val missing = if (step.tone != null && tone == null) arrayOf("missing" to true) else emptyArray()
                     out.println(
                         Json.line(
                             "ms" to ms(),
                             "step" to next + 1,
-                            "preset" to song.steps[next].preset,
+                            sound(step),
+                            *missing,
                             "delay_ms" to song.delayMs,
                         ),
                     )
@@ -273,4 +299,6 @@ public object SongCommand : Command {
         out.println(Json.line("ms" to ms(), "ended" to true))
         return ExitCodes.OK
     }
+
+    private const val TONE = "tone:"
 }

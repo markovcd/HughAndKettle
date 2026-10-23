@@ -2,6 +2,7 @@ package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.PresetReading
+import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneImport
@@ -22,7 +23,8 @@ import kotlin.io.path.writeText
 /**
  * Keeps tones in a folder, `--dir` or `~/.hk/tones`, the way the app keeps them on the phone: save
  * from values typed as `hk set` takes them, read from the amp's presets, recall onto an amp, list,
- * rename, reorder, delete, and move them between machines as files.
+ * rename, reorder, delete, and move them between machines as files. A tone renamed is renamed in the
+ * steps of the songs in `--songs` or `~/.hk/songs` too.
  */
 public object ToneCommand : Command {
     override val name: String = "tone"
@@ -32,7 +34,7 @@ public object ToneCommand : Command {
         hk tone save <amp-id> <name> [<control-id>=<value> ...] [--replace] [--dir D]
         hk tone recall <host[:port]> <name> [--dir D]
         hk tone read <host[:port]> <amp-id> [<preset>[-<preset>]] [--replace] [--dir D] [--names D]
-        hk tone rename <name> <new-name> [--dir D]
+        hk tone rename <name> <new-name> [--dir D] [--songs D]
         hk tone move <name> <position> [--dir D]
         hk tone delete <name> [--dir D]
         hk tone export <name> <file> [--dir D]
@@ -52,7 +54,7 @@ public object ToneCommand : Command {
                 "save" -> if (rest.size >= 2) save(store, rest, args.flag("replace"), out, err) else null
                 "recall" -> if (rest.size == 2) recall(store, rest[0], rest[1], out, err) else null
                 "read" -> if (rest.size in 2..3) read(store, args, rest, out, err) else null
-                "rename" -> if (rest.size == 2) rename(store, rest[0], rest[1], out, err) else null
+                "rename" -> if (rest.size == 2) rename(store, songs(args), rest[0], rest[1], out, err) else null
                 "move" -> if (rest.size == 2) move(store, rest[0], rest[1], out, err) else null
                 "delete" -> if (rest.size == 1) delete(store, rest[0], out, err) else null
                 "export" -> if (rest.size == 2) export(store, rest[0], Path(rest[1]), out, err) else null
@@ -244,15 +246,22 @@ public object ToneCommand : Command {
         return Result.success((first..last).toList())
     }
 
+    /** The folder of songs [args] point at with `--songs`, whose steps follow a tone renamed. */
+    private fun songs(args: Options): SongStore =
+        SongStore(args.value("songs")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "songs"))
+
+    /** Renames a tone, and the steps on it in every song of its amp. */
     private fun rename(
         store: ToneStore,
+        songs: SongStore,
         name: String,
         to: String,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
         val tone = found(store, name, err) ?: return ExitCodes.NOTHING_FOUND
-        return changed(store.rename(tone.name, to), out, err, "renamed" to tone.name, "to" to to)
+        val renamed = store.rename(tone.name, to).mapCatching { songs.renameTone(tone.amp, tone.name, to).getOrThrow() }
+        return changed(renamed, out, err, "renamed" to tone.name, "to" to to)
     }
 
     private fun move(

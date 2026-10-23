@@ -25,6 +25,7 @@ import kotlin.test.assertTrue
 class ToneCommandTest {
     private val folder: Path = Files.createTempDirectory("hk-tones")
     private val dir = folder.resolve("tones").toString()
+    private val songs = folder.resolve("songs").toString()
     private val seen = LinkedBlockingQueue<FakeWmiEvent>()
     private val fake = FakeWmi(onEvent = seen::put)
 
@@ -44,7 +45,12 @@ class ToneCommandTest {
     private fun run(vararg args: String): Run {
         val out = StringWriter()
         val err = StringWriter()
-        val code = Cli.run(listOf("tone", *args, "--dir", dir), PrintWriter(out, true), PrintWriter(err, true))
+        val code =
+            Cli.run(
+                listOf("tone", *args, "--dir", dir, "--songs", songs),
+                PrintWriter(out, true),
+                PrintWriter(err, true),
+            )
         return Run(code, out.toString(), err.toString())
     }
 
@@ -125,6 +131,26 @@ class ToneCommandTest {
         ok("move", "C", "1")
         ok("delete", "B")
         assertEquals(listOf("C", "Verse"), names())
+    }
+
+    @Test
+    fun `A tone renamed is renamed in the songs that step on it`() {
+        ok("save", "grandmeister_deluxe_40", "Lead", "gain=100")
+        val set =
+            Cli.run(
+                listOf("song", "set", "grandmeister_deluxe_40", "120", "tone:Lead:8", "--dir", songs),
+                PrintWriter(StringWriter(), true),
+                PrintWriter(StringWriter(), true),
+            )
+        assertEquals(ExitCodes.OK, set)
+        ok("rename", "Lead", "Solo")
+        val shown = StringWriter()
+        Cli.run(
+            listOf("song", "show", "grandmeister_deluxe_40", "--dir", songs),
+            PrintWriter(shown, true),
+            PrintWriter(StringWriter(), true),
+        )
+        assertTrue("""{"step":1,"tone":"Solo","beats":8}""" in shown.toString(), shown.toString())
     }
 
     @Test

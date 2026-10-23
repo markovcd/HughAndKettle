@@ -1,6 +1,8 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.Tone
+import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
@@ -25,6 +27,7 @@ import kotlin.test.assertTrue
 class SongCommandTest {
     private val folder: Path = Files.createTempDirectory("hk-songs")
     private val dir = folder.resolve("songs").toString()
+    private val tones = folder.resolve("tones")
     private val seen = LinkedBlockingQueue<FakeWmiEvent>()
     private val fake = FakeWmi(onEvent = seen::put)
     private val time = AmpModels.grandMeisterDeluxe40.control("delay_time")!!
@@ -45,7 +48,12 @@ class SongCommandTest {
     private fun run(vararg args: String): Run {
         val out = StringWriter()
         val err = StringWriter()
-        val code = Cli.run(listOf("song", *args, "--dir", dir), PrintWriter(out, true), PrintWriter(err, true))
+        val code =
+            Cli.run(
+                listOf("song", *args, "--dir", dir, "--tones", tones.toString()),
+                PrintWriter(out, true),
+                PrintWriter(err, true),
+            )
         return Run(code, out.toString(), err.toString())
     }
 
@@ -61,6 +69,52 @@ class SongCommandTest {
                 """{"step":2,"preset":7,"beats":16}""",
             ),
             run("show", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() },
+        )
+    }
+
+    @Test
+    fun `A song of presets and tones reads back with each step's preset or tone`() {
+        assertEquals(ExitCodes.OK, run("set", "grandmeister_deluxe_40", "120", "5:32", "tone:Lead: solo:16").code)
+        assertEquals(
+            listOf(
+                """{"step":1,"preset":5,"beats":32}""",
+                """{"step":2,"tone":"Lead: solo","beats":16}""",
+            ),
+            run("show", "grandmeister_deluxe_40")
+                .out
+                .lines()
+                .filter { it.isNotEmpty() }
+                .drop(1),
+        )
+        val bad = run("set", "grandmeister_deluxe_40", "120", "tone:Lead")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, bad.code)
+        assertTrue("a tone step is tone:<name>:<beats>" in bad.err, bad.err)
+    }
+
+    @Test
+    fun `A song plays a tone step as the tone's values, and a missing tone's as the delay time alone`() {
+        ToneStore(tones).save(Tone("Lead", AmpModels.grandMeisterDeluxe40, mapOf("gain" to 90))).getOrThrow()
+        run("set", "grandmeister_deluxe_40", "400", "tone:Lead:2", "tone:Gone:2", "--no-count-in")
+        val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }
+        val delay = ControlChange(MidiChannel(1), 4, time.scale!!.value(150))
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 56, 90)), next())
+        assertEquals(FakeWmiEvent.Received(delay), next())
+        assertEquals(FakeWmiEvent.Received(delay), next())
+        val run = playing.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val lines =
+            run.out
+                .lines()
+                .filter { it.isNotEmpty() }
+                .map { it.replace(Regex("""^\{"ms":-?\d+,"""), "{") }
+        assertEquals(
+            listOf(
+                """{"step":1,"tone":"Lead","delay_ms":154}""",
+                """{"step":2,"tone":"Gone","missing":true,"delay_ms":154}""",
+                """{"ended":true}""",
+            ),
+            lines,
         )
     }
 

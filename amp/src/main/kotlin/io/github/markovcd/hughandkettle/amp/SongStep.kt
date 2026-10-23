@@ -1,12 +1,18 @@
 package io.github.markovcd.hughandkettle.amp
 
-/** One step of a [Song]: the amp's [preset], counted from 1, held for [beats]. */
+/**
+ * One step of a [Song], held for [beats]: either the amp's [preset], counted from 1, or the [tone] of that
+ * name, kept on the phone. A tone step names its tone; the tone itself may since have been deleted.
+ */
 public data class SongStep(
-    val preset: Int,
+    val preset: Int? = null,
     val beats: Int,
+    val tone: String? = null,
 ) {
     init {
         require(beats in 1..MOST_BEATS) { "a step lasts 1..$MOST_BEATS beats, got $beats" }
+        require((preset == null) != (tone == null)) { "a step is a preset or a tone, got $preset and $tone" }
+        require(tone == null || tone.isNotBlank()) { "a tone step needs the tone's name" }
     }
 
     /** The step held to the end of the next bar of four: 1 and 3 become 4, 4 becomes 8. */
@@ -14,6 +20,9 @@ public data class SongStep(
 
     /** The step held to the end of the bar before, or for one beat once it is a bar or less: 5 and 8 become 4, 4 becomes 1. */
     public fun shorter(): SongStep = copy(beats = maxOf((beats - 1) / BAR * BAR, 1))
+
+    /** Whether this is a step on the tone [name], regardless of case. */
+    public fun isTone(name: String): Boolean = tone.equals(name, ignoreCase = true)
 
     public companion object {
         // A bar of four: the beats a step is lengthened and shortened by.

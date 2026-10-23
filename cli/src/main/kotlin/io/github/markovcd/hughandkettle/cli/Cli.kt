@@ -21,7 +21,20 @@ public object Cli {
             LatencyCommand,
         )
     private val valuedOptions =
-        setOf("channel", "seconds", "port", "name", "broadcast-to", "keep-open", "dir", "count", "names", "recall")
+        setOf(
+            "channel",
+            "seconds",
+            "port",
+            "name",
+            "broadcast-to",
+            "keep-open",
+            "dir",
+            "count",
+            "names",
+            "recall",
+            "tones",
+            "songs",
+        )
 
     public fun run(
         args: List<String>,

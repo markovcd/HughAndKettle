@@ -102,8 +102,8 @@ internal fun SongBeatHero(
                 fontWeight = FontWeight.SemiBold,
                 color = colors.onSurfaceVariant,
             )
-            Text(stringResource(Res.string.song_preset, step.preset), fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            names[step.preset]?.let {
+            Text(songStepTitle(step), fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            step.preset?.let(names::get)?.let {
                 Text(
                     it,
                     fontSize = 14.sp,
@@ -134,7 +134,7 @@ internal fun SongBeatHero(
                 )
             }
             Text(
-                song.steps.getOrNull(at.step + 1)?.let { stringResource(Res.string.song_next, it.preset) }
+                song.steps.getOrNull(at.step + 1)?.let { stringResource(Res.string.song_next, songStepTitle(it)) }
                     ?: stringResource(Res.string.song_last),
                 fontSize = 13.sp,
                 color = colors.onSurfaceVariant,

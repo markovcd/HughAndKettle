@@ -12,9 +12,10 @@ import kotlinx.serialization.json.putJsonArray
  * A [Song] as a file, version 1, kept on the phone and exported as it is:
  *
  * ```json
- * { "version": 1, "amp": "grandmeister_deluxe_40", "name": "Highway Star", "tempo": 120, "count_in": true, "steps": [ { "preset": 5, "beats": 32 } ] }
+ * { "version": 1, "amp": "grandmeister_deluxe_40", "name": "Highway Star", "tempo": 120, "count_in": true, "steps": [ { "preset": 5, "beats": 32 }, { "tone": "Lead solo", "beats": 16 } ] }
  * ```
  *
+ * A step names a preset or a tone. An older reader refuses a song with a tone step as a step with no preset.
  * A file with no `count_in` counts in, and one with no `name` is untitled; an older reader passes over both.
  * The keys are persisted: never renamed.
  */
@@ -30,7 +31,8 @@ public object SongFile {
             putJsonArray("steps") {
                 song.steps.forEach {
                     addJsonObject {
-                        put("preset", it.preset)
+                        it.preset?.let { preset -> put("preset", preset) }
+                        it.tone?.let { tone -> put("tone", tone) }
                         put("beats", it.beats)
                     }
                 }
@@ -81,8 +83,20 @@ public object SongFile {
         val kept =
             steps.mapIndexed { index, element ->
                 val step = element as? JsonObject
-                val preset = step?.int("preset")?.takeIf { it in 1..amp.presetCount }
+                val tone = step?.get("tone")
                 val beats = step?.int("beats")?.takeIf { it in 1..SongStep.MOST_BEATS }
+                if (tone != null) {
+                    val name =
+                        (tone as? JsonPrimitive)?.takeIf { it.isString && it.content.isNotBlank() }?.content
+                            ?: return failure("step ${index + 1} has tone $tone; it is a name")
+                    if (beats == null) {
+                        return failure(
+                            "step ${index + 1} lasts ${step["beats"]} beats; a step lasts 1..${SongStep.MOST_BEATS}",
+                        )
+                    }
+                    return@mapIndexed SongStep(beats = beats, tone = name)
+                }
+                val preset = step?.int("preset")?.takeIf { it in 1..amp.presetCount }
                 if (preset == null) {
                     return failure(
                         "step ${index + 1} has preset ${step?.get("preset")}; ${amp.name} has 1..${amp.presetCount}",

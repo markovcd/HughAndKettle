@@ -1,5 +1,8 @@
 package io.github.markovcd.hughandkettle.amp
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -15,6 +18,19 @@ class SongFileTest {
     fun `A song written reads back as the same song`() {
         val song = Song(amp, 96, listOf(SongStep(5, 32), SongStep(12, 16)), countIn = false, name = "Highway Star")
         assertEquals(song, SongFile.read(SongFile.write(song)).getOrThrow())
+    }
+
+    @Test
+    fun `A song of presets and tones reads back as itself`() {
+        val song = Song(amp, 120, listOf(SongStep(5, 32), SongStep(beats = 16, tone = "Lead solo")), name = "Mixed")
+        assertEquals(song, SongFile.read(SongFile.write(song)).getOrThrow())
+        val written =
+            Json
+                .parseToJsonElement(SongFile.write(song))
+                .jsonObject["steps"]
+                ?.jsonArray
+                ?.get(1)
+        assertEquals(Json.parseToJsonElement("""{ "tone": "Lead solo", "beats": 16 }"""), written)
     }
 
     @Test
@@ -47,6 +63,12 @@ class SongFileTest {
             "step 2 has preset 129" in
                 failure(
                     """{ "version": 1, "amp": "${amp.id}", "tempo": 120, "steps": [ { "preset": 1, "beats": 8 }, { "preset": 129, "beats": 8 } ] }""",
+                ),
+        )
+        assertTrue(
+            "step 1 has tone 3; it is a name" in
+                failure(
+                    """{ "version": 1, "amp": "${amp.id}", "tempo": 120, "steps": [ { "tone": 3, "beats": 8 } ] }""",
                 ),
         )
         assertTrue(

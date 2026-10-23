@@ -105,7 +105,7 @@
     <string name="song_step_of">Step %1$s of %2$s</string>
     <string name="song_of_beats">of %1$s beats</string>
     <string name="song_bar">Bar %1$s</string>
-    <string name="song_next">Next: Preset %1$s</string>
+    <string name="song_next">Next: %1$s</string>
     <string name="song_last">Last step</string>
     <string name="song_held">Tempo lock · delay %1$s ms</string>
     <string name="song_unreadable">The saved song can't be read</string>
@@ -117,7 +117,7 @@
     <string name="song_move_up">Move step %1$s up</string>
     <string name="song_move_down">Move step %1$s down</string>
     <string name="song_count_in_what">A bar of clicks before the first step</string>
-    <string name="song_then">Then Preset %1$s</string>
+    <string name="song_then">Then %1$s</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="section_preamp">Preamp</string>

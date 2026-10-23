@@ -44,10 +44,10 @@ hk set <host[:port]> <amp-id> preset <1..128>
 hk state <host[:port]> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
 hk lock <host[:port]> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay time across preset recalls
 hk trim <host[:port]> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
-hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> ... [--no-count-in]  # takes --name N, --dir D
-hk song play <host[:port]> <amp-id> [--name N]               # count in a bar, then recall each preset on its beat, delay time at the tempo
+hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> | tone:<name>:<beats> ... [--no-count-in]  # takes --name N, --dir D
+hk song play <host[:port]> <amp-id> [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat, delay time at the tempo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
-hk tone rename <name> <new-name> | move <name> <position> | delete <name>
+hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <name>  # a rename follows into the songs
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
 hk tone read <host[:port]> <amp-id> [<preset>[-<preset>]] [--replace] [--names D]  # the amp's presets into tones
 hk preset list <amp-id> | name <amp-id> <preset> <name> | unname <amp-id> <preset>  # takes --dir D

@@ -46,6 +46,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: a song step's beats can be typed and its − and + go to the ends of bars.
 - App and `hk song`: songs are kept by name, many to an amp model, and opened, made, renamed, duplicated, put in order, deleted, exported and imported from a list on the Song tab; the one song kept before opens as "Song 1".
 - App: a song step held down can be dragged to its place among the others.
+- `hk song`: a song step can be a tone as well as a preset (`tone:<name>:<beats>`); a tone renamed is renamed in its songs.
 - Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.
 
 ### Fixes

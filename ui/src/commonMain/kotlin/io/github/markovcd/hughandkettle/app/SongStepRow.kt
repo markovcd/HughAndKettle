@@ -62,7 +62,6 @@ import io.github.markovcd.hughandkettle.ui.song_less
 import io.github.markovcd.hughandkettle.ui.song_more
 import io.github.markovcd.hughandkettle.ui.song_move_down
 import io.github.markovcd.hughandkettle.ui.song_move_up
-import io.github.markovcd.hughandkettle.ui.song_preset
 import io.github.markovcd.hughandkettle.ui.song_remove
 import org.jetbrains.compose.resources.stringResource
 
@@ -114,7 +113,7 @@ internal fun SongStepRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PresetName(step.preset, name, colors.onSurfaceVariant, Modifier.weight(1f))
+        PresetName(songStepTitle(step), name, colors.onSurfaceVariant, Modifier.weight(1f))
         RoundButton(
             up = false,
             description = stringResource(Res.string.song_less, n),
@@ -219,7 +218,7 @@ internal fun PlayedStepRow(
                 }
             }
             PresetName(
-                step.preset,
+                songStepTitle(step),
                 name,
                 if (now) colors.onPrimaryContainer else colors.onSurfaceVariant,
                 Modifier.weight(1f),
@@ -297,16 +296,15 @@ private fun StepNumber(
     ) { content() }
 }
 
-/** "Preset N" in bold with its name under it, or beside it when [inline]. */
+/** A step's [title] in bold with its preset's name under it, or beside it when [inline]. */
 @Composable
 private fun PresetName(
-    preset: Int,
+    title: String,
     name: String?,
     nameColor: Color,
     modifier: Modifier,
     inline: Boolean = false,
 ) {
-    val title = stringResource(Res.string.song_preset, preset)
     if (inline) {
         Row(modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)

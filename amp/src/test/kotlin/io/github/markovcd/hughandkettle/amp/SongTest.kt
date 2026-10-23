@@ -37,7 +37,31 @@ class SongTest {
 
     @Test
     fun `A step starts with its preset, then the delay time at one repeat a beat`() {
-        assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1))
+        assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1) { null })
+    }
+
+    @Test
+    fun `A tone step starts with the tone's values but its delay time, then the song's delay time`() {
+        val lead = Tone("Lead solo", amp, mapOf("gain" to 90, "delay_time" to 10))
+        val song = Song(amp, 120, listOf(SongStep(beats = 4, tone = "Lead solo")))
+        assertEquals(
+            listOf(amp.control("gain")!!.set(90), time.set(time.scale!!.value(500))),
+            song.cue(0) { name ->
+                lead.takeIf {
+                    it.name ==
+                        name
+                }
+            },
+        )
+    }
+
+    @Test
+    fun `A step on a missing tone, or one kept for another amp, cues the delay time alone`() {
+        val song = Song(amp, 120, listOf(SongStep(beats = 4, tone = "Gone")))
+        val other = Tone("Gone", AmpModels.blackSpirit200, emptyMap())
+        val repeat = time.set(time.scale!!.value(500))
+        assertEquals(listOf(repeat), song.cue(0) { null })
+        assertEquals(listOf(repeat), song.cue(0) { other })
     }
 
     @Test
@@ -61,5 +85,7 @@ class SongTest {
         assertFailsWith<IllegalArgumentException> { Song(amp, 120, listOf(SongStep(129, 4))) }
         assertFailsWith<IllegalArgumentException> { Song(amp, 401) }
         assertFailsWith<IllegalArgumentException> { SongStep(5, 0) }
+        assertFailsWith<IllegalArgumentException> { SongStep(5, 4, tone = "Lead solo") }
+        assertFailsWith<IllegalArgumentException> { SongStep(beats = 4) }
     }
 }

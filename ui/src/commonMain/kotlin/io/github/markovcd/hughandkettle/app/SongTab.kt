@@ -131,7 +131,7 @@ fun SongTab(
                     if (song.delayMs != null) SongHeldStrip(song)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         song.steps.forEachIndexed { index, step ->
-                            PlayedStepRow(index + 1, step, names[step.preset], at.step, at.beat)
+                            PlayedStepRow(index + 1, step, step.preset?.let(names::get), at.step, at.beat)
                         }
                     }
                 } else {
@@ -147,7 +147,7 @@ fun SongTab(
                                 SongStepRow(
                                     index + 1,
                                     step,
-                                    names[step.preset],
+                                    step.preset?.let(names::get),
                                     songs.editable,
                                     last = index == song.steps.lastIndex,
                                     onBeats = { songs.beats(index, it) },
@@ -310,7 +310,7 @@ private fun SongCountdown(
                 color = colors.onSurfaceVariant,
             )
             Text(
-                stringResource(Res.string.song_then, song.steps.first().preset),
+                stringResource(Res.string.song_then, songStepTitle(song.steps.first())),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
             )

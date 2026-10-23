@@ -6,8 +6,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * A run of the amp's presets at one [tempo], in beats per minute: each [step] recalls its preset and holds
- * it for its beats, and the delay time is set to one repeat a beat. With [countIn], a bar of clicks comes
+ * A run of the amp's presets and tones at one [tempo], in beats per minute: each [step] recalls its preset or
+ * tone and holds it for its beats, and the delay time is set to one repeat a beat. With [countIn], a bar of clicks comes
  * first. A song kept on the phone has a [name], unique for its amp; a blank one is untitled. The clock is
  * the caller's; a song only says what plays when.
  */
@@ -20,7 +20,7 @@ public data class Song(
 ) {
     init {
         require(tempo in TEMPOS) { "a tempo is ${TEMPOS.first}..${TEMPOS.last} BPM, got $tempo" }
-        val outside = steps.map(SongStep::preset).filter { it !in 1..amp.presetCount }
+        val outside = steps.mapNotNull(SongStep::preset).filter { it !in 1..amp.presetCount }
         require(outside.isEmpty()) { "${amp.name} has presets 1..${amp.presetCount}, not $outside" }
     }
 
@@ -71,8 +71,27 @@ public data class Song(
                 ?.amount(time.value)
         }
 
-    /** The messages that start [step]: its preset, then the delay time, so the preset's own gives way to the song's. */
-    public fun cue(step: Int): List<MidiMessage> = listOfNotNull(amp.recall(steps[step].preset), delayTime)
+    /**
+     * The messages that start [step]: its preset, or the values of its tone found by [tone], then the delay
+     * time, so the preset's own gives way to the song's and the tone's is never sent. A tone missing, or kept
+     * for another amp, cues the delay time alone, and the step before keeps sounding.
+     */
+    public fun cue(
+        step: Int,
+        tone: (String) -> Tone?,
+    ): List<MidiMessage> {
+        val at = steps[step]
+        val time = delayTime
+        val sound =
+            at.preset?.let { listOf(amp.recall(it)) }
+                ?: at.tone
+                    ?.let(tone)
+                    ?.takeIf { it.amp == amp }
+                    ?.recall()
+                    ?.filterNot { time != null && it.controller == time.controller }
+                    .orEmpty()
+        return sound + listOfNotNull(time)
+    }
 
     public companion object {
         /** The tempos a song takes, in beats per minute. */
