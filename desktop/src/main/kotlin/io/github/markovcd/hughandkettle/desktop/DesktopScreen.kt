@@ -3,8 +3,8 @@ package io.github.markovcd.hughandkettle.desktop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.app.DiscoveryState
+import io.github.markovcd.hughandkettle.app.PanelScreen
 import io.github.markovcd.hughandkettle.app.PanelState
 import io.github.markovcd.hughandkettle.app.PresetNamesState
 import io.github.markovcd.hughandkettle.app.SongState
@@ -16,27 +16,12 @@ class DesktopScreen(
     app: DesktopApp,
     scope: CoroutineScope,
 ) {
-    val panel: PanelState =
-        PanelState(
-            AmpModels.all.first(),
-            app.link,
-            scope,
-            app.home.lastWmi.last,
-            app.home.amps.choices,
-            app.home.amps::remember,
-        )
-    val discovery: DiscoveryState = DiscoveryState()
-    val presetNames: PresetNamesState = PresetNamesState(app.home.presetNames, panel, scope)
-    val songs: SongState = SongState(app.home.songs, panel, scope, click = app.click::play, tones = { shelf.tones })
-    val shelf: ToneShelf =
-        ToneShelf(
-            app.home.tones,
-            panel,
-            scope,
-            heard = app.link.heard,
-            names = { presetNames.names },
-            renamed = songs::renameTone,
-        )
+    private val screen = PanelScreen(app.home, app.link, scope, DiscoveryState(), click = app.click::play)
+    val panel: PanelState = screen.panel
+    val discovery: DiscoveryState = screen.discovery
+    val presetNames: PresetNamesState = screen.presetNames
+    val songs: SongState = screen.songs
+    val shelf: ToneShelf = screen.shelf
     val commands: DesktopCommands = DesktopCommands(panel, shelf, songs)
 }
 

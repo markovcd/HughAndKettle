@@ -109,8 +109,7 @@ fun SwitcherRow(
         }
         StepButton("+", stringResource(Res.string.switcher_next), steps, { step(1) }, "switcher_next")
         Offline(panel, onOpen = { if (menu != null) menuOpen = true })
-        val mute = panel.amp.control("mute")
-        val muted = linked && mute != null && mute.isOn(panel.state.values[mute.id] ?: 0)
+        val muted = linked && panel.muted
         // With no menu to carry it, as on the desktop, the mark stands at the end of the row.
         if (menu == null && muted) MutedMark()
         if (menu != null) {

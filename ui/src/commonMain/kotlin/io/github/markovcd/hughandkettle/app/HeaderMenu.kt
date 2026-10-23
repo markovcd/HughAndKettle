@@ -113,12 +113,12 @@ fun ColumnScope.HeaderMenu(
             ) { Text(stringResource(choice.label), maxLines = 1) }
         }
     }
-    panel.amp.control("mute")?.let { mute ->
-        val on = mute.isOn(panel.state.values[mute.id] ?: 0)
+    if (panel.mutable) {
+        val on = panel.muted
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable(enabled = panel.linked) { panel.set(mute, if (on) 0 else 127) }
+                .clickable(enabled = panel.linked) { panel.mute(!on) }
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .testTag("menu_mute"),
             horizontalArrangement = Arrangement.spacedBy(12.dp),

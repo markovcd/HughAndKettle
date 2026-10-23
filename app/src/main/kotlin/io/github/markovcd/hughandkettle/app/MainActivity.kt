@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import io.github.markovcd.hughandkettle.R
-import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.app.theme.HughAndKettleTheme
 import kotlinx.coroutines.launch
 
@@ -35,60 +34,32 @@ class MainActivity : ComponentActivity() {
         setContent {
             val scope = rememberCoroutineScope()
             val app = application as HughAndKettleApplication
-            val panel =
+            val screen =
                 remember {
-                    PanelState(
-                        AmpModels.all.first(),
+                    PanelScreen(
+                        app.home,
                         app.link,
                         scope,
-                        app.home.lastWmi.last,
-                        app.home.amps.choices,
-                        app.home.amps::remember,
+                        DiscoveryState(wifi = app.wifi.network, rereadWifi = app.wifi::reread),
+                        click = app.click::play,
+                        lag = app.click::lag,
                     )
                 }
-            val discovery = remember { DiscoveryState(wifi = app.wifi.network, rereadWifi = app.wifi::reread) }
-            val presetNames = remember { PresetNamesState(app.home.presetNames, panel, scope) }
-            val (songs, shelf) =
-                remember {
-                    lateinit var songs: SongState
-                    val shelf =
-                        ToneShelf(
-                            app.home.tones,
-                            panel,
-                            scope,
-                            heard = app.link.heard,
-                            names = { presetNames.names },
-                            renamed = { tone, to -> songs.renameTone(tone, to) },
-                        )
-                    // The shelf hands renames to the songs, and the songs look tones up on the shelf.
-                    songs =
-                        SongState(
-                            app.home.songs,
-                            panel,
-                            scope,
-                            click = app.click::play,
-                            lag = app.click::lag,
-                            tones = { shelf.tones },
-                        )
-                    songs to shelf
-                }
+            val panel = screen.panel
             val theme by app.home.theme.choice
                 .collectAsState(initial = ThemeChoice.Dark)
             val mode by app.home.switcher.mode
                 .collectAsState(initial = SwitcherMode.Presets)
             AskForLocalNetwork()
             AskForNotifications(linked = !panel.idle)
-            HughAndKettleTheme(
-                dark =
-                    theme == ThemeChoice.Dark || (theme == ThemeChoice.System && isSystemInDarkTheme()),
-            ) {
+            HughAndKettleTheme(dark = theme.dark(isSystemInDarkTheme())) {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
                     AmpPanel(
                         panel,
-                        discovery,
-                        shelf,
-                        presetNames,
-                        songs,
+                        screen.discovery,
+                        screen.shelf,
+                        screen.presetNames,
+                        screen.songs,
                         theme,
                         onTheme = { scope.launch { app.home.theme.pick(it) } },
                         mode,

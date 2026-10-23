@@ -16,7 +16,7 @@ fun DesktopPanel(
     theme: ThemeChoice,
     mode: SwitcherMode,
 ) {
-    HughAndKettleTheme(dark = theme == ThemeChoice.Dark || (theme == ThemeChoice.System && isSystemInDarkTheme())) {
+    HughAndKettleTheme(dark = theme.dark(isSystemInDarkTheme())) {
         Surface(Modifier.fillMaxSize()) {
             DesktopLayout(screen.panel, screen.discovery, screen.shelf, screen.presetNames, screen.songs, mode)
         }

@@ -72,6 +72,20 @@ class PanelStateTest {
     }
 
     @Test
+    fun `Muting sends the amp's Mute switch, and muted follows the switch as set and as heard`() {
+        connected()
+        val mute = AmpModels.blackSpirit200.control("mute")!!
+        assertEquals(false, panel.muted)
+
+        panel.mute(true)
+
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 127)), nextSeen())
+        assertEquals(true, panel.muted)
+        fake.emit(ControlChange(MidiChannel(1), mute.controller, 0))
+        until("unmuted by the amp") { !it.muted }
+    }
+
+    @Test
     fun `A control moved on a connected panel reaches the WMI-1`() {
         connected()
         panel.set(gain, 100)

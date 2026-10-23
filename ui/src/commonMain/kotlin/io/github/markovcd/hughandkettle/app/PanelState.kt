@@ -245,6 +245,17 @@ class PanelState(
         value: Int,
     ) = send(control.set(value))
 
+    /** Whether the amp has a Mute switch to mute it by. */
+    val mutable: Boolean get() = amp.control("mute") != null
+
+    /** Whether the amp is muted, by its Mute switch as last set or heard; never for an amp with none. */
+    val muted: Boolean get() = amp.control("mute")?.let { it.isOn(state.values[it.id] ?: 0) } == true
+
+    /** Mutes or unmutes the amp by its Mute switch, when it has one. */
+    fun mute(on: Boolean) {
+        amp.control("mute")?.let { set(it, if (on) MUTE_ON else 0) }
+    }
+
     /**
      * A tap on [control]'s beat at [at], from any fixed point; from the second tap on, the knob moves to
      * the beat, as near as its scale reaches.
@@ -318,9 +329,7 @@ class PanelState(
         recall: ProgramChange,
         then: List<MidiMessage>,
     ) {
-        val mute = amp.control("mute")
-        val muted = mute != null && state.values[mute.id]?.let(mute::isOn) == true
-        val (next, messages) = answers.recall(recall, mute, muted, then)
+        val (next, messages) = answers.recall(recall, amp.control("mute"), muted, then)
         answers = next
         // One transmit, so the recall and what follows it reach the amp in order.
         transmit(messages)
@@ -402,4 +411,9 @@ class PanelState(
                 it.controller ==
                     change.controller
             }?.id
+
+    private companion object {
+        // A switch reads on from 64; the amp's own footswitch sends 127.
+        const val MUTE_ON = 127
+    }
 }

@@ -21,6 +21,9 @@ enum class ThemeChoice(
 
     fun write(): String = "$VERSION $id"
 
+    /** Whether this choice wears the dark colors, given whether the system is [systemDark]. */
+    fun dark(systemDark: Boolean): Boolean = this == Dark || (this == System && systemDark)
+
     companion object {
         const val VERSION: Int = 1
 
