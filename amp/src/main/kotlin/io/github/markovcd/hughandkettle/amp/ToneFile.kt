@@ -2,6 +2,7 @@ package io.github.markovcd.hughandkettle.amp
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
@@ -14,6 +15,7 @@ import kotlinx.serialization.json.putJsonObject
  * ```
  *
  * Values are the raw 0..127 a control is sent, so a selector option renamed later still reads back.
+ * A pinned tone adds `"pinned": true`; a file without it is unpinned, and an older reader passes over it.
  * The keys are persisted: never renamed.
  */
 public object ToneFile {
@@ -23,6 +25,7 @@ public object ToneFile {
         JsonFile.write(VERSION) {
             put("amp", tone.amp.id)
             put("name", tone.name)
+            if (tone.pinned) put("pinned", true)
             putJsonObject("values") {
                 tone.amp.controls.forEach { control -> tone.values[control.id]?.let { put(control.id, it) } }
             }
@@ -38,6 +41,17 @@ public object ToneFile {
         val amp = AmpModels.byId(ampId) ?: return failure("is for amp '$ampId', which this version does not know")
         val name = JsonFile.string(root, "name")?.takeIf { it.isNotBlank() } ?: return failure("has no name")
         val values = root["values"] as? JsonObject ?: return failure("has no values")
+        val pinned =
+            when (val given = root["pinned"]) {
+                null -> {
+                    false
+                }
+
+                else -> {
+                    (given as? JsonPrimitive)?.takeUnless { it.isString }?.booleanOrNull
+                        ?: return failure("has pinned $given; it is true or false")
+                }
+            }
         val kept = LinkedHashMap<String, Int>()
         val skipped = ArrayList<String>()
         for ((id, element) in values) {
@@ -48,7 +62,7 @@ public object ToneFile {
                 else -> kept[id] = value
             }
         }
-        return Result.success(ToneRead(Tone(name, amp, kept), skipped))
+        return Result.success(ToneRead(Tone(name, amp, kept, pinned), skipped))
     }
 
     private fun failure(why: String): Result<ToneRead> = Result.failure(IllegalArgumentException("the tone file $why"))

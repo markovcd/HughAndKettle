@@ -31,7 +31,7 @@ public class ToneStore(
 
     public fun find(name: String): Tone? = read().first.let { it.getOrNull(it.indexOfName(name)) }?.tone
 
-    /** Saves [tone] at the end of the list, or in place of the tone of the same name when [replace] is set. */
+    /** Saves [tone] at the end of the list, or in place of the tone of the same name, keeping its pin, when [replace] is set. */
     public fun save(
         tone: Tone,
         replace: Boolean = false,
@@ -48,7 +48,7 @@ public class ToneStore(
                 val index = entries.indexOfName(tone.name)
                 when {
                     index < 0 -> Result.success(entries + Entry(nextFile(entries), tone))
-                    replace -> Result.success(entries.replaced(index, tone))
+                    replace -> Result.success(entries.replaced(index, tone.copy(pinned = entries[index].tone.pinned)))
                     else -> refused("a tone named '${entries[index].tone.name}' exists")
                 }
             }
@@ -66,6 +66,20 @@ public class ToneStore(
                 to.isBlank() -> refused("a tone needs a name")
                 taken >= 0 && taken != index -> refused("a tone named '${entries[taken].tone.name}' exists")
                 else -> Result.success(entries.replaced(index, entries[index].tone.copy(name = to)))
+            }
+        }
+
+    /** Pins the tone [name] to the header, or unpins it. */
+    public fun pin(
+        name: String,
+        on: Boolean,
+    ): Result<Unit> =
+        change { entries ->
+            val index = entries.indexOfName(name)
+            if (index < 0) {
+                refused("there is no tone named '$name'")
+            } else {
+                Result.success(entries.replaced(index, entries[index].tone.copy(pinned = on)))
             }
         }
 

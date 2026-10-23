@@ -30,7 +30,16 @@ class ToneFileTest {
         assertEquals(amp, read.tone.amp)
         assertEquals(72, read.tone.values["gain"])
         assertEquals(9, read.tone.values.size)
+        assertEquals(false, read.tone.pinned)
         assertEquals(emptyList(), read.skipped)
+    }
+
+    @Test
+    fun `A pinned tone reads back pinned, and a pin that is not true or false is refused`() {
+        val tone = Tone("Lead", amp, mapOf("gain" to 90), pinned = true)
+        assertEquals(ToneRead(tone, emptyList()), read(ToneFile.write(tone)).getOrThrow())
+        val text = """{"version": 1, "amp": "black_spirit_200", "name": "x", "pinned": "yes", "values": {}}"""
+        assertTrue("has pinned \"yes\"" in why(text), why(text))
     }
 
     @Test

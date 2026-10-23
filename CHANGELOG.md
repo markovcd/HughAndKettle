@@ -47,6 +47,7 @@ section becomes a version's section when `release.sh` ships it.
 - App and `hk song`: songs are kept by name, many to an amp model, and opened, made, renamed, duplicated, put in order, deleted, exported and imported from a list on the Song tab; the one song kept before opens as "Song 1".
 - App: a song step held down can be dragged to its place among the others.
 - `hk song`: a song step can be a tone as well as a preset (`tone:<name>:<beats>`); a tone renamed is renamed in its songs.
+- `hk tone pin` and `unpin`: pin a tone to the app's header; `hk tone list` says which are pinned.
 - Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.
 
 ### Fixes

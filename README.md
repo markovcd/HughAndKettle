@@ -48,6 +48,7 @@ hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> | to
 hk song play <host[:port]> <amp-id> [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat, delay time at the tempo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <host[:port]> <name>
 hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <name>  # a rename follows into the songs
+hk tone pin <name> | unpin <name>                           # a pinned tone is one the app's − and + step through
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
 hk tone read <host[:port]> <amp-id> [<preset>[-<preset>]] [--replace] [--names D]  # the amp's presets into tones
 hk preset list <amp-id> | name <amp-id> <preset> <name> | unname <amp-id> <preset>  # takes --dir D

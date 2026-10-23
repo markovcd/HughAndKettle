@@ -75,7 +75,7 @@ class ToneCommandTest {
             saved,
         )
         assertEquals(
-            """{"position":1,"name":"Rhythm","amp":"black_spirit_200","values":{"channel":47,"boost":127,"gain":40}}""",
+            """{"position":1,"name":"Rhythm","amp":"black_spirit_200","values":{"channel":47,"boost":127,"gain":40},"pinned":false}""",
             ok("list"),
         )
     }
@@ -131,6 +131,15 @@ class ToneCommandTest {
         ok("move", "C", "1")
         ok("delete", "B")
         assertEquals(listOf("C", "Verse"), names())
+    }
+
+    @Test
+    fun `A tone pinned lists as pinned until it is unpinned`() {
+        ok("save", "black_spirit_200", "Lead", "gain=1")
+        assertEquals("""{"name":"Lead","pinned":true}""", ok("pin", "lead"))
+        assertTrue(ok("list").endsWith(""""pinned":true}"""))
+        ok("unpin", "Lead")
+        assertTrue(ok("list").endsWith(""""pinned":false}"""))
     }
 
     @Test

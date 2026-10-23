@@ -81,6 +81,18 @@ class ToneStoreTest {
     }
 
     @Test
+    fun `A pinned tone stays pinned across a rename and a save that replaces it, until it is unpinned`() {
+        saved("A", "B")
+        store.pin("a", on = true).getOrThrow()
+        store.rename("A", "Verse").getOrThrow()
+        store.save(tone("Verse", gain = 5), replace = true).getOrThrow()
+        assertEquals(listOf(true, false), store.list().tones.map { it.pinned })
+        store.pin("Verse", on = false).getOrThrow()
+        assertEquals(listOf(false, false), store.list().tones.map { it.pinned })
+        assertTrue(store.pin("Gone", on = true).isFailure)
+    }
+
+    @Test
     fun `A deleted tone leaves the list and its file goes`() {
         saved("Rhythm", "Lead")
         store.delete("Rhythm").getOrThrow()

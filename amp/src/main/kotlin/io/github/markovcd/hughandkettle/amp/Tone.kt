@@ -5,12 +5,14 @@ import io.github.markovcd.hughandkettle.midi.MidiChannel
 
 /**
  * A named set of control values for one amp model, kept on the phone or by `hk` rather than in one of
- * the amp's presets. It holds only the values that were known when it was saved.
+ * the amp's presets. It holds only the values that were known when it was saved. A [pinned] tone is one
+ * the header's − and + step through.
  */
 public data class Tone(
     val name: String,
     val amp: AmpModel,
     val values: Map<String, Int>,
+    val pinned: Boolean = false,
 ) {
     init {
         require(name.isNotBlank()) { "a tone needs a name" }
