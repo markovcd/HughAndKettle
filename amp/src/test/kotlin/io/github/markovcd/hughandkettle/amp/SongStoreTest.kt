@@ -164,4 +164,36 @@ class SongStoreTest {
         assertEquals("Encore 3", list().apart("Encore"))
         assertEquals("Slow blues", list().apart("Slow blues"))
     }
+
+    @Test
+    fun `A move past either end or of a song not kept is refused and changes nothing`() {
+        listOf("A", "B").forEach { store.save(song(it)).getOrThrow() }
+        assertTrue(store.move(amp, "A", 3).isFailure)
+        assertTrue(store.move(amp, "A", 0).isFailure)
+        assertTrue(store.move(amp, "Z", 1).isFailure)
+        assertTrue(store.delete(amp, "Z").isFailure)
+        assertEquals(listOf("A", "B"), names())
+    }
+
+    @Test
+    fun `Without a readable order file the songs fall back to name order`() {
+        listOf("b", "C", "a").forEach { store.save(song(it)).getOrThrow() }
+        file("${amp.id}/order", "99\n3.json\n")
+        assertEquals(listOf("a", "b", "C"), names())
+        file("${amp.id}/order", "1\n2.json\n")
+        assertEquals(listOf("C", "a", "b"), names())
+    }
+
+    @Test
+    fun `A song file dropped into the folder by hand is listed after the ordered ones`() {
+        store.save(song("Encore")).getOrThrow()
+        file("${amp.id}/by-hand.json", SongFile.write(song("Acoustic")))
+        assertEquals(listOf("Encore", "Acoustic"), names())
+    }
+
+    @Test
+    fun `A folder that cannot be written is a failure, not a throw`() {
+        folder.resolve("blocked").writeText("a file where the folder should be")
+        assertTrue(SongStore(folder.resolve("blocked")).save(song("Encore")).isFailure)
+    }
 }

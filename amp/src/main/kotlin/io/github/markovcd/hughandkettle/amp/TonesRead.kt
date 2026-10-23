@@ -14,10 +14,7 @@ public data class TonesRead(
         val used = taken.mapTo(HashSet()) { it.lowercase() }
         val named =
             tones.map { tone ->
-                val name =
-                    generateSequence(1) { it + 1 }
-                        .map { if (it == 1) tone.name else "${tone.name} $it" }
-                        .first { it.lowercase() !in used }
+                val name = FreeName.of(tone.name) { it.lowercase() in used }
                 used += name.lowercase()
                 tone.copy(name = name)
             }

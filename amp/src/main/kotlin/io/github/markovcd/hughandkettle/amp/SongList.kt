@@ -12,8 +12,5 @@ public data class SongList(
     public fun find(name: String): KeptSong? = songs.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
     /** [name], or the first of "[name] 2", "[name] 3" and on that no song here has. */
-    public fun apart(name: String): String =
-        generateSequence(1) { it + 1 }
-            .map { if (it == 1) name else "$name $it" }
-            .first { find(it) == null }
+    public fun apart(name: String): String = FreeName.of(name) { find(it) != null }
 }

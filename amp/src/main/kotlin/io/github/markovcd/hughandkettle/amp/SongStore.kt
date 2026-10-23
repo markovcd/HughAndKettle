@@ -4,10 +4,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
-import kotlin.io.path.isRegularFile
-import kotlin.io.path.listDirectoryEntries
-import kotlin.io.path.name
-import kotlin.io.path.readLines
 import kotlin.io.path.readText
 
 /**
@@ -23,11 +19,6 @@ import kotlin.io.path.readText
 public class SongStore(
     private val folder: Path,
 ) {
-    private data class Entry(
-        val file: String,
-        val kept: KeptSong,
-    )
-
     public fun list(amp: AmpModel): Result<SongList> {
         val carried =
             try {
@@ -37,10 +28,11 @@ public class SongStore(
                     IOException("cannot carry over ${folder.resolve("${amp.id}.json")}: ${e.message}", e),
                 )
             }
-        val entries = read(amp).getOrElse { return Result.failure(it) }
-        val open = readLines(amp, OPEN).firstOrNull()
+        val songs = folderOf(amp)
+        val entries = songs.read().getOrElse { return Result.failure(it) }.entries
+        val open = songs.lines(OPEN).firstOrNull()
         return Result.success(
-            SongList(entries.map { it.kept }, entries.firstOrNull { it.file == open }?.kept?.name, carried),
+            SongList(entries.map { it.item }, entries.firstOrNull { it.file == open }?.item?.name, carried),
         )
     }
 
@@ -51,48 +43,51 @@ public class SongStore(
     public fun save(
         song: Song,
         replace: Boolean = false,
-    ): Result<Unit> =
-        change(song.amp) { entries ->
-            val index = entries.indexOfName(song.name)
+    ): Result<Unit> {
+        val songs = folderOf(song.amp)
+        return songs.change { entries ->
+            val index = songs.indexOf(entries, song.name)
             val kept = KeptSong(song.name, song, null)
             when {
                 index < 0 -> {
-                    Result.success(entries + Entry(nextFile(song.amp, entries), kept))
+                    Result.success(songs.added(entries, kept))
                 }
 
-                entries[index].kept.song == null -> {
-                    refused(
-                        "'${entries[index].kept.name}' cannot be read, so it is not written over",
+                entries[index].item.song == null -> {
+                    songs.refused(
+                        "'${entries[index].item.name}' cannot be read, so it is not written over",
                     )
                 }
 
                 replace -> {
-                    Result.success(entries.replaced(index, kept))
+                    Result.success(songs.replaced(entries, index, kept))
                 }
 
                 else -> {
-                    refused("a song named '${entries[index].kept.name}' exists")
+                    songs.refused("a song named '${entries[index].item.name}' exists")
                 }
             }
         }
+    }
 
     public fun rename(
         amp: AmpModel,
         name: String,
         to: String,
-    ): Result<Unit> =
-        change(amp) { entries ->
-            val index = entries.indexOfName(name)
-            val taken = entries.indexOfName(to)
-            val song = entries.getOrNull(index)?.kept?.song
+    ): Result<Unit> {
+        val songs = folderOf(amp)
+        return songs.change { entries ->
+            val index = songs.indexOf(entries, name)
+            val song = entries.getOrNull(index)?.item?.song
+            val refusal = songs.renameRefusal(entries, index, to)
             when {
-                index < 0 -> refused("there is no song named '$name'")
-                song == null -> refused("'$name' cannot be read, so it cannot be renamed")
-                to.isBlank() -> refused("a song needs a name")
-                taken >= 0 && taken != index -> refused("a song named '${entries[taken].kept.name}' exists")
-                else -> Result.success(entries.replaced(index, KeptSong(to, song.copy(name = to), null)))
+                index < 0 -> songs.missing(name)
+                song == null -> songs.refused("'$name' cannot be read, so it cannot be renamed")
+                refusal != null -> songs.refused(refusal)
+                else -> Result.success(songs.replaced(entries, index, KeptSong(to, song.copy(name = to), null)))
             }
         }
+    }
 
     /**
      * Renames the tone [name] to [to] in every song of [amp] that steps on it; a song that cannot be read is
@@ -103,9 +98,10 @@ public class SongStore(
         name: String,
         to: String,
     ): Result<Unit> {
-        val entries = read(amp).getOrElse { return Result.failure(it) }
+        val songs = folderOf(amp)
+        val entries = songs.read().getOrElse { return Result.failure(it) }.entries
         if (entries.none { entry ->
-                entry.kept.song
+                entry.item.song
                     ?.steps
                     .orEmpty()
                     .any { it.isTone(name) }
@@ -113,13 +109,13 @@ public class SongStore(
         ) {
             return Result.success(Unit)
         }
-        return change(amp) { entries ->
+        return songs.change { entries ->
             Result.success(
                 entries.map { entry ->
-                    val song = entry.kept.song
+                    val song = entry.item.song
                     if (song == null || song.steps.none { it.isTone(name) }) return@map entry
                     val steps = song.steps.map { if (it.isTone(name)) it.copy(tone = to) else it }
-                    Entry(entry.file, entry.kept.copy(song = song.copy(steps = steps)))
+                    OrderedFolder.Entry(entry.file, entry.item.copy(song = song.copy(steps = steps)))
                 },
             )
         }
@@ -129,191 +125,79 @@ public class SongStore(
     public fun delete(
         amp: AmpModel,
         name: String,
-    ): Result<Unit> =
-        change(amp) { entries ->
-            val index = entries.indexOfName(name)
-            if (index < 0) refused("there is no song named '$name'") else Result.success(entries - entries[index])
-        }
+    ): Result<Unit> = folderOf(amp).let { songs -> songs.change { songs.deleted(it, name) } }
 
     /** Moves the song [name] to [position], counted from 1. */
     public fun move(
         amp: AmpModel,
         name: String,
         position: Int,
-    ): Result<Unit> =
-        change(amp) { entries ->
-            val index = entries.indexOfName(name)
-            when {
-                index < 0 -> refused("there is no song named '$name'")
-                position !in 1..entries.size -> refused("there are positions 1..${entries.size}, not $position")
-                else -> Result.success(entries.toMutableList().apply { add(position - 1, removeAt(index)) })
-            }
-        }
+    ): Result<Unit> = folderOf(amp).let { songs -> songs.change { songs.moved(it, name, position) } }
 
     /** Marks the song [name] as the one open. */
     public fun open(
         amp: AmpModel,
         name: String,
     ): Result<Unit> {
-        val entries = read(amp).getOrElse { return Result.failure(it) }
+        val songs = folderOf(amp)
+        val entries = songs.read().getOrElse { return Result.failure(it) }.entries
         val entry =
-            entries.getOrNull(entries.indexOfName(name))
+            entries.getOrNull(songs.indexOf(entries, name))
                 ?: return Result.failure(IllegalArgumentException("there is no song named '$name'"))
-        return writing(amp) { place(amp, OPEN, "${entry.file}\n") }
-    }
-
-    /** Reads the amp's folder, applies [edit], and writes back the files whose song changed, then the order. */
-    private fun change(
-        amp: AmpModel,
-        edit: (List<Entry>) -> Result<List<Entry>>,
-    ): Result<Unit> {
-        val before = read(amp).getOrElse { return Result.failure(it) }
-        val after = edit(before).getOrElse { return Result.failure(it) }
-        return writing(amp) {
-            after.filter { it !in before }.forEach {
-                place(
-                    amp,
-                    it.file,
-                    SongFile.write(it.kept.song ?: return@forEach),
-                )
-            }
-            place(amp, ORDER, (listOf("$ORDER_VERSION") + after.map { it.file }).joinToString("\n", postfix = "\n"))
-            (before.map { it.file } - after.map { it.file }.toSet()).forEach {
-                Files.deleteIfExists(
-                    folderOf(amp).resolve(it),
-                )
-            }
-        }
-    }
-
-    private fun writing(
-        amp: AmpModel,
-        write: () -> Unit,
-    ): Result<Unit> =
-        try {
-            Files.createDirectories(folderOf(amp))
-            write()
-            Result.success(Unit)
-        } catch (e: IOException) {
-            Result.failure(IOException("cannot write songs in ${folderOf(amp)}: ${e.message}", e))
-        }
-
-    /** The amp's songs in their order; a file that cannot be read is named by its `name`, else by its number. */
-    private fun read(amp: AmpModel): Result<List<Entry>> {
-        val files =
-            jsonFiles(amp).getOrElse {
-                return Result.failure(IOException("cannot list ${folderOf(amp)}: ${it.message}", it))
-            }
-        val entries =
-            files.map { file ->
-                val text =
-                    try {
-                        folderOf(amp).resolve(file).readText()
-                    } catch (e: IOException) {
-                        return@map Entry(file, KeptSong(fallbackName(file), null, "$file: ${e.message}"))
-                    }
-                val song =
-                    SongFile.read(text).fold(
-                        {
-                            if (it.amp ==
-                                amp
-                            ) {
-                                Result.success(it)
-                            } else {
-                                refusedSong("is for amp '${it.amp.id}', not '${amp.id}'")
-                            }
-                        },
-                        { Result.failure(it) },
-                    )
-                song.fold(
-                    { Entry(file, KeptSong(it.name, it, null)) },
-                    { Entry(file, KeptSong(SongFile.nameOf(text) ?: fallbackName(file), null, "$file ${it.message}")) },
-                )
-            }
-        val order = readLines(amp, ORDER).takeIf { it.firstOrNull() == "$ORDER_VERSION" }?.drop(1).orEmpty()
-        return Result.success(
-            entries.sortedWith(
-                compareBy<Entry> { order.indexOf(it.file).let { i -> if (i < 0) Int.MAX_VALUE else i } }
-                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.kept.name }
-                    .thenBy { it.file },
-            ),
-        )
+        return songs.writing { songs.place(OPEN, "${entry.file}\n") }
     }
 
     /** Carries the older single song of [amp] into its folder, when there is no folder yet, and returns its name. */
     private fun carry(amp: AmpModel): String? {
         val old = folder.resolve("${amp.id}.json")
-        if (folderOf(amp).exists() || !old.exists()) return null
+        if (folder.resolve(amp.id).exists() || !old.exists()) return null
         val text = old.readText()
         val song = SongFile.read(text).getOrNull()?.takeIf { it.amp == amp }
-        Files.createDirectories(folderOf(amp))
-        place(amp, FIRST, song?.let { SongFile.write(it.copy(name = CARRIED)) } ?: text)
-        place(amp, ORDER, "$ORDER_VERSION\n$FIRST\n")
-        place(amp, OPEN, "$FIRST\n")
+        val songs = folderOf(amp)
+        Files.createDirectories(folder.resolve(amp.id))
+        songs.place(FIRST, song?.let { SongFile.write(it.copy(name = CARRIED)) } ?: text)
+        songs.place(ORDER, "$ORDER_VERSION\n$FIRST\n")
+        songs.place(OPEN, "$FIRST\n")
         return CARRIED
     }
 
-    /** The trimmed, non-empty lines of [file] in the amp's folder; none when it is missing or cannot be read. */
-    private fun readLines(
-        amp: AmpModel,
+    /**
+     * The amp's folder of songs; a file that cannot be read is listed with its problem, named by its `name`, else
+     * by its number.
+     */
+    private fun folderOf(amp: AmpModel): OrderedFolder<KeptSong> =
+        OrderedFolder(
+            folder.resolve(amp.id),
+            what = "song",
+            nameOf = { it.name },
+            text = { kept -> kept.song?.let(SongFile::write) },
+            parse = { file, read ->
+                Result.success(
+                    read.fold(
+                        { text ->
+                            SongFile.read(text).fold(
+                                { song ->
+                                    if (song.amp == amp) {
+                                        KeptSong(song.name, song, null)
+                                    } else {
+                                        val why = "$file is for amp '${song.amp.id}', not '${amp.id}'"
+                                        unreadable(file, SongFile.nameOf(text), why)
+                                    }
+                                },
+                                { unreadable(file, SongFile.nameOf(text), "$file ${it.message}") },
+                            )
+                        },
+                        { unreadable(file, null, "$file: ${it.message}") },
+                    ),
+                )
+            },
+        )
+
+    private fun unreadable(
         file: String,
-    ): List<String> =
-        try {
-            folderOf(
-                amp,
-            ).resolve(file).takeIf { it.exists() }?.readLines()?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
-        } catch (_: IOException) {
-            emptyList()
-        }
-
-    private fun place(
-        amp: AmpModel,
-        file: String,
-        text: String,
-    ) = JsonFile.place(folderOf(amp).resolve(file), text)
-
-    private fun folderOf(amp: AmpModel): Path = folder.resolve(amp.id)
-
-    private fun nextFile(
-        amp: AmpModel,
-        entries: List<Entry>,
-    ): String {
-        val taken = entries.map { it.file }.toSet() + jsonFiles(amp).getOrDefault(emptyList())
-        return generateSequence(1) { it + 1 }.map { "$it.json" }.first { it !in taken }
-    }
-
-    /** Every song file in the amp's folder, read or not; none while there is no folder. */
-    private fun jsonFiles(amp: AmpModel): Result<List<String>> =
-        try {
-            val at = folderOf(amp)
-            Result.success(
-                if (at.exists()) {
-                    at
-                        .listDirectoryEntries("*.json")
-                        .filter {
-                            it.isRegularFile()
-                        }.map { it.name }
-                } else {
-                    emptyList()
-                },
-            )
-        } catch (e: IOException) {
-            Result.failure(e)
-        }
-
-    private fun List<Entry>.indexOfName(name: String): Int =
-        indexOfFirst { it.kept.name.equals(name, ignoreCase = true) }
-
-    private fun List<Entry>.replaced(
-        index: Int,
-        kept: KeptSong,
-    ): List<Entry> = toMutableList().apply { this[index] = Entry(this[index].file, kept) }
-
-    private fun fallbackName(file: String): String = "Song ${file.removeSuffix(".json")}"
-
-    private fun refused(why: String): Result<List<Entry>> = Result.failure(IllegalArgumentException(why))
-
-    private fun refusedSong(why: String): Result<Song> = Result.failure(IllegalArgumentException(why))
+        name: String?,
+        problem: String,
+    ): KeptSong = KeptSong(name ?: "Song ${file.removeSuffix(".json")}", null, problem)
 
     public companion object {
         /** The name the older single song of an amp is carried over under. */
