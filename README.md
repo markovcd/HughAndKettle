@@ -47,6 +47,8 @@ hk lock <target> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay tim
 hk trim <target> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
 hk randomize <target> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new values behind each effect heard on
 hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> | tone:<name>:<beats> ... [--no-count-in]  # takes --name N, --dir D
+hk song new|open|duplicate|delete <amp-id> <name> | rename <amp-id> <name> <new-name> | move <amp-id> <name> <position>  # the song list, as the app keeps it
+hk song export <amp-id> <name> <file> | import <amp-id> <file>  # a song for another amp model is refused
 hk song play <target> <amp-id> [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat, delay time at the tempo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <target> <name>
 hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <name>  # a rename follows into the songs

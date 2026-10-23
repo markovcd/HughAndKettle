@@ -121,6 +121,39 @@ public class SongStore(
         }
     }
 
+    /**
+     * Keeps the song in the song file [text] at the end of [amp]'s list, named apart from the rest; an untitled
+     * one is named [CARRIED] or after it. A song for another amp model is refused whole.
+     */
+    public fun import(
+        amp: AmpModel,
+        text: String,
+    ): Result<SongImport> {
+        val other = SongFile.ampOf(text)
+        if (other != null && other != amp.id) return Result.success(SongImport.OtherAmp(other))
+        val song = SongFile.read(text).getOrElse { return Result.failure(it) }
+        val list = list(amp).getOrElse { return Result.failure(it) }
+        val name = list.apart(song.name.ifBlank { CARRIED })
+        return save(song.copy(name = name)).map { SongImport.Kept(name, song.name) }
+    }
+
+    /** Keeps a copy of the song [name] right after it, named apart from the rest, and returns the copy's name. */
+    public fun duplicate(
+        amp: AmpModel,
+        name: String,
+    ): Result<String> {
+        val list = list(amp).getOrElse { return Result.failure(it) }
+        val kept = list.find(name) ?: return Result.failure(IllegalArgumentException("there is no song named '$name'"))
+        val song =
+            kept.song
+                ?: return Result.failure(
+                    IllegalArgumentException("'${kept.name}' cannot be read, so it cannot be copied"),
+                )
+        val copy = song.copy(name = list.apart(song.name.ifBlank { UNTITLED }))
+        val position = list.songs.indexOf(kept) + 2
+        return save(copy).mapCatching { move(amp, copy.name, position).getOrThrow() }.map { copy.name }
+    }
+
     /** Deletes the song [name], read or not. */
     public fun delete(
         amp: AmpModel,
@@ -202,6 +235,9 @@ public class SongStore(
     public companion object {
         /** The name the older single song of an amp is carried over under. */
         public const val CARRIED: String = "Song 1"
+
+        /** The name a copy of an untitled song is set apart from. */
+        private const val UNTITLED = "Untitled song"
 
         private const val FIRST = "1.json"
         private const val ORDER = "order"

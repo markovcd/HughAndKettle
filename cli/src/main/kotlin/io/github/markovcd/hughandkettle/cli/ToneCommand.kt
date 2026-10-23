@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModel
+import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.PresetReading
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.Tone
@@ -12,7 +13,7 @@ import java.io.PrintWriter
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
-import kotlin.io.path.readBytes
+import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
 
 /**
@@ -298,11 +299,15 @@ public object ToneCommand : Command {
     ): Int {
         val bytes =
             try {
-                file.readBytes()
+                file.inputStream().use { CappedRead.bytes(it, ToneImport.MOST_BYTES) }
             } catch (e: IOException) {
                 err.println("cannot read $file: ${e.message}")
                 return ExitCodes.BAD_FILE
             }
+        if (bytes == null) {
+            err.println("$file is larger than a tone file can be")
+            return ExitCodes.BAD_FILE
+        }
         val read =
             ToneImport.read(bytes).getOrElse {
                 err.println("$file: ${it.message}")

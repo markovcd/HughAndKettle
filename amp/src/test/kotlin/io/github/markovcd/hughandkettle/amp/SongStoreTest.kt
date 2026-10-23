@@ -196,4 +196,46 @@ class SongStoreTest {
         folder.resolve("blocked").writeText("a file where the folder should be")
         assertTrue(SongStore(folder.resolve("blocked")).save(song("Encore")).isFailure)
     }
+
+    @Test
+    fun `An imported song is kept at the end, named apart from one of its name`() {
+        store.save(song("Encore")).getOrThrow()
+
+        val kept = store.import(amp, SongFile.write(song("Encore", 90))).getOrThrow()
+
+        assertEquals(SongImport.Kept("Encore 2", "Encore"), kept)
+        assertEquals(listOf("Encore", "Encore 2"), names())
+        assertEquals(90, list().find("Encore 2")?.song?.tempo)
+    }
+
+    @Test
+    fun `An imported untitled song is named as the carried song is`() {
+        assertEquals(SongImport.Kept(SongStore.CARRIED, ""), store.import(amp, SongFile.write(song(""))).getOrThrow())
+    }
+
+    @Test
+    fun `A song file for another amp model is refused whole on import`() {
+        val other = Song(AmpModels.blackSpirit200, 120, listOf(SongStep(1, 4)), name = "Encore")
+
+        assertEquals(
+            SongImport.OtherAmp(AmpModels.blackSpirit200.id),
+            store.import(amp, SongFile.write(other)).getOrThrow(),
+        )
+        assertEquals(emptyList(), names())
+    }
+
+    @Test
+    fun `A file that is not a song is a failure on import`() {
+        assertTrue(store.import(amp, "not json").isFailure)
+    }
+
+    @Test
+    fun `A duplicated song lands right after its original, named apart`() {
+        listOf("A", "B").forEach { store.save(song(it)).getOrThrow() }
+
+        assertEquals("A 2", store.duplicate(amp, "a").getOrThrow())
+        assertEquals(listOf("A", "A 2", "B"), names())
+        assertEquals(song("A").steps, list().find("A 2")?.song?.steps)
+        assertTrue(store.duplicate(amp, "Z").isFailure)
+    }
 }

@@ -55,6 +55,7 @@ section becomes a version's section when `release.sh` ships it.
 - Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.
 - App: a dice on the FX tab randomizes the effects that are on, keeping a locked delay time, with an undo (`hk randomize`).
 - Every `hk` command that drives the amp reaches it over a USB MIDI cable too, named as `cable:<name>` in place of a WMI-1 address.
+- `hk song` makes, opens, renames, duplicates, moves, deletes, exports and imports songs, as the app's song list does.
 
 ### Fixes
 

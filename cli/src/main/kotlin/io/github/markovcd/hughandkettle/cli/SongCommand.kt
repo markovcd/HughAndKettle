@@ -1,10 +1,13 @@
 package io.github.markovcd.hughandkettle.cli
 
 import io.github.markovcd.hughandkettle.amp.AmpModel
+import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.Song
+import io.github.markovcd.hughandkettle.amp.SongFile
+import io.github.markovcd.hughandkettle.amp.SongImport
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TempoLock
@@ -12,7 +15,10 @@ import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import java.io.IOException
 import java.io.PrintWriter
+import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.inputStream
+import kotlin.io.path.writeText
 import kotlin.time.TimeSource
 
 /**
@@ -21,7 +27,7 @@ import kotlin.time.TimeSource
  * else the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then
  * recalls each preset, or sends each tone kept in `--tones` or `~/.hk/tones`, on its beat with the delay time at
  * one repeat a beat, and holds that time across the recalls, as the tempo lock does. A step whose tone is
- * missing sets the delay time alone.
+ * missing sets the delay time alone. The rest of the verbs keep the list as the app's song list does.
  */
 public object SongCommand : Command {
     override val name: String = "song"
@@ -29,6 +35,11 @@ public object SongCommand : Command {
         """
         hk song list <amp-id> [--dir D]
         hk song show <amp-id> [--name N] [--dir D]
+        hk song new|open|duplicate|delete <amp-id> <name> [--dir D]
+        hk song rename <amp-id> <name> <new-name> [--dir D]
+        hk song move <amp-id> <name> <position> [--dir D]
+        hk song export <amp-id> <name> <file> [--dir D]
+        hk song import <amp-id> <file> [--dir D]    (a song for another amp model is refused)
         hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats> ... [--no-count-in] [--name N] [--dir D]
         hk song play ${AmpTarget.USAGE} <amp-id> [--name N] [--dir D] [--tones D]
         """.trimIndent()
@@ -45,7 +56,8 @@ public object SongCommand : Command {
             when (verb) {
                 "list", "show" -> rest.size == 1
                 "set" -> rest.size >= 2
-                "play" -> rest.size == 2
+                "play", "import", "new", "open", "duplicate", "delete" -> rest.size == 2
+                "rename", "move", "export" -> rest.size == 3
                 else -> false
             }
         if (!enough) {
@@ -54,6 +66,20 @@ public object SongCommand : Command {
         }
         val amp = AmpArgument.parse(rest[ampAt]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val store = SongStore(args.value("dir")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "songs"))
+        when (verb) {
+            "import" -> return import(store, amp, Path(rest[1]), out, err)
+
+            "new" -> return create(store, amp, rest[1], out, err)
+
+            "open", "duplicate", "delete", "rename", "move", "export" -> return library(
+                store,
+                amp,
+                verb,
+                rest.drop(1),
+                out,
+                err,
+            )
+        }
         val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
         if (verb == "list") {
             list.songs.forEach { print(it, it.name.equals(list.open, ignoreCase = true), out) }
@@ -105,6 +131,162 @@ public object SongCommand : Command {
         }
         return play(song, tones(args), target, out, err)
     }
+
+    /** Keeps an empty song called [name] at the end of [amp]'s list and opens it, as the app's New song does. */
+    private fun create(
+        store: SongStore,
+        amp: AmpModel,
+        name: String,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int {
+        val song = Song(amp, name = name.trim())
+        if (song.name.isEmpty()) {
+            err.println("a song needs a name")
+            return ExitCodes.BAD_ARGUMENTS
+        }
+        return changed(
+            store.save(song).mapCatching { store.open(amp, song.name).getOrThrow() },
+            out,
+            err,
+            "created" to song.name,
+        )
+    }
+
+    /** The verbs that act on one kept song by name: open, duplicate, delete, rename, move and export. */
+    private fun library(
+        store: SongStore,
+        amp: AmpModel,
+        verb: String,
+        words: List<String>,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int {
+        val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
+        val kept = list.find(words[0])
+        if (kept == null) {
+            err.println("${amp.id} has no song named '${words[0]}'; hk song list names them")
+            return ExitCodes.NOTHING_FOUND
+        }
+        val name = kept.name
+        return when (verb) {
+            "open" -> {
+                changed(store.open(amp, name), out, err, "opened" to name)
+            }
+
+            "duplicate" -> {
+                store
+                    .duplicate(amp, name)
+                    .map { copy -> Json.line("duplicated" to name, "copy" to copy) }
+                    .let { printed(it, out, err) }
+            }
+
+            "delete" -> {
+                changed(store.delete(amp, name), out, err, "deleted" to name)
+            }
+
+            "rename" -> {
+                val to = words[1].trim()
+                changed(store.rename(amp, name, to), out, err, "renamed" to name, "to" to to)
+            }
+
+            "move" -> {
+                val position = words[1].toIntOrNull()
+                if (position == null) {
+                    err.println("the position must be a whole number, got '${words[1]}'")
+                    return ExitCodes.BAD_ARGUMENTS
+                }
+                changed(store.move(amp, name, position), out, err, "moved" to name, "position" to position)
+            }
+
+            else -> {
+                export(kept, Path(words[1]), out, err)
+            }
+        }
+    }
+
+    private fun export(
+        kept: KeptSong,
+        file: Path,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int {
+        val song = kept.song
+        if (song == null) {
+            err.println(kept.problem)
+            return ExitCodes.BAD_FILE
+        }
+        try {
+            file.writeText(SongFile.write(song))
+        } catch (e: IOException) {
+            err.println("cannot write $file: ${e.message}")
+            return ExitCodes.BAD_FILE
+        }
+        out.println(Json.line("exported" to kept.name, "file" to file.toString()))
+        return ExitCodes.OK
+    }
+
+    /** Keeps the song in [file] at the end of [amp]'s list, named apart from the rest, as the app's Import does. */
+    private fun import(
+        store: SongStore,
+        amp: AmpModel,
+        file: Path,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int {
+        val bytes =
+            try {
+                file.inputStream().use { CappedRead.bytes(it, SongFile.MOST_BYTES) }
+            } catch (e: IOException) {
+                err.println("cannot read $file: ${e.message}")
+                return ExitCodes.BAD_FILE
+            }
+        if (bytes == null) {
+            err.println("$file is larger than a song file can be")
+            return ExitCodes.BAD_FILE
+        }
+        val imported =
+            store.import(amp, bytes.decodeToString()).getOrElse {
+                err.println("$file: ${it.message}")
+                return if (it is IOException) ExitCodes.BAD_FILE else ExitCodes.BAD_ARGUMENTS
+            }
+        return when (imported) {
+            is SongImport.OtherAmp -> {
+                err.println("$file is a song for ${imported.amp}, not ${amp.id}")
+                ExitCodes.BAD_FILE
+            }
+
+            is SongImport.Kept -> {
+                out.println(Json.line("imported" to imported.name, "asked" to imported.asked))
+                ExitCodes.OK
+            }
+        }
+    }
+
+    /** Prints [fields] for a change the store made, or says why it did not. */
+    private fun changed(
+        result: Result<Unit>,
+        out: PrintWriter,
+        err: PrintWriter,
+        vararg fields: Pair<String, Any?>,
+    ): Int = printed(result.map { Json.line(*fields) }, out, err)
+
+    /** Prints the [line] a change made, or says why it was not made. */
+    private fun printed(
+        line: Result<String>,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int =
+        line.fold(
+            {
+                out.println(it)
+                ExitCodes.OK
+            },
+            {
+                err.println(it.message)
+                if (it is IOException) ExitCodes.BAD_FILE else ExitCodes.BAD_ARGUMENTS
+            },
+        )
 
     /** The folder of tones [args] point at with `--tones`. */
     private fun tones(args: Options): ToneStore =

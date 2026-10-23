@@ -3,6 +3,7 @@ package io.github.markovcd.hughandkettle.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.PresetNames
 import io.github.markovcd.hughandkettle.amp.PresetReading
 import io.github.markovcd.hughandkettle.amp.Tone
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -190,7 +190,7 @@ class ToneShelf(
             val bytes =
                 try {
                     val stream = open() ?: return@change Result.failure(IOException("nothing to read"))
-                    stream.use(::capped)
+                    stream.use { CappedRead.bytes(it, ToneImport.MOST_BYTES) }
                 } catch (e: IOException) {
                     return@change Result.failure(e)
                 } ?: return@change Result.failure(IOException("larger than a tone file can be"))
@@ -225,20 +225,5 @@ class ToneShelf(
     private companion object {
         // The amp answers a recall in tens of milliseconds over the WMI-1; this leaves room for a busy network.
         const val PER_PRESET_MILLIS = 2000L
-
-        // A tone file is a few kilobytes and the GrandMeister app's preset file under 32 KB; anything past this is neither.
-        const val MAX_FILE_BYTES = 64 * 1024
-
-        /** The bytes of [stream], or null when it runs past [MAX_FILE_BYTES]. */
-        fun capped(stream: InputStream): ByteArray? {
-            val bytes = ByteArrayOutputStream()
-            val buffer = ByteArray(8192)
-            while (true) {
-                val read = stream.read(buffer)
-                if (read < 0) return bytes.toByteArray()
-                bytes.write(buffer, 0, read)
-                if (bytes.size() > MAX_FILE_BYTES) return null
-            }
-        }
     }
 }

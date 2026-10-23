@@ -198,4 +198,58 @@ class SongCommandTest {
         assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
         assertTrue("has no song to play" in run.err, run.err)
     }
+
+    private fun names(): List<String> =
+        run("list", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() }.map {
+            it.substringAfter("\"name\":\"").substringBefore('"')
+        }
+
+    @Test
+    fun `The song library is driven from hk as from the app's list`() {
+        val amp = "grandmeister_deluxe_40"
+        assertEquals(ExitCodes.OK, run("new", amp, "Encore").code)
+        assertEquals(ExitCodes.OK, run("new", amp, "Opener").code)
+        assertTrue("\"open\":true" in run("list", amp).out.lines().first { "Opener" in it })
+        assertEquals(ExitCodes.OK, run("open", amp, "encore").code)
+        assertTrue("\"open\":true" in run("list", amp).out.lines().first { "Encore" in it })
+
+        val copy = run("duplicate", amp, "Encore")
+        assertEquals("""{"duplicated":"Encore","copy":"Encore 2"}""", copy.out.trim())
+        assertEquals(listOf("Encore", "Encore 2", "Opener"), names())
+
+        assertEquals(ExitCodes.OK, run("rename", amp, "Encore 2", "Closer").code)
+        assertEquals(ExitCodes.OK, run("move", amp, "Closer", "3").code)
+        assertEquals(listOf("Encore", "Opener", "Closer"), names())
+        assertEquals(ExitCodes.OK, run("delete", amp, "opener").code)
+        assertEquals(listOf("Encore", "Closer"), names())
+
+        assertEquals(ExitCodes.NOTHING_FOUND, run("delete", amp, "Nothing").code)
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run("rename", amp, "Encore", "closer").code)
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run("move", amp, "Encore", "9").code)
+    }
+
+    @Test
+    fun `An exported song imports back named apart, and one for another amp model is refused`() {
+        val amp = "grandmeister_deluxe_40"
+        val file = folder.resolve("encore.song.json")
+        run("set", amp, "100", "5:16", "--name", "Encore")
+
+        assertEquals(ExitCodes.OK, run("export", amp, "Encore", file.toString()).code)
+        val imported = run("import", amp, file.toString())
+
+        assertEquals("""{"imported":"Encore 2","asked":"Encore"}""", imported.out.trim(), imported.err)
+        assertEquals(listOf("Encore", "Encore 2"), names())
+        assertEquals(ExitCodes.BAD_FILE, run("import", "grandmeister_36", file.toString()).code)
+    }
+
+    @Test
+    fun `A file larger than a song file can be is refused before it is read whole`() {
+        val file = folder.resolve("huge.json")
+        Files.write(file, ByteArray(64 * 1024 + 1) { ' '.code.toByte() })
+
+        val run = run("import", "grandmeister_deluxe_40", file.toString())
+
+        assertEquals(ExitCodes.BAD_FILE, run.code)
+        assertTrue("larger than a song file" in run.err, run.err)
+    }
 }

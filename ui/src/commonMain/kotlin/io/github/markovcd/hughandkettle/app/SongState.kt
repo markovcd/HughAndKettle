@@ -5,10 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongFile
+import io.github.markovcd.hughandkettle.amp.SongImport
 import io.github.markovcd.hughandkettle.amp.SongList
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
@@ -24,7 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -145,11 +146,7 @@ class SongState(
     /** Keeps a copy of the song [name] right after it, named apart from the rest. */
     fun duplicate(name: String) {
         val amp = panel.amp
-        val list = lists[amp] ?: return
-        val song = list.find(name)?.song ?: return
-        val copy = song.copy(name = list.apart(song.name.ifBlank { UNTITLED_COPY }))
-        val position = list.songs.indexOfFirst { it.name == song.name } + 2
-        listed(amp) { store.save(copy).mapCatching { store.move(amp, copy.name, position).getOrThrow() } }
+        listed(amp) { store.duplicate(amp, name) }
     }
 
     fun delete(name: String) {
@@ -197,24 +194,20 @@ class SongState(
             val text =
                 try {
                     val stream = open() ?: return@listed Result.failure(IOException("nothing to read"))
-                    stream.use(::capped)?.decodeToString()
+                    stream.use { CappedRead.bytes(it, SongFile.MOST_BYTES) }?.decodeToString()
                 } catch (e: IOException) {
                     return@listed Result.failure(e)
                 } ?: return@listed Result.failure(IOException("larger than a song file can be"))
-            val other = SongFile.ampOf(text)
-            if (other != null && other != amp.id) {
-                return@listed Result.success(SongNotice.OtherAmp(AmpModels.byId(other)?.name ?: other))
-            }
-            val song = SongFile.read(text).getOrElse { return@listed Result.failure(it) }
-            val list = store.list(amp).getOrElse { return@listed Result.failure(it) }
-            val name = list.apart(song.name.ifBlank { SongStore.CARRIED })
-            store.save(song.copy(name = name)).map {
-                if (name != song.name &&
-                    song.name.isNotBlank()
-                ) {
-                    SongNotice.ImportedAs(song.name, name)
-                } else {
-                    null
+            store.import(amp, text).map {
+                when (it) {
+                    is SongImport.OtherAmp -> {
+                        SongNotice.OtherAmp(AmpModels.byId(it.amp)?.name ?: it.amp)
+                    }
+
+                    is SongImport.Kept -> {
+                        val renamed = it.name != it.asked && it.asked.isNotBlank()
+                        if (renamed) SongNotice.ImportedAs(it.asked, it.name) else null
+                    }
                 }
             }
         }
@@ -438,23 +431,5 @@ class SongState(
 
         /** The most a click is played ahead of its beat; a sound output slower than this is mismeasured. */
         private val MOST_LAG = 500.milliseconds
-
-        /** The name a copy of an untitled song is set apart from. */
-        private const val UNTITLED_COPY = "Untitled song"
-
-        // A song file is well under a kilobyte; anything past this is not one.
-        private const val MAX_FILE_BYTES = 64 * 1024
-
-        /** The bytes of [stream], or null when it runs past [MAX_FILE_BYTES]. */
-        private fun capped(stream: InputStream): ByteArray? {
-            val bytes = ByteArrayOutputStream()
-            val buffer = ByteArray(8192)
-            while (true) {
-                val read = stream.read(buffer)
-                if (read < 0) return bytes.toByteArray()
-                bytes.write(buffer, 0, read)
-                if (bytes.size() > MAX_FILE_BYTES) return null
-            }
-        }
     }
 }

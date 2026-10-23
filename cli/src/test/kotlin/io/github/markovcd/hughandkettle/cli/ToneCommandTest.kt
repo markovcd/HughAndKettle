@@ -268,4 +268,15 @@ class ToneCommandTest {
             run("read", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "5-2").code,
         )
     }
+
+    @Test
+    fun `A file larger than a tone file can be is refused before it is read whole`() {
+        val file = folder.resolve("huge.json")
+        Files.write(file, ByteArray(64 * 1024 + 1) { ' '.code.toByte() })
+
+        val run = run("import", file.toString())
+
+        assertEquals(ExitCodes.BAD_FILE, run.code)
+        assertTrue("larger than a tone file" in run.err, run.err)
+    }
 }

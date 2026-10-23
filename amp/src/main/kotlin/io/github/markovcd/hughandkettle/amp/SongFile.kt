@@ -22,6 +22,9 @@ import kotlinx.serialization.json.putJsonArray
 public object SongFile {
     private const val VERSION = 1
 
+    /** The most a song file brought in is read to: one is well under a kilobyte. */
+    public const val MOST_BYTES: Int = 64 * 1024
+
     public fun write(song: Song): String =
         JsonFile.write(VERSION) {
             put("amp", song.amp.id)
