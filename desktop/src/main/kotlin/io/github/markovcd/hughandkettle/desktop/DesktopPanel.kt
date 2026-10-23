@@ -5,18 +5,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import io.github.markovcd.hughandkettle.app.SwitcherMode
 import io.github.markovcd.hughandkettle.app.ThemeChoice
 import io.github.markovcd.hughandkettle.app.theme.HughAndKettleTheme
 
-/** The window's content: the desktop's layout of [screen], in [theme]. */
+/** The window's content: the desktop's layout of [screen], in [theme], its header stepping as [mode] says. */
 @Composable
 fun DesktopPanel(
     screen: DesktopScreen,
     theme: ThemeChoice,
+    mode: SwitcherMode,
 ) {
     HughAndKettleTheme(dark = theme == ThemeChoice.Dark || (theme == ThemeChoice.System && isSystemInDarkTheme())) {
         Surface(Modifier.fillMaxSize()) {
-            DesktopLayout(screen.panel, screen.discovery, screen.shelf, screen.presetNames, screen.songs)
+            DesktopLayout(screen.panel, screen.discovery, screen.shelf, screen.presetNames, screen.songs, mode)
         }
     }
 }

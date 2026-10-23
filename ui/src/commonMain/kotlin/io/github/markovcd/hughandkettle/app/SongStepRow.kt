@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,12 +64,16 @@ import io.github.markovcd.hughandkettle.ui.song_more
 import io.github.markovcd.hughandkettle.ui.song_move_down
 import io.github.markovcd.hughandkettle.ui.song_move_up
 import io.github.markovcd.hughandkettle.ui.song_remove
+import io.github.markovcd.hughandkettle.ui.song_step_missing
+import io.github.markovcd.hughandkettle.ui.song_step_tone
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One step of a song while it can be changed: its preset and the preset's name, its beats stepped to the ends
+ * One step of a song while it can be changed: a badge saying what it plays, a preset's number in an amber
+ * square or a tone's mark in an amber circle, dashed red for a [missing] tone; the preset's name or the
+ * tone's, over what it is; its beats stepped to the ends
  * of bars of four or typed in a tap on them, and remove. It is moved by dragging, or by its accessibility
- * actions. Tests find it by `song_step:<n>` and its parts by `song_beats_down:<n>`, `song_beats:<n>`,
+ * actions. Tests find it by `song_step:<n>` and its parts by `song_step_kind:<n>`, `song_beats_down:<n>`, `song_beats:<n>`,
  * `song_beats_up:<n>` and `song_remove:<n>`, counted from 1; the typed beats by `song_beats_field` and
  * `song_beats_done`.
  */
@@ -77,6 +82,7 @@ internal fun SongStepRow(
     n: Int,
     step: SongStep,
     name: String?,
+    missing: Boolean,
     enabled: Boolean,
     last: Boolean,
     onBeats: (Int) -> Unit,
@@ -101,8 +107,8 @@ internal fun SongStepRow(
             .height(64.dp)
             .clip(shape)
             .background(colors.surfaceContainer)
-            .border(1.dp, colors.outlineVariant, shape)
-            .padding(start = 14.dp, end = 6.dp)
+            .border(1.dp, if (missing) colors.error else colors.outlineVariant, shape)
+            .padding(start = 10.dp, end = 6.dp)
             .semantics {
                 customActions =
                     listOfNotNull(
@@ -113,7 +119,8 @@ internal fun SongStepRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PresetName(songStepTitle(step), name, colors.onSurfaceVariant, Modifier.weight(1f))
+        StepKind(n, step, missing)
+        StepName(step, name, missing, Modifier.weight(1f))
         RoundButton(
             up = false,
             description = stringResource(Res.string.song_less, n),
@@ -222,7 +229,6 @@ internal fun PlayedStepRow(
                 name,
                 if (now) colors.onPrimaryContainer else colors.onSurfaceVariant,
                 Modifier.weight(1f),
-                inline = true,
             )
             Text(
                 if (now) {
@@ -280,6 +286,75 @@ private fun BeatsDialog(
     )
 }
 
+/** What [step] plays, at a glance: its preset's number in an amber square, or a tone's mark, dashed red when [missing]. */
+@Composable
+private fun StepKind(
+    n: Int,
+    step: SongStep,
+    missing: Boolean,
+) {
+    val colors = MaterialTheme.colorScheme
+    val tag = Modifier.size(36.dp).testTag("song_step_kind:$n")
+    when {
+        step.preset != null -> {
+            Box(tag.border(1.5.dp, colors.primary, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                Text(
+                    "${step.preset}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.primary,
+                    maxLines = 1,
+                )
+            }
+        }
+
+        missing -> {
+            Box(tag.dashed(colors.error, 18.dp), contentAlignment = Alignment.Center) {
+                TabMark(PanelTab.Tones, colors.error, 18.dp)
+            }
+        }
+
+        else -> {
+            Box(tag.background(colors.primary, CircleShape), contentAlignment = Alignment.Center) {
+                TabMark(PanelTab.Tones, colors.onPrimary, 18.dp)
+            }
+        }
+    }
+}
+
+/** The preset's name, else "Preset N", or the tone's, struck through when [missing], over what the step is. */
+@Composable
+private fun StepName(
+    step: SongStep,
+    name: String?,
+    missing: Boolean,
+    modifier: Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(modifier) {
+        Text(
+            if (step.preset != null) name ?: songStepTitle(step) else songStepTitle(step),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            textDecoration = if (missing) TextDecoration.LineThrough else null,
+            color = if (missing) colors.onSurfaceVariant else colors.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            when {
+                step.preset != null -> songStepTitle(step).uppercase()
+                missing -> stringResource(Res.string.song_step_missing)
+                else -> stringResource(Res.string.song_step_tone).uppercase()
+            },
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (missing) colors.error else colors.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
+}
+
 /** A step's number in a 28 dp circle, amber when [lit]. */
 @Composable
 private fun StepNumber(
@@ -296,33 +371,25 @@ private fun StepNumber(
     ) { content() }
 }
 
-/** A step's [title] in bold with its preset's name under it, or beside it when [inline]. */
+/** A step's [title] in bold with its preset's name beside it. */
 @Composable
 private fun PresetName(
     title: String,
     name: String?,
     nameColor: Color,
     modifier: Modifier,
-    inline: Boolean = false,
 ) {
-    if (inline) {
-        Row(modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            name?.let {
-                Text(
-                    " $it",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = nameColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    } else {
-        Column(modifier) {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            name?.let { Text(it, fontSize = 13.sp, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    Row(modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        name?.let {
+            Text(
+                " $it",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = nameColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

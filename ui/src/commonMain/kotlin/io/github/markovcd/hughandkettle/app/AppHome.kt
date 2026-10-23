@@ -20,6 +20,7 @@ class AppHome(
     val presetNames: PresetNameStore = PresetNameStore(folder.resolve("preset-names"))
     val songs: SongStore = SongStore(folder.resolve("songs"))
     val theme: ThemeStore = ThemeStore(settings)
+    val switcher: SwitcherModeStore = SwitcherModeStore(settings)
     val amps: AmpChoiceStore = AmpChoiceStore(settings)
     val lastWmi: LastWmiStore = LastWmiStore(settings)
 }

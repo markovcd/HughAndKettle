@@ -1,6 +1,9 @@
 package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -63,6 +66,20 @@ class ToneShelfCardTest {
         compose.onNodeWithTag("tone_delete").performClick()
         compose.onNodeWithTag("tone_delete_confirm").performClick()
         compose.onNodeWithTag("tone:Lead").assertDoesNotExist()
+    }
+
+    @Test
+    fun `A tone's pin toggles it pinned, counted in the header, and the tone loaded says so`() {
+        panel.set(amp.control("gain")!!, 40)
+        listOf("Lead", "Rhythm").forEach(shelf::save)
+        compose.setContent { ToneShelfCard(shelf, enabled = true) }
+        compose.onNodeWithTag("tone_pin:Lead").assertIsOff().performClick()
+        compose.waitUntil(5_000) { shelf.pinned.map { it.name } == listOf("Lead") }
+        compose.onNodeWithTag("tone_pin:Lead").assertIsOn()
+        compose.onNodeWithTag("tones_pinned").assertTextEquals("1 of 2 pinned to the header")
+        compose.onNodeWithTag("tone_loaded:Rhythm", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("tone:Rhythm").performClick()
+        compose.onNodeWithTag("tone_loaded:Rhythm", useUnmergedTree = true).assertExists()
     }
 
     @Test

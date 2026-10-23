@@ -14,6 +14,7 @@ import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.Tempo
+import io.github.markovcd.hughandkettle.amp.Tone
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,8 +35,9 @@ import kotlin.time.TimeSource
 /**
  * The songs of the panel's amp, kept on the phone in the person's order, and the one open: its tempo and steps,
  * edited and kept as they change, and played from a tap. A bar of [click]s counts it in, unless its count-in is
- * off, each played the sound output's [lag] ahead of its beat so it is heard on the beat the amp switches on. While it plays, each step recalls its preset on its beat with the delay time at one repeat a beat, and the
- * tempo lock holds that time across the recalls; no other song can be opened. An amp with no songs opens on an
+ * off, each played the sound output's [lag] ahead of its beat so it is heard on the beat the amp switches on.
+ * While it plays, each step recalls its preset, or sends its tone from [tones], on its beat with the delay time
+ * at one repeat a beat, and the tempo lock holds that time across the recalls; no other song can be opened. An amp with no songs opens on an
  * untitled one, kept once it has a step or a name. A song that cannot be read plays nothing, says why in
  * [failure], and is left as it is. The folder is read and written off the main thread, one change at a time.
  */
@@ -46,6 +48,7 @@ class SongState(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val click: () -> Unit = {},
     private val lag: suspend () -> Duration = { Duration.ZERO },
+    private val tones: () -> List<Tone> = { emptyList() },
 ) {
     private var lists by mutableStateOf(emptyMap<AmpModel, SongList>())
     private var opened by mutableStateOf(emptyMap<AmpModel, String>())
@@ -98,6 +101,9 @@ class SongState(
 
     /** Whether another song can be opened: not while one counts in or plays. */
     val choosable: Boolean get() = playing == null
+
+    /** Whether the song is counting in or playing. */
+    val busy: Boolean get() = playing != null
 
     /** Whether a song of the panel's amp is already called [name], regardless of case. */
     fun taken(name: String): Boolean = lists[panel.amp]?.find(name.trim()) != null
@@ -232,6 +238,35 @@ class SongState(
     /** Adds a step on the preset the amp is on, else the first. */
     fun add() = change { it.copy(steps = it.steps + SongStep(panel.state.preset ?: 1, NEW_STEP_BEATS)) }
 
+    /** Adds a step on [tone]. */
+    fun add(tone: Tone) = change { it.copy(steps = it.steps + SongStep(beats = NEW_STEP_BEATS, tone = tone.name)) }
+
+    /** The tone [name] for the panel's amp, regardless of case; null once it is deleted. */
+    fun tone(name: String): Tone? =
+        tones().firstOrNull { it.amp == panel.amp && it.name.equals(name, ignoreCase = true) }
+
+    /** Whether [step] is on a tone that is no longer kept for the panel's amp. */
+    fun missing(step: SongStep): Boolean = step.tone?.let(::tone) == null && step.tone != null
+
+    /** Renames [tone] to [to] in the steps of every song of its amp, the untitled one not kept yet among them. */
+    fun renameTone(
+        tone: Tone,
+        to: String,
+    ) {
+        val amp = tone.amp
+        drafts[amp]?.let { draft ->
+            drafts =
+                drafts +
+                (
+                    amp to
+                        draft.copy(
+                            steps = draft.steps.map { if (it.isTone(tone.name)) it.copy(tone = to) else it },
+                        )
+                )
+        }
+        listed(amp) { store.renameTone(amp, tone.name, to) }
+    }
+
     fun beats(
         step: Int,
         beats: Int,
@@ -289,7 +324,7 @@ class SongState(
                             panel.lock(time, on = true)
                             locking = true
                         }
-                        panel.cue(song.cue(at.step) { null })
+                        panel.cue(song.cue(at.step, ::tone))
                         cued = at.step
                     }
                     position = at

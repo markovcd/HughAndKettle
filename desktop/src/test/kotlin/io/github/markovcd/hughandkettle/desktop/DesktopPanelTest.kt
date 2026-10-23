@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.v2.runDesktopComposeUiTest
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.app.SwitcherMode
 import io.github.markovcd.hughandkettle.app.ThemeChoice
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
@@ -79,7 +80,7 @@ class DesktopPanelTest {
         runBlocking { app.home.amps.remember(box, AmpModels.blackSpirit200) }
         setContent {
             screen = rememberDesktopScreen(app)
-            DesktopPanel(screen, ThemeChoice.Dark)
+            DesktopPanel(screen, ThemeChoice.Dark, SwitcherMode.Presets)
         }
         onNodeWithTag("enter_address").performClick()
         onNodeWithTag("host").performTextReplacement(box.host)
@@ -87,15 +88,15 @@ class DesktopPanelTest {
         onNodeWithTag("connect").performClick()
         assertEquals(FakeWmiEvent.Opened::class, nextSeen()::class)
         waitUntil("the controls are enabled", timeoutMillis = 5_000) {
-            onAllNodes(hasTestTag("control:mute") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+            onAllNodes(hasTestTag("switcher_next") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     @Test
-    fun `A box typed in is linked to, remembered, and the panel's switches reach it`() =
+    fun `A box typed in is linked to, remembered, and the menu bar's mute reaches it`() =
         inWindow {
             linked()
-            onNodeWithTag("control:mute").performClick()
+            screen.commands.mute(true)
             assertEquals(ControlChange(MidiChannel(1), 9, 127), nextHeard())
             assertEquals(
                 box,
@@ -115,7 +116,7 @@ class DesktopPanelTest {
             onNode(hasTestTag("song_add") and hasAnyAncestor(hasTestTag("song"))).assertExists()
             onNode(hasTestTag("tone_save") and hasAnyAncestor(hasTestTag("tones"))).assertExists()
             onNodeWithTag("tab:amp").assertDoesNotExist()
-            onNodeWithTag("settings").assertDoesNotExist()
+            onNodeWithTag("header_menu").assertDoesNotExist()
         }
 
     @Test
@@ -145,7 +146,7 @@ class DesktopPanelTest {
         }
 
     @Test
-    fun `The tone shortcuts step through the tones on the box`() =
+    fun `The tone shortcuts step through the pinned tones on the box`() =
         inWindow {
             linked()
             val gain = AmpModels.blackSpirit200.control("gain")!!
@@ -154,6 +155,8 @@ class DesktopPanelTest {
                 screen.shelf.save("Gain $value")
                 waitUntil("the tone is saved", timeoutMillis = 5_000) { screen.shelf.tones.size == i + 1 }
             }
+            screen.shelf.tones.forEach { screen.shelf.pin(it, on = true) }
+            waitUntil("the tones are pinned", timeoutMillis = 5_000) { screen.shelf.pinned.size == 2 }
             seen.clear()
             screen.commands.nextTone()
             heard("the first tone") { it == ControlChange(MidiChannel(1), gain.controller, 20) }

@@ -23,13 +23,14 @@ import io.github.markovcd.hughandkettle.app.PanelTop
 import io.github.markovcd.hughandkettle.app.PresetNamesState
 import io.github.markovcd.hughandkettle.app.SongState
 import io.github.markovcd.hughandkettle.app.SongTab
+import io.github.markovcd.hughandkettle.app.SwitcherMode
 import io.github.markovcd.hughandkettle.app.ToneShelf
 import io.github.markovcd.hughandkettle.app.ToneShelfCard
 import io.github.markovcd.hughandkettle.app.dimmedUnless
 
 /**
  * The desktop's panel: no tabs, but the amp, its effects, the song and the tones side by side, each
- * scrolling on its own, under the panel's top. The settings are in the menu bar, and controls say what they
+ * scrolling on its own, under the panel's top, whose − and + step as [mode] says. The settings are in the menu bar, and controls say what they
  * do while the pointer rests on them. Tests find the panes by `amp`, `fx`, `song` and `tones`.
  */
 @Composable
@@ -39,13 +40,15 @@ fun DesktopLayout(
     shelf: ToneShelf,
     presetNames: PresetNamesState,
     songs: SongState,
+    mode: SwitcherMode,
 ) {
     val enabled = panel.linked
     val dim = Modifier.dimmedUnless(enabled)
     if (panel.asking) AmpQuestion(panel)
     CompositionLocalProvider(LocalHints provides true) {
         Column(Modifier.fillMaxSize()) {
-            PanelTop(panel, discovery, presetNames)
+            // The tones pane is always in view, so the header has no tab to go to, and its menu is the menu bar.
+            PanelTop(panel, discovery, presetNames, shelf, songs, mode, onTones = {}, menu = null)
             Row(Modifier.weight(1f)) {
                 AmpTab(
                     panel,
@@ -67,7 +70,15 @@ fun DesktopLayout(
                         .testTag("fx"),
                 )
                 VerticalDivider()
-                SongTab(songs, presetNames, panel.state.preset, enabled, Modifier.weight(1f).testTag("song"))
+                SongTab(
+                    songs,
+                    presetNames,
+                    panel.state.preset,
+                    enabled,
+                    Modifier.weight(1f).testTag("song"),
+                    mode,
+                    shelf.loaded,
+                )
                 VerticalDivider()
                 Column(
                     Modifier

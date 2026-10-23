@@ -27,9 +27,16 @@ class DesktopScreen(
         )
     val discovery: DiscoveryState = DiscoveryState()
     val presetNames: PresetNamesState = PresetNamesState(app.home.presetNames, panel, scope)
-    val songs: SongState = SongState(app.home.songs, panel, scope, click = app.click::play)
+    val songs: SongState = SongState(app.home.songs, panel, scope, click = app.click::play, tones = { shelf.tones })
     val shelf: ToneShelf =
-        ToneShelf(app.home.tones, panel, scope, heard = app.link.heard, names = { presetNames.names })
+        ToneShelf(
+            app.home.tones,
+            panel,
+            scope,
+            heard = app.link.heard,
+            names = { presetNames.names },
+            renamed = songs::renameTone,
+        )
     val commands: DesktopCommands = DesktopCommands(panel, shelf, songs)
 }
 

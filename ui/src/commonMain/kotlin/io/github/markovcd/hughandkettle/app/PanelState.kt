@@ -273,9 +273,20 @@ class PanelState(
      */
     fun recall(preset: Int) = recall(amp.recall(preset), emptyList())
 
-    /** Sends a step of a song: its preset recalled as [recall] recalls one, then the rest of [messages]. */
+    /** Recalls the preset [by] places on from the current one, wrapping at either end; from none known, down goes to the last. */
+    fun step(by: Int) {
+        val now = state.preset ?: if (by < 0) 1 else 0
+        recall((now - 1 + by).mod(amp.presetCount) + 1)
+    }
+
+    /**
+     * Sends a step of a song: its preset recalled as [recall] recalls one, then the rest of [messages]; or its
+     * tone's values trimmed as a tone recalled is. The song's own delay time comes last, so the lock keeps none.
+     */
     fun cue(messages: List<MidiMessage>) {
-        val preset = messages.filterIsInstance<ProgramChange>().firstOrNull() ?: return send(messages)
+        val preset =
+            messages.filterIsInstance<ProgramChange>().firstOrNull()
+                ?: return send(answers.copy(lock = null).tone(messages))
         recall(preset, messages - preset)
     }
 

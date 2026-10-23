@@ -27,6 +27,14 @@ class DesktopCommands(
             ?.let { panel.tap(it, at) }
     }
 
+    /** Whether the amp is muted, by its Mute switch. */
+    val muted: Boolean
+        get() = panel.amp.control("mute")?.let { it.isOn(panel.state.values[it.id] ?: 0) } == true
+
+    fun mute(on: Boolean) {
+        panel.amp.control("mute")?.let { panel.set(it, if (on) 127 else 0) }
+    }
+
     /** Whether the song is counting in or playing. */
     val playing: Boolean get() = songs.countdown != null || songs.position != null
 

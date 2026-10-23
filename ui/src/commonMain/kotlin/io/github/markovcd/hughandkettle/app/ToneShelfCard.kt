@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,11 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,7 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.ui.Res
@@ -38,9 +45,11 @@ import io.github.markovcd.hughandkettle.ui.tone_imported
 import io.github.markovcd.hughandkettle.ui.tone_imported_presets
 import io.github.markovcd.hughandkettle.ui.tone_imported_presets_skipped
 import io.github.markovcd.hughandkettle.ui.tone_imported_skipped
+import io.github.markovcd.hughandkettle.ui.tone_loaded
 import io.github.markovcd.hughandkettle.ui.tone_move_down
 import io.github.markovcd.hughandkettle.ui.tone_move_up
 import io.github.markovcd.hughandkettle.ui.tone_name
+import io.github.markovcd.hughandkettle.ui.tone_pin
 import io.github.markovcd.hughandkettle.ui.tone_read
 import io.github.markovcd.hughandkettle.ui.tone_read_done
 import io.github.markovcd.hughandkettle.ui.tone_read_explain
@@ -51,13 +60,16 @@ import io.github.markovcd.hughandkettle.ui.tone_rename
 import io.github.markovcd.hughandkettle.ui.tone_save
 import io.github.markovcd.hughandkettle.ui.tones
 import io.github.markovcd.hughandkettle.ui.tones_none
+import io.github.markovcd.hughandkettle.ui.tones_pinned
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * The tones on the phone: save the panel as one, read the amp's presets into them, tap one to recall
- * it, and a menu per tone, behind its dots or a right-click, to move, rename, export or delete it.
- * Tests find the parts by `tone_save`, `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tone:<name>`, `tone_menu:<name>`
- * and the menu's `tone_delete` and kin, and the dialog's field by `tone_name`.
+ * it, pin it to the header, and a menu per tone, behind its dots or a right-click, to move, rename, export
+ * or delete it. The tone last loaded is outlined amber and says so. Tests find the parts by `tone_save`,
+ * `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tones_pinned`, `tone:<name>`,
+ * `tone_pin:<name>`, `tone_loaded:<name>`, `tone_menu:<name>` and the menu's `tone_delete` and kin, and the
+ * dialog's field by `tone_name`.
  */
 @Composable
 fun ToneShelfCard(
@@ -90,6 +102,15 @@ fun ToneShelfCard(
                     enabled = shelf.canSave,
                     modifier = Modifier.testTag("tone_save"),
                 ) { Text(stringResource(Res.string.tone_save)) }
+            }
+            val fitting = shelf.tones.count(shelf::fits)
+            if (fitting > 0) {
+                Text(
+                    stringResource(Res.string.tones_pinned, shelf.pinned.size, fitting),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.testTag("tones_pinned"),
+                )
             }
             val reading = shelf.reading
             if (reading == null) {
@@ -200,7 +221,16 @@ private fun ToneRow(
     var menu by remember { mutableStateOf(false) }
     val recallable = enabled && shelf.fits(tone)
     val colors = MaterialTheme.colorScheme
-    Row(Modifier.onSecondaryClick { menu = true }, verticalAlignment = Alignment.CenterVertically) {
+    val loaded = tone == shelf.loaded
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier
+            .clip(shape)
+            .border(1.dp, if (loaded) colors.primary else Color.Transparent, shape)
+            .onSecondaryClick { menu = true }
+            .padding(start = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(
             Modifier
                 .weight(1f)
@@ -209,11 +239,28 @@ private fun ToneRow(
                 .padding(vertical = 8.dp)
                 .testTag("tone:${tone.name}"),
         ) {
-            Text(
-                tone.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (recallable) colors.onSurface else colors.onSurfaceVariant,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    tone.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (recallable) colors.onSurface else colors.onSurfaceVariant,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (loaded) {
+                    Surface(
+                        shape = CircleShape,
+                        color = colors.primary,
+                        modifier = Modifier.testTag("tone_loaded:${tone.name}"),
+                    ) {
+                        Text(
+                            stringResource(Res.string.tone_loaded),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.onPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
             if (!shelf.fits(tone)) {
                 Text(
                     tone.amp.name,
@@ -222,6 +269,12 @@ private fun ToneRow(
                 )
             }
         }
+        val pinning = stringResource(Res.string.tone_pin, tone.name)
+        IconToggleButton(
+            checked = tone.pinned,
+            onCheckedChange = { shelf.pin(tone, it) },
+            modifier = Modifier.testTag("tone_pin:${tone.name}").semantics { contentDescription = pinning },
+        ) { PinMark(if (tone.pinned) colors.primary else colors.onSurfaceVariant, filled = tone.pinned) }
         Box {
             TextButton(onClick = { menu = true }, modifier = Modifier.testTag("tone_menu:${tone.name}")) { Text("⋮") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {

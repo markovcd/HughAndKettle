@@ -6,14 +6,17 @@ import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.app.SwitcherMode
 import io.github.markovcd.hughandkettle.app.ThemeChoice
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.amp
 import io.github.markovcd.hughandkettle.ui.disconnect
 import io.github.markovcd.hughandkettle.ui.link
+import io.github.markovcd.hughandkettle.ui.mute
 import io.github.markovcd.hughandkettle.ui.song
 import io.github.markovcd.hughandkettle.ui.song_play
 import io.github.markovcd.hughandkettle.ui.song_stop
+import io.github.markovcd.hughandkettle.ui.switcher_steps_through
 import io.github.markovcd.hughandkettle.ui.tap
 import io.github.markovcd.hughandkettle.ui.theme
 import io.github.markovcd.hughandkettle.ui.theme_system_desktop
@@ -24,14 +27,16 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * The window's menus, in place of the phone's settings menu: the link, the amp behind the box, the tones and
- * the tempo with their shortcuts, the song, and the theme.
+ * The window's menus, in place of the phone's header menu: the link, the amp behind the box and its mute, the
+ * tones with their shortcuts and what the header's − and + step through, the tempo, the song, and the theme.
  */
 @Composable
 fun FrameWindowScope.DesktopMenuBar(
     screen: DesktopScreen,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
+    mode: SwitcherMode,
+    onMode: (SwitcherMode) -> Unit,
 ) {
     val panel = screen.panel
     val commands = screen.commands
@@ -44,6 +49,12 @@ fun FrameWindowScope.DesktopMenuBar(
                 RadioButtonItem(amp.name, selected = amp == panel.amp, onClick = { panel.choose(amp) })
             }
             Separator()
+            CheckboxItem(
+                stringResource(Res.string.mute),
+                checked = commands.muted,
+                enabled = panel.linked,
+                onCheckedChange = commands::mute,
+            )
             Item(
                 stringResource(Res.string.tap),
                 shortcut = KeyShortcut(Key.T, ctrl = true),
@@ -64,6 +75,14 @@ fun FrameWindowScope.DesktopMenuBar(
                 enabled = panel.linked,
                 onClick = commands::nextTone,
             )
+            Separator()
+            SwitcherMode.entries.forEach { choice ->
+                RadioButtonItem(
+                    "${stringResource(Res.string.switcher_steps_through)}: ${stringResource(choice.label)}",
+                    selected = choice == mode,
+                    onClick = { onMode(choice) },
+                )
+            }
         }
         Menu(stringResource(Res.string.song)) {
             Item(

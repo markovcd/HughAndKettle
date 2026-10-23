@@ -39,6 +39,14 @@ class SettingsStoresTest {
     }
 
     @Test
+    fun `A machine that never picked steps through presets, and a picked mode reads back`() {
+        val store = SwitcherModeStore(settings)
+        assertEquals(SwitcherMode.Presets, runBlocking { store.mode.first() })
+        runBlocking { store.pick(SwitcherMode.Tones) }
+        assertEquals(SwitcherMode.Tones, runBlocking { store.mode.first() })
+    }
+
+    @Test
     fun `The amp picked for each box reads back, and a later pick for a box replaces the earlier`() {
         val store = AmpChoiceStore(settings)
         val home = WmiAddress("192.168.1.1", 2000)
@@ -65,6 +73,7 @@ class SettingsStoresTest {
     fun `A damaged settings file reads as no settings rather than stopping the app`() {
         folder.resolve("settings.preferences_pb").writeText("not a settings file")
         assertEquals(ThemeChoice.Dark, runBlocking { ThemeStore(settings).choice.first() })
+        assertEquals(SwitcherMode.Presets, runBlocking { SwitcherModeStore(settings).mode.first() })
         assertNull(runBlocking { LastWmiStore(settings).last.first() })
     }
 }

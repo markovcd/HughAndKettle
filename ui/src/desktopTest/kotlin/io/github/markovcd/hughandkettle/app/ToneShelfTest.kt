@@ -219,27 +219,62 @@ class ToneShelfTest {
         }
     }
 
+    private fun pin(vararg names: String) =
+        names.forEach { name ->
+            shelf.pin(
+                shelf.tones.first {
+                    it.name == name
+                },
+                on = true,
+            )
+        }
+
     @Test
-    fun `Stepping goes through the tones for the amp in order, stopping at either end`() {
+    fun `Stepping goes through the pinned tones for the amp in order, wrapping at either end`() {
         set("gain" to 40)
         listOf("One", "Two", "Three").forEach(shelf::save)
-        val stepped = listOf(1, 1, -1, -1, -1, 1, 1, 1, 1).map { shelf.step(it) }
-        assertEquals(
-            listOf("One", "Two", "One", "One", "One", "Two", "Three", "Three", "Three"),
-            stepped.map { it?.name },
-        )
-        assertEquals("Three", shelf.recalled)
+        pin("One", "Three")
+        val stepped = listOf(1, 1, 1, -1, -1).map { shelf.step(it) }
+        assertEquals(listOf("One", "Three", "One", "Three", "One"), stepped.map { it?.name })
+        assertEquals("One", shelf.recalled)
     }
 
     @Test
-    fun `Stepping back from no tone starts at the last, and skips tones for another amp`() {
+    fun `Stepping from a tone not pinned starts at the first or the last pinned, and skips tones for another amp`() {
         set("gain" to 40)
-        listOf("One", "Two").forEach(shelf::save)
+        listOf("One", "Two", "Three").forEach(shelf::save)
         panel.choose(AmpModels.grandMeisterDeluxe40)
         panel.set(AmpModels.grandMeisterDeluxe40.control("gain")!!, 30)
         shelf.save("Deluxe")
         panel.choose(amp)
+        pin("One", "Two", "Deluxe")
+        assertEquals(listOf("One", "Two"), shelf.pinned.map { it.name })
+        shelf.recall(shelf.tones.first { it.name == "Three" })
         assertEquals("Two", shelf.step(-1)?.name)
-        assertEquals("Two", shelf.step(1)?.name)
+        shelf.recall(shelf.tones.first { it.name == "Three" })
+        assertEquals("One", shelf.step(1)?.name)
+    }
+
+    @Test
+    fun `With no tone pinned, stepping recalls nothing`() {
+        set("gain" to 40)
+        shelf.save("One")
+        assertEquals(null, shelf.step(1))
+        assertEquals(null, shelf.recalled)
+    }
+
+    @Test
+    fun `A tone renamed stays the one loaded and is renamed in the songs`() {
+        val renamed = mutableListOf<Pair<String, String>>()
+        val shelf =
+            ToneShelf(ToneStore(folder.resolve("other")), panel, scope, Dispatchers.Unconfined, renamed = { tone, to ->
+                renamed += tone.name to to
+            })
+        set("gain" to 40)
+        shelf.save("Lead")
+        shelf.recall(shelf.tones.single())
+        shelf.rename(shelf.tones.single(), " Solo ")
+        assertEquals("Solo", shelf.recalled)
+        assertEquals(listOf("Lead" to "Solo"), renamed)
     }
 }

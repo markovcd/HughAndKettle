@@ -31,8 +31,8 @@ import io.github.markovcd.hughandkettle.amp.Section
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The whole screen: a top bar of the preset, the link's glyph, the header's switches and the settings, where
- * the amp is picked; the switching, always in view; the link card while there is no link; then one tab of
+ * The whole screen: the header, whose − and + step through the presets or the pinned tones as [mode] says, and
+ * whose menu picks the amp, the [mode], the mute, the link and the theme; the switching, always in view; the link card while there is no link; then one tab of
  * the amp, its effects, the song or the tones, picked along the bottom. A box linked to with no amp picked for it asks
  * which amp it is. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the tabs move to a rail
  * at the side and the amp and its effects share a tab side by side. Tests find the tab's content by `panel`,
@@ -47,6 +47,8 @@ fun AmpPanel(
     songs: SongState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
+    mode: SwitcherMode,
+    onMode: (SwitcherMode) -> Unit,
 ) {
     val enabled = panel.linked
     val dim = Modifier.dimmedUnless(enabled)
@@ -57,7 +59,17 @@ fun AmpPanel(
         val tabs = if (wide) listOf(PanelTab.Amp, PanelTab.Song, PanelTab.Tones) else PanelTab.entries
         val tab = if (picked in tabs) picked else PanelTab.Amp
         val body: @Composable ColumnScope.() -> Unit = {
-            PanelTop(panel, discovery, presetNames) { SettingsMenu(panel, theme, onTheme) }
+            PanelTop(
+                panel,
+                discovery,
+                presetNames,
+                shelf,
+                songs,
+                mode,
+                onTones = { picked = PanelTab.Tones },
+            ) { close, link ->
+                HeaderMenu(panel, mode, onMode, theme, onTheme, close, link)
+            }
             val content = Modifier.weight(1f).fillMaxWidth()
             when {
                 tab == PanelTab.Tones -> {
@@ -67,7 +79,15 @@ fun AmpPanel(
                 }
 
                 tab == PanelTab.Song -> {
-                    SongTab(songs, presetNames, panel.state.preset, enabled, content.testTag("panel"))
+                    SongTab(
+                        songs,
+                        presetNames,
+                        panel.state.preset,
+                        enabled,
+                        content.testTag("panel"),
+                        mode,
+                        shelf.loaded,
+                    )
                 }
 
                 wide -> {

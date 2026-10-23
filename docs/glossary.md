@@ -41,6 +41,7 @@ Prefer the domain's words over the framework's.
 | **preset** | One of the amp's 128 stored sounds, recalled by a program change. | `preset`; `program` for the MIDI number | patch, program (in prose), slot, bank entry |
 | **preset name** | A name given to one of the amp's presets, kept on the phone or by `hk`; the amp itself names none. | `PresetNames`, `PresetNameStore` | preset title, label, tag |
 | **tone** | A named set of control values kept on the phone or by `hk`, apart from the amp's presets, and recalled by sending each value. | `Tone`, `ToneFile`, `ToneStore` | preset (the amp's), patch, sound, favorite |
+| **switcher** | The header's − and + and what sits between them: the amp's preset, or the tone loaded, as the menu's "− and + step through" says. | `SwitcherRow`, `SwitcherMode` | preset row, top bar, navigator |
 | **pinned tone** | A tone marked to sit in the header's switcher, which steps through the pinned tones alone. | `Tone.pinned` | favorite, starred tone |
 | **preset file** | A file of 128 presets saved by H&K's GrandMeister Deluxe 40 Remote app, `.gm40memory`; its named presets import as tones. | `Gm40Memory`, `ToneImport` | memory, bank (an amp word), library, preset dump |
 | **tone shelf** | The panel's list of tones, with save, recall, rename, move, delete, export and import. | `ToneShelf`, `ToneShelfCard` | library, bank (an amp word), favorites |

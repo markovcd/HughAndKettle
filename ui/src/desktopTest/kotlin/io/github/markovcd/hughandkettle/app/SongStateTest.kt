@@ -5,6 +5,7 @@ import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongFile
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
+import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.ProgramChange
@@ -209,6 +210,57 @@ class SongStateTest {
     }
 
     @Test
+    fun `A song plays a tone step as the tone's values, and a step on a missing tone as the delay time alone`() {
+        val gain = amp.control("gain")!!
+        val lead = Tone("Lead", amp, mapOf("gain" to 90))
+        var shelf = listOf(lead, Tone("Gone", amp, emptyMap()))
+        val songs = SongState(store, panel, scope, Dispatchers.Unconfined, tones = { shelf })
+        connected()
+        songs.tempo(400)
+        songs.countIn(false)
+        songs.add(lead)
+        songs.add(shelf[1])
+        listOf(0, 1).forEach { songs.beats(it, 2) }
+        shelf = listOf(lead)
+        assertEquals(listOf(false, true), songs.song.steps.map(songs::missing))
+        val delay = ControlChange(MidiChannel(1), time.controller, time.scale!!.value(150))
+        songs.start()
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), gain.controller, 90)), next())
+        assertEquals(FakeWmiEvent.Received(delay), next())
+        assertEquals(FakeWmiEvent.Received(delay), next())
+        until("song over") { songs.position == null }
+    }
+
+    @Test
+    fun `A tone renamed is renamed in the steps of the open song`() {
+        val lead = Tone("Lead", amp, mapOf("gain" to 90))
+        songs.add(lead)
+        until("saved") {
+            kept()
+                .singleOrNull()
+                ?.song
+                ?.steps
+                ?.singleOrNull()
+                ?.tone == "Lead"
+        }
+        songs.renameTone(lead, "Solo")
+        until("renamed") {
+            songs.song.steps
+                .singleOrNull()
+                ?.tone == "Solo"
+        }
+        assertEquals(
+            "Solo",
+            kept()
+                .single()
+                .song
+                ?.steps
+                ?.single()
+                ?.tone,
+        )
+    }
+
+    @Test
     fun `A song counts in a bar of clicks before its first preset, and with the count-in off starts at once`() {
         connected()
         songs.tempo(400)
@@ -233,7 +285,14 @@ class SongStateTest {
         val heard = ArrayList<Duration>()
         val began = TimeSource.Monotonic.markNow()
         val lagging =
-            SongState(store, panel, scope, Dispatchers.Unconfined, { heard += began.elapsedNow() }) { 300.milliseconds }
+            SongState(
+                store,
+                panel,
+                scope,
+                Dispatchers.Unconfined,
+                { heard += began.elapsedNow() },
+                lag = { 300.milliseconds },
+            )
         connected()
         lagging.tempo(400)
         lagging.add()

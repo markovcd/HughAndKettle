@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import io.github.markovcd.hughandkettle.app.SwitcherMode
 import io.github.markovcd.hughandkettle.app.ThemeChoice
 import kotlinx.coroutines.launch
 import java.awt.Dimension
@@ -28,8 +29,16 @@ fun main() {
             val screen = rememberDesktopScreen(app)
             val theme by app.home.theme.choice
                 .collectAsState(initial = ThemeChoice.Dark)
-            DesktopMenuBar(screen, theme, onTheme = { scope.launch { app.home.theme.pick(it) } })
-            DesktopPanel(screen, theme)
+            val mode by app.home.switcher.mode
+                .collectAsState(initial = SwitcherMode.Presets)
+            DesktopMenuBar(
+                screen,
+                theme,
+                onTheme = { scope.launch { app.home.theme.pick(it) } },
+                mode,
+                onMode = { scope.launch { app.home.switcher.pick(it) } },
+            )
+            DesktopPanel(screen, theme, mode)
         }
     }
     app.close()

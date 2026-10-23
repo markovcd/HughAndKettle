@@ -57,14 +57,19 @@ import androidx.compose.ui.zIndex
 import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
+import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.bpm
 import io.github.markovcd.hughandkettle.ui.song_add
+import io.github.markovcd.hughandkettle.ui.song_add_no_tone
+import io.github.markovcd.hughandkettle.ui.song_add_tone_what
 import io.github.markovcd.hughandkettle.ui.song_add_what
 import io.github.markovcd.hughandkettle.ui.song_count_in
 import io.github.markovcd.hughandkettle.ui.song_count_in_what
 import io.github.markovcd.hughandkettle.ui.song_create
 import io.github.markovcd.hughandkettle.ui.song_held
+import io.github.markovcd.hughandkettle.ui.song_missing
+import io.github.markovcd.hughandkettle.ui.song_missing_first
 import io.github.markovcd.hughandkettle.ui.song_new_title
 import io.github.markovcd.hughandkettle.ui.song_none
 import io.github.markovcd.hughandkettle.ui.song_none_now
@@ -82,7 +87,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The song's own tab. Stopped: its tempo, its count-in, its steps to lengthen, shorten or remove, a step to
- * add on the preset the amp is on, and Play along the foot. Counting in: the clicks left, big. Playing: the
+ * add on the preset the amp is on or, in the Tones [mode], on the [loaded] tone, and Play along the foot. A
+ * step on a deleted tone is marked, and said over the steps. Counting in: the clicks left, big. Playing: the
  * beat, big, over the steps read only, and Stop. A song that cannot be read says so on top and can be neither
  * changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
  * switch by `song_count_in` and the clicks left by `song_countdown`. The open song's name heads the tab and
@@ -95,6 +101,8 @@ fun SongTab(
     preset: Int?,
     enabled: Boolean,
     modifier: Modifier = Modifier,
+    mode: SwitcherMode = SwitcherMode.Presets,
+    loaded: Tone? = null,
 ) {
     val song = songs.song
     val at = songs.position
@@ -138,8 +146,17 @@ fun SongTab(
                     SongTempoCard(songs, readable)
                     CountInRow(song.countIn, songs.editable, songs::countIn)
                     StepsHeader(song)
+                    val adding: (() -> Unit)? =
+                        when (mode) {
+                            SwitcherMode.Presets -> songs::add
+                            SwitcherMode.Tones -> loaded?.let { { songs.add(it) } }
+                        }
+                    song.steps
+                        .indexOfFirst(songs::missing)
+                        .takeIf { it >= 0 }
+                        ?.let { MissingAlert(it) }
                     if (song.steps.isEmpty()) {
-                        NoSteps(preset, songs.editable, songs::add)
+                        NoSteps(preset, songs.editable && adding != null) { adding?.invoke() }
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(STEP_GAP)) {
                             val drag = remember { StepDrag() }
@@ -148,6 +165,7 @@ fun SongTab(
                                     index + 1,
                                     step,
                                     step.preset?.let(names::get),
+                                    songs.missing(step),
                                     songs.editable,
                                     last = index == song.steps.lastIndex,
                                     onBeats = { songs.beats(index, it) },
@@ -156,7 +174,24 @@ fun SongTab(
                                     modifier = Modifier.dragged(drag, index, songs),
                                 )
                             }
-                            AddStep(preset ?: 1, songs.editable, songs::add)
+                            AddStep(
+                                when (mode) {
+                                    SwitcherMode.Presets -> {
+                                        stringResource(Res.string.song_add_what, preset ?: 1, SongState.NEW_STEP_BEATS)
+                                    }
+
+                                    SwitcherMode.Tones -> {
+                                        loaded?.let {
+                                            stringResource(
+                                                Res.string.song_add_tone_what,
+                                                it.name,
+                                                SongState.NEW_STEP_BEATS,
+                                            )
+                                        } ?: stringResource(Res.string.song_add_no_tone)
+                                    }
+                                },
+                                songs.editable && adding != null,
+                            ) { adding?.invoke() }
                         }
                     }
                 }
@@ -391,10 +426,10 @@ private fun NoSteps(
     }
 }
 
-/** Add step, under the steps, saying the preset and beats it adds. */
+/** Add step, under the steps, saying [what] it adds. */
 @Composable
 private fun AddStep(
-    preset: Int,
+    what: String,
     enabled: Boolean,
     onAdd: () -> Unit,
 ) {
@@ -419,7 +454,7 @@ private fun AddStep(
             color = colors.primary,
         )
         Text(
-            stringResource(Res.string.song_add_what, preset, SongState.NEW_STEP_BEATS),
+            what,
             fontWeight = FontWeight.Medium,
             fontSize = 15.sp,
             color = colors.onSurfaceVariant,
@@ -483,6 +518,34 @@ private fun PlayBar(
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = ink,
+        )
+    }
+}
+
+/** The first step on a deleted tone, counted from 0, and what Play does with it. */
+@Composable
+private fun MissingAlert(step: Int) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.errorContainer.copy(alpha = 0.35f))
+            .border(1.dp, colors.error.copy(alpha = 0.5f), shape)
+            .padding(14.dp)
+            .testTag("song_missing"),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        WarningMark(colors.error, 22.dp, Modifier.padding(top = 1.dp))
+        Text(
+            if (step == 0) {
+                stringResource(Res.string.song_missing_first)
+            } else {
+                stringResource(Res.string.song_missing, step + 1, step)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurface,
         )
     }
 }
@@ -609,19 +672,6 @@ private fun Modifier.dragged(
             )
         }
 }
-
-/** A dashed outline of [color] with rounded corners. */
-private fun Modifier.dashed(
-    color: Color,
-    radius: Dp,
-): Modifier =
-    drawBehind {
-        drawRoundRect(
-            color,
-            cornerRadius = CornerRadius(radius.toPx()),
-            style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))),
-        )
-    }
 
 private val STEP_GAP = 8.dp
 private const val UNREADABLE = 0.6f

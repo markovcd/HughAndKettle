@@ -58,12 +58,19 @@ class AmpPanelTest {
 
     private var picked: ThemeChoice? = null
 
-    private fun shown() =
+    private fun shown(mode: SwitcherMode = SwitcherMode.Presets) =
         compose.setContent {
-            AmpPanel(panel, DiscoveryState(WmiDiscovery(0)), shelf, presetNames, songs, ThemeChoice.Dark, onTheme = {
-                picked =
-                    it
-            })
+            AmpPanel(
+                panel,
+                DiscoveryState(WmiDiscovery(0)),
+                shelf,
+                presetNames,
+                songs,
+                ThemeChoice.Dark,
+                onTheme = { picked = it },
+                mode,
+                onMode = {},
+            )
         }
 
     @Test
@@ -87,9 +94,10 @@ class AmpPanelTest {
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun `Picking another amp in the settings puts its controls on the panel`() {
+    fun `Picking another amp in the header's menu puts its controls on the panel`() {
         shown()
-        compose.onNodeWithTag("settings").performClick()
+        compose.onNodeWithTag("header_menu").performClick()
+        compose.onNodeWithTag("menu_amp").performClick()
         compose.onNodeWithTag("amp:grandmeister_deluxe_40").performClick()
         compose.onNodeWithTag("control:power_soak").performScrollTo().assertExists()
         assertEquals(AmpModels.grandMeisterDeluxe40, panel.amp)
@@ -115,16 +123,16 @@ class AmpPanelTest {
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun `The theme is picked in the settings`() {
+    fun `The theme is picked in the header's menu`() {
         shown()
-        compose.onNodeWithTag("settings").performClick()
+        compose.onNodeWithTag("header_menu").performClick()
         compose.onNodeWithTag("theme:light").performClick()
         assertEquals(ThemeChoice.Light, picked)
     }
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun `The link card sits on the panel until a link starts, then opens from the link's glyph`() {
+    fun `The link card sits on the panel until a link starts, and the header's menu ends the link`() {
         val fake = FakeWmi(onEvent = {})
         shown()
         compose.onNodeWithTag("enter_address").assertExists()
@@ -132,12 +140,21 @@ class AmpPanelTest {
         compose.waitUntil(5_000) { panel.linked }
         panel.settle()
         compose.onNodeWithTag("enter_address").assertDoesNotExist()
-        compose.onNodeWithTag("link").performClick()
-        compose.onNodeWithTag("disconnect").performClick()
+        compose.onNodeWithTag("header_menu").performClick()
+        compose.onNodeWithTag("menu_connect").performClick()
         compose.waitUntil(5_000) { panel.idle }
         compose.onNodeWithTag("link_dialog").assertDoesNotExist()
         compose.onNodeWithTag("enter_address").assertExists()
         fake.close()
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun `With no tone pinned, a tap on the header in the Tones mode goes to the Tones tab`() {
+        shown(SwitcherMode.Tones)
+        compose.onNodeWithTag("tone_save").assertDoesNotExist()
+        compose.onNodeWithTag("switcher_pick").performClick()
+        compose.onNodeWithTag("tone_save").assertExists()
     }
 
     @Test

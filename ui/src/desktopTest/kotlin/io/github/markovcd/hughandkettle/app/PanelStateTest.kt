@@ -181,6 +181,31 @@ class PanelStateTest {
     }
 
     @Test
+    fun `Stepping the preset down from none known wraps to the last, and up from the last to the first`() {
+        panel.step(-1)
+        assertEquals(128, panel.state.preset)
+        panel.step(1)
+        assertEquals(1, panel.state.preset)
+        panel.step(1)
+        assertEquals(2, panel.state.preset)
+    }
+
+    @Test
+    fun `A song's tone step under a trim and a lock sends the tone trimmed and the song's delay time`() {
+        val delay = AmpModels.blackSpirit200.control("delay_time")!!
+        val volume = AmpModels.blackSpirit200.control("volume")!!
+        connected()
+        panel.set(delay, 40)
+        nextSeen()
+        panel.lock(delay, on = true)
+        panel.trim(-20)
+        panel.cue(listOf(volume.set(100), delay.set(60)))
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), volume.controller, 80)), nextSeen())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), delay.controller, 60)), nextSeen())
+        assertEquals(60, panel.lock?.value)
+    }
+
+    @Test
     fun `A preset changed on the amp shows on the panel and forgets the values it had`() {
         connected()
         panel.set(gain, 100)

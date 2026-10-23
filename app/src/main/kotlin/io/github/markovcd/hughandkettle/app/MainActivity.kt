@@ -48,20 +48,34 @@ class MainActivity : ComponentActivity() {
                 }
             val discovery = remember { DiscoveryState(wifi = app.wifi.network, rereadWifi = app.wifi::reread) }
             val presetNames = remember { PresetNamesState(app.home.presetNames, panel, scope) }
-            val songs =
-                remember { SongState(app.home.songs, panel, scope, click = app.click::play, lag = app.click::lag) }
-            val shelf =
+            val (songs, shelf) =
                 remember {
-                    ToneShelf(
-                        app.home.tones,
-                        panel,
-                        scope,
-                        heard = app.link.heard,
-                        names = { presetNames.names },
-                    )
+                    lateinit var songs: SongState
+                    val shelf =
+                        ToneShelf(
+                            app.home.tones,
+                            panel,
+                            scope,
+                            heard = app.link.heard,
+                            names = { presetNames.names },
+                            renamed = { tone, to -> songs.renameTone(tone, to) },
+                        )
+                    // The shelf hands renames to the songs, and the songs look tones up on the shelf.
+                    songs =
+                        SongState(
+                            app.home.songs,
+                            panel,
+                            scope,
+                            click = app.click::play,
+                            lag = app.click::lag,
+                            tones = { shelf.tones },
+                        )
+                    songs to shelf
                 }
             val theme by app.home.theme.choice
                 .collectAsState(initial = ThemeChoice.Dark)
+            val mode by app.home.switcher.mode
+                .collectAsState(initial = SwitcherMode.Presets)
             AskForLocalNetwork()
             AskForNotifications(linked = !panel.idle)
             HughAndKettleTheme(
@@ -77,6 +91,8 @@ class MainActivity : ComponentActivity() {
                         songs,
                         theme,
                         onTheme = { scope.launch { app.home.theme.pick(it) } },
+                        mode,
+                        onMode = { scope.launch { app.home.switcher.pick(it) } },
                     )
                 }
             }

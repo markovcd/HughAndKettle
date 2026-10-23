@@ -29,7 +29,8 @@ import java.io.OutputStream
  * The tones kept on the phone, in their order, and what the panel can do with them: save the amp's
  * state as one, read the amp's presets into them, recall, rename, move, delete, export and import.
  * The folder is read and written off the main thread; the list is replaced whole after every change.
- * Reading listens to what the amp says through [heard] and names each tone after [names].
+ * Reading listens to what the amp says through [heard] and names each tone after [names]. A tone renamed is
+ * handed to [renamed], so the songs that step on it follow.
  */
 class ToneShelf(
     private val store: ToneStore,
@@ -38,6 +39,7 @@ class ToneShelf(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val heard: Flow<MidiMessage> = emptyFlow(),
     private val names: () -> PresetNames = { PresetNames(panel.amp) },
+    private val renamed: (Tone, String) -> Unit = { _, _ -> },
 ) {
     var tones by mutableStateOf<List<Tone>>(emptyList())
         private set
@@ -58,6 +60,14 @@ class ToneShelf(
 
     /** Whether [tone] is for the amp on the panel, and so can be recalled onto it. */
     fun fits(tone: Tone): Boolean = tone.amp == panel.amp
+
+    /** The pinned tones for the amp on the panel, in the shelf's order: what the header's − and + step through. */
+    val pinned: List<Tone> get() = tones.filter { it.pinned && fits(it) }
+
+    fun pin(
+        tone: Tone,
+        on: Boolean,
+    ) = change { store.pin(tone.name, on) }
 
     fun save(name: String) {
         if (name.isNotBlank() && canSave) change { store.save(panel.tone(name.trim())) }
@@ -106,6 +116,9 @@ class ToneShelf(
     var recalled by mutableStateOf<String?>(null)
         private set
 
+    /** The tone last recalled, while it is on the shelf and for the amp on the panel. */
+    val loaded: Tone? get() = tones.firstOrNull { it.name == recalled && fits(it) }
+
     fun recall(tone: Tone) {
         if (!fits(tone)) return
         panel.recall(tone)
@@ -113,26 +126,35 @@ class ToneShelf(
     }
 
     /**
-     * Recalls the tone for the amp [by] places on from the one last recalled, down the shelf for positive,
-     * and returns it. From none, it starts at the first or the last; past either end it stays on the end one.
+     * Recalls the pinned tone [by] places on from the one last recalled, down the shelf for positive, and
+     * returns it. From none, or from a tone not pinned, it starts at the first or the last; past either end
+     * it wraps around. With none pinned it recalls nothing.
      */
     fun step(by: Int): Tone? {
-        val fitting = tones.filter(::fits)
-        if (fitting.isEmpty()) return null
-        val at = fitting.indexOfFirst { it.name == recalled }
+        val pinned = pinned
+        if (pinned.isEmpty()) return null
+        val at = pinned.indexOfFirst { it.name == recalled }
         val next =
             when {
                 at >= 0 -> at + by
                 by > 0 -> by - 1
-                else -> fitting.size + by
-            }.coerceIn(fitting.indices)
-        return fitting[next].also(::recall)
+                else -> pinned.size + by
+            }.mod(pinned.size)
+        return pinned[next].also(::recall)
     }
 
     fun rename(
         tone: Tone,
         to: String,
-    ) = change { store.rename(tone.name, to.trim()) }
+    ) {
+        val name = to.trim()
+        change {
+            store.rename(tone.name, name).onSuccess {
+                renamed(tone, name)
+                if (recalled == tone.name) recalled = name
+            }
+        }
+    }
 
     fun delete(tone: Tone) = change { store.delete(tone.name) }
 

@@ -1,5 +1,8 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -14,6 +17,7 @@ import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
+import io.github.markovcd.hughandkettle.amp.Tone
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +49,39 @@ class SongTabTest {
     }
 
     private fun beats() = songs.song.steps.map(SongStep::beats)
+
+    @Test
+    fun `In the Tones mode Add step adds the loaded tone, and with none loaded it is off`() =
+        runComposeUiTest {
+            val lead = Tone("Lead solo", panel.amp, mapOf("gain" to 90))
+            var loaded by mutableStateOf<Tone?>(null)
+            setContent { SongTab(songs, names, preset = 5, enabled = true, mode = SwitcherMode.Tones, loaded = loaded) }
+            onNodeWithTag("song_add").assertIsNotEnabled()
+            loaded = lead
+            onNodeWithTag("song_add").performClick()
+            assertEquals(listOf(SongStep(beats = SongState.NEW_STEP_BEATS, tone = "Lead solo")), songs.song.steps)
+            onNodeWithTag("song_step_kind:1").assertExists()
+        }
+
+    @Test
+    fun `A step on a deleted tone is marked and said over the steps`() =
+        runComposeUiTest {
+            var shelf by mutableStateOf(listOf(Tone("Lead solo", panel.amp, mapOf("gain" to 90))))
+            val songs =
+                SongState(
+                    SongStore(folder.resolve("tone-songs")),
+                    panel,
+                    scope,
+                    Dispatchers.Unconfined,
+                    tones = { shelf },
+                )
+            songs.add(shelf.single())
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            onNodeWithTag("song_missing").assertDoesNotExist()
+            shelf = emptyList()
+            onNodeWithTag("song_missing").assertExists()
+            onNodeWithTag("song_step_kind:1").assertExists()
+        }
 
     @Test
     fun `A step's beats can be typed, and the buttons step them to the ends of bars`() =
