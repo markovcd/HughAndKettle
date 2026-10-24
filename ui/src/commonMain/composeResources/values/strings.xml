@@ -53,7 +53,7 @@
     <string name="tone_imported_presets_skipped">Presets imported as tones: %1$d, leaving out: %2$s</string>
     <string name="tone_failed">Tones: %1$s</string>
     <string name="tone_read">Read presets</string>
-    <string name="tone_read_explain">Recalls every preset on the amp in turn and saves each as a tone named after it, replacing tones of the same name. The amp's sound changes while it runs. Only the knobs are read, not the channel or the switches.</string>
+    <string name="tone_read_explain">Recalls every preset on the amp in turn and saves each as a tone named after it, replacing tones of the same name. The amp's sound changes while it runs. The knobs, the channel, boost, noise gate, FX loop and power soak are read; an effect counts as on when its level is above 0.</string>
     <string name="tone_reading">Reading preset %1$d of %2$d</string>
     <string name="tone_read_stop">Stop</string>
     <string name="tone_read_done">Presets read into tones: %1$d</string>
