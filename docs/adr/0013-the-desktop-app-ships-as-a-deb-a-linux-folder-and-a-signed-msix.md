@@ -32,3 +32,9 @@ signature chains to a certificate the machine trusts, and the SSH key that signs
 - The `.deb` depends on Ubuntu 24.04's package names (`libasound2t64` and the like); an older Debian
   or Ubuntu takes the portable folder.
 - The lock files carry Skia for Linux and Windows, so both runners restore against them.
+
+## Amendment (2026-10-26)
+
+- A Mac builds an app bundle and a `.dmg` (`createDistributable`, `packageDmg`); no release job makes them
+  yet. macOS refuses a version whose first number is 0, so builds that are not a release are 1.0.0 there.
+- The lock files carry Skia for macOS on arm64 as well, so a Mac restores against them too.

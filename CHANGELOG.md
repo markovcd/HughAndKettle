@@ -55,7 +55,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: the header's menu holds the amp, the mute, the link and the theme; the desktop's menu bar has the mute and what − and + step through.
 - App: tones are pinned from the Tones tab, which outlines the tone loaded; Ctrl+Up and Ctrl+Down step through the pinned tones and wrap around.
 - App: a song step can be a tone, added in the Tones mode, and a step whose tone was deleted is marked and keeps the sound before it.
-- Desktop app for Linux, as a `.deb` or a folder that runs on its own, and for Windows, as an MSIX: the amp, its effects, the song and the tones side by side in one window.
+- Desktop app for Linux, as a `.deb` or a folder that runs on its own, for Windows, as an MSIX, and for macOS, as an app or a `.dmg` built on a Mac: the amp, its effects, the song and the tones side by side in one window.
 - App: a dice on the FX tab randomizes the effects that are on, keeping a locked delay time, with an undo (`hk randomize`).
 - Every `hk` command that drives the amp reaches it over a USB MIDI cable too, named as `cable:<name>` in place of a WMI-1 address.
 - `hk song` makes, opens, renames, duplicates, moves, deletes, exports and imports songs, as the app's song list does.

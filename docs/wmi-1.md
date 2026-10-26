@@ -64,11 +64,14 @@ modulation type report 0 to 255, twice MIDI's resolution; switches and the other
 - Modulation is one knob, 12, whose sweep runs chorus, flanger, phaser, tremolo from the bottom.
   Heard on 2026-10-22: the panel's clearest chorus, flanger, phaser and tremolo reported 0, 73, 167
   and 255, and a change on 12 at the middle of each quarter of 0..127 (15, 47, 79, 111) sounds as
-  that effect.
+  that effect. A change on 12 reports `2 * <value> + 1` (16, 48, 80 and 112 reported 33, 97, 161
+  and 225), as a change on 4 does.
 - The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95, 127).
 - Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, and the delay is even
   over 0..127 from 51 ms to 1360 ms: repeats timed from recordings on 2026-10-26 came 154, 700.7 and
   1298.7 ms apart at 10, 63 and 121.
+- A change that leaves a setting as it was reports nothing: modulation, delay and reverb sent on
+  while already on gave no report, and their off did.
 - Noise gate (63) and FX loop (55) report as their switches. Turning the noise gate's intensity
   knob reports nothing, so like Master it is not on MIDI.
 - The cab emulation controls on the back report nothing, as the MIDI chart's lack of them says.
@@ -125,7 +128,7 @@ Read on 2026-10-13 by setting known values, switching to Crunch and back to Clea
 | 11 | delay feedback (27) | 256 |
 | 12 | modulation intensity (1) | 256 |
 | 13 | modulation type (12) | 256 |
-| 14, 15 | not yet known, 0 in every capture | |
+| 14, 15 | none found: 0 in every capture | |
 
 `ValueBlock` decodes it and `AmpState` takes in its knobs and preset.
 
@@ -134,7 +137,10 @@ Read on 2026-10-13 by setting known values, switching to Crunch and back to Clea
 - The flags byte, read on 2026-10-22 by changing one setting at a time: bits 0 and 1 are the channel
   (0 Clean to 3 Ultra), bit 2 is boost, bit 3 the FX loop, and bits 4 to 6 the power soak's step, 0
   for Speaker Off, then 1 W, 5 W, 20 W and 4 for full power. Bit 0 of `<switches>` is the noise gate;
-  its other bits were 0 throughout. Boost is kept per channel, so Crunch's flags kept its boost while
+  its other bits were 0 throughout. On 2026-10-26 a script turned every switch on the chart on and off
+  over MIDI and stepped through the modulation types, switching channel after each: boost, the FX loop
+  and the noise gate moved their bits, the modulation type moved pair 13, and pairs 14 and 15 and the
+  switches byte's upper bits stayed 0, so on the GrandMeister Deluxe 40 they carry nothing found. Boost is kept per channel, so Crunch's flags kept its boost while
   Clean's was switched; the noise gate, the FX loop and the power soak are shared. The effect switches
   are not in the block: turning modulation or delay on or off changed no byte of it. `<preset>` is the preset counted
   from 0 after a store or recall; `<a> <b>` were `00 00` then, and `7F 7F` after a channel switch,

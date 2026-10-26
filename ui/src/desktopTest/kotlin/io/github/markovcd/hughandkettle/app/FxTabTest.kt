@@ -1,13 +1,18 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.SongStore
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +28,7 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class FxTabTest {
@@ -67,6 +73,19 @@ class FxTabTest {
             shown()
             onNodeWithTag("fx_randomize").assertIsEnabled()
             onNodeWithText("Changes Modulation and Delay. Delay time stays").assertExists()
+        }
+
+    @Test
+    fun `In a narrow pane the locked word stays on one line beside its padlock`() =
+        runComposeUiTest {
+            effectsOn()
+            panel.set(amp.control("reverb")!!, 127)
+            panel.lock(amp.control("delay_time")!!, on = true)
+            setContent { Box(Modifier.width(300.dp)) { RandomizeCard(panel, enabled = true) } }
+            val locked = onNodeWithTag("fx_randomize_locked").getUnclippedBoundsInRoot()
+            val wide = locked.right - locked.left
+            val tall = locked.bottom - locked.top
+            assertTrue(wide > tall, "locked. is $wide wide and $tall tall")
         }
 
     @Test
