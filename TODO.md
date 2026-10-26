@@ -17,7 +17,6 @@ that lands it.
 - Parked: keep a preset file whole, named, read-only if wanted and shared as one, rather than as loose tones.
 - Parked: set the WMI-1's name, access point channel, password and home WiFi, as WMI Connect does, likely through the WiFly module's `$$$` command mode over TCP. A wrong setting locks the app out until a factory reset.
 - Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names. `AmpModels` carries numbered placeholders until then.
-- Decode the rest of the amp's value block: pairs 14 and 15, and the switches byte's upper bits ([wmi-1.md](docs/wmi-1.md#the-value-block)).
 - Read the amp's system exclusive over a cable on macOS, where Java's MIDI input garbles it ([cable.md](docs/cable.md#what-a-mac-found)); until then `hk cable listen` there prints junk.
 - Send the delay time in the amp's 256 steps: controller 4 with its low byte on 36 at 0 or 64, as tap tempo does ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
 - `DesktopClickSoundTest`'s first click took 188 ms to start, against 20, in a full build on the Mac, and passed four times alone: find whether the sound output wakes slowly or the build starves it, then fix the click or the test's reason.
