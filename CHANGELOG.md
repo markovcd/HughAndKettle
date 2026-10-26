@@ -43,6 +43,7 @@ section becomes a version's section when `release.sh` ships it.
 - App and `hk song`: a song recalls the amp's presets on their beats at one tempo, with the delay time set to that tempo while the tempo lock is on (`hk song play --lock`).
 - App: the song's tempo is the only tempo; while the tempo lock is on the Delay card picks a note length (1/2 to 1/16, dotted and triplet) and the delay time follows the tempo, and a delay time set on the amp moves the tempo (`hk lock --tempo --note`, `hk song play --note`).
 - App: tap tempo counts the moment a finger lands and fits the beat over the last dozen taps.
+- App and `hk song set`: a song step can carry a note length of its own, played while the tempo lock is on (`5:8@1/8d`).
 - App: the song has a tab of its own, with a tapped tempo, the preset names on its steps and a big beat count while it plays; the volume trim sits on a dial that lights when it trims a recall.
 - App and `hk song play`: a song counts in a bar of clicks before its first step, unless its count-in is switched off.
 - App: a song step's beats can be typed and its − and + go to the ends of bars.

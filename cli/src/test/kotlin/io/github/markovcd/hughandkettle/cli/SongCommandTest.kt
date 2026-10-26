@@ -188,6 +188,31 @@ class SongCommandTest {
     }
 
     @Test
+    fun `A step given its own note reads back with it and, locked, plays the delay at it`() {
+        run("set", "grandmeister_deluxe_40", "400", "3:2@1/2", "5:2", "--no-count-in")
+        assertEquals(
+            listOf("""{"step":1,"preset":3,"beats":2,"note":"1/2"}""", """{"step":2,"preset":5,"beats":2}"""),
+            run("show", "grandmeister_deluxe_40").out.lines().filter { it.startsWith("{\"step") },
+        )
+        val playing =
+            CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--lock") }
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 4, time.scale!!.value(300))), next())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 4)), next())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 4, time.scale!!.value(150))), next())
+        val run = playing.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+    }
+
+    @Test
+    fun `A step on a note there is none of is refused before anything is saved`() {
+        val run = run("set", "grandmeister_deluxe_40", "120", "5:8@1/5")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, run.code)
+        assertTrue("no note '1/5' in '5:8@1/5'" in run.err, run.err)
+    }
+
+    @Test
     fun `A song played without --lock recalls each preset on its beat and leaves the delay time alone`() {
         run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2", "--no-count-in")
         val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }

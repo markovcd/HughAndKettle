@@ -56,6 +56,15 @@ class SongTest {
     }
 
     @Test
+    fun `A step with its own note sets the delay time to that note, the others to the note picked`() {
+        val song = Song(amp, 120, listOf(SongStep(5, 4, note = NoteLength.of("1/8d")), SongStep(7, 4)))
+        val scale = time.scale!!
+        assertEquals(listOf(amp.recall(5), time.set(scale.value(375))), song.cue(0, NoteLength.QUARTER) { null })
+        assertEquals(listOf(amp.recall(7), time.set(scale.value(500))), song.cue(1, NoteLength.QUARTER) { null })
+        assertEquals(listOf(amp.recall(5)), song.cue(0, null) { null })
+    }
+
+    @Test
     fun `An untimed step keeps the delay time of its preset or tone`() {
         val lead = Tone("Lead solo", amp, mapOf("gain" to 90, "delay_time" to 10))
         val song = Song(amp, 120, listOf(SongStep(preset = 7, beats = 4), SongStep(beats = 4, tone = "Lead solo")))

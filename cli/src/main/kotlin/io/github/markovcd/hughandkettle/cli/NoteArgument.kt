@@ -7,8 +7,6 @@ public object NoteArgument {
     public fun parse(args: Options): Result<NoteLength> {
         val text = args.value("note") ?: return Result.success(NoteLength.QUARTER)
         return NoteLength.of(text)?.let { Result.success(it) }
-            ?: Result.failure(
-                IllegalArgumentException("no note '$text'; there are ${NoteLength.ALL.joinToString(", ") { it.id }}"),
-            )
+            ?: Result.failure(IllegalArgumentException("no note '$text'; there are ${NoteLength.IDS}"))
     }
 }

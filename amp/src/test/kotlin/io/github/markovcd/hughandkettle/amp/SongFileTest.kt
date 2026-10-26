@@ -34,6 +34,21 @@ class SongFileTest {
     }
 
     @Test
+    fun `A step's note length reads back, and a note this version does not know leaves the step without one`() {
+        val dotted = NoteLength.of("1/8d")
+        val song =
+            Song(amp, 120, listOf(SongStep(5, 8, note = dotted), SongStep(beats = 4, tone = "Lead", note = dotted)))
+        assertEquals(song, SongFile.read(SongFile.write(song)).getOrThrow())
+        assertEquals(
+            Song(amp, 120, listOf(SongStep(5, 8))),
+            SongFile
+                .read(
+                    """{ "version": 1, "amp": "${amp.id}", "tempo": 120, "steps": [ { "preset": 5, "beats": 8, "note": "1/32" } ] }""",
+                ).getOrThrow(),
+        )
+    }
+
+    @Test
     fun `A version 1 file with no name or count-in is untitled and counts in`() {
         assertEquals(
             Song(amp, 140, listOf(SongStep(1, 8), SongStep(128, 4))),

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
@@ -96,6 +97,31 @@ class SongTabTest {
             assertEquals(listOf(8), beats())
             onNodeWithTag("song_beats_down:1").performClick()
             assertEquals(listOf(4), beats())
+        }
+
+    @Test
+    fun `A step's note is picked from its row while the tempo lock is on, and put back on the note picked`() =
+        runComposeUiTest {
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            onNodeWithTag("song_add").performClick()
+            onNodeWithTag("song_note:1").assertDoesNotExist()
+            songs.lock(on = true)
+            onNodeWithTag("song_note:1").performClick()
+            onNodeWithTag("song_note_pick:1/8d").performClick()
+            assertEquals(
+                NoteLength.of("1/8d"),
+                songs.song.steps
+                    .single()
+                    .note,
+            )
+            onNodeWithTag("song_note:1").performClick()
+            onNodeWithTag("song_note_pick:none").performClick()
+            assertEquals(
+                null,
+                songs.song.steps
+                    .single()
+                    .note,
+            )
         }
 
     @Test

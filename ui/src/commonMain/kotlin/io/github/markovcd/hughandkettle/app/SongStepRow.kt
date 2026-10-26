@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.cancel
@@ -63,6 +66,8 @@ import io.github.markovcd.hughandkettle.ui.song_less
 import io.github.markovcd.hughandkettle.ui.song_more
 import io.github.markovcd.hughandkettle.ui.song_move_down
 import io.github.markovcd.hughandkettle.ui.song_move_up
+import io.github.markovcd.hughandkettle.ui.song_note
+import io.github.markovcd.hughandkettle.ui.song_note_picked
 import io.github.markovcd.hughandkettle.ui.song_remove
 import io.github.markovcd.hughandkettle.ui.song_step_missing
 import io.github.markovcd.hughandkettle.ui.song_step_tone
@@ -72,10 +77,11 @@ import org.jetbrains.compose.resources.stringResource
  * One step of a song while it can be changed: a badge saying what it plays, a preset's number in an amber
  * square or a tone's mark in an amber circle, dashed red for a [missing] tone; the preset's name or the
  * tone's, over what it is; its beats stepped to the ends
- * of bars of four or typed in a tap on them, and remove. It is moved by dragging, or by its accessibility
- * actions. Tests find it by `song_step:<n>` and its parts by `song_step_kind:<n>`, `song_beats_down:<n>`, `song_beats:<n>`,
- * `song_beats_up:<n>` and `song_remove:<n>`, counted from 1; the typed beats by `song_beats_field` and
- * `song_beats_done`.
+ * of bars of four or typed in a tap on them, and remove. While [timed], a note button gives the step a note
+ * length of its own or leaves it on the one picked. It is moved by dragging, or by its accessibility
+ * actions. Tests find it by `song_step:<n>` and its parts by `song_step_kind:<n>`, `song_note:<n>`, `song_beats_down:<n>`, `song_beats:<n>`,
+ * `song_beats_up:<n>` and `song_remove:<n>`, counted from 1; the notes offered by `song_note_pick:<id>` and
+ * `song_note_pick:none`; the typed beats by `song_beats_field` and `song_beats_done`.
  */
 @Composable
 internal fun SongStepRow(
@@ -85,6 +91,8 @@ internal fun SongStepRow(
     missing: Boolean,
     enabled: Boolean,
     last: Boolean,
+    timed: Boolean,
+    onNote: (NoteLength?) -> Unit,
     onBeats: (Int) -> Unit,
     onMove: (Int) -> Unit,
     onRemove: () -> Unit,
@@ -121,6 +129,7 @@ internal fun SongStepRow(
     ) {
         StepKind(n, step, missing)
         StepName(step, name, missing, Modifier.weight(1f))
+        if (timed) StepNote(n, step.note, enabled, onNote)
         RoundButton(
             up = false,
             description = stringResource(Res.string.song_less, n),
@@ -352,6 +361,72 @@ private fun StepName(
             color = if (missing) colors.error else colors.onSurfaceVariant,
             maxLines = 1,
         )
+    }
+}
+
+/** The step's own note length, amber, or a note mark when it plays the note picked; a tap offers every note. */
+@Composable
+private fun StepNote(
+    n: Int,
+    note: NoteLength?,
+    enabled: Boolean,
+    onNote: (NoteLength?) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    var open by remember { mutableStateOf(false) }
+    val description =
+        stringResource(
+            Res.string.song_note,
+            n,
+            note?.let { NoteWords.phrase(it) } ?: stringResource(Res.string.song_note_picked),
+        )
+    Box {
+        Column(
+            Modifier
+                .width(44.dp)
+                .height(44.dp)
+                .alpha(if (enabled) 1f else DISABLED)
+                .clip(RoundedCornerShape(8.dp))
+                .border(1.dp, if (note != null) colors.primary else colors.outlineVariant, RoundedCornerShape(8.dp))
+                .clickable(enabled = enabled, role = Role.Button) { open = true }
+                .semantics { contentDescription = description }
+                .testTag("song_note:$n"),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (note == null) {
+                Text("♪", fontSize = 18.sp, color = colors.onSurfaceVariant)
+            } else {
+                NoteWords.kind(note)?.let { Text(it, fontSize = 8.sp, color = colors.primary, maxLines = 1) }
+                Text(NoteWords.fraction(note), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.primary)
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.song_note_picked)) },
+                onClick = {
+                    open = false
+                    onNote(null)
+                },
+                modifier = Modifier.testTag("song_note_pick:none"),
+            )
+            NoteLength.ALL.forEach { each ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            NoteWords.phrase(each),
+                            fontWeight = if (each == note) FontWeight.Bold else FontWeight.Normal,
+                            color = if (each == note) colors.primary else colors.onSurface,
+                        )
+                    },
+                    onClick = {
+                        open = false
+                        onNote(each)
+                    },
+                    modifier = Modifier.testTag("song_note_pick:${each.id}"),
+                )
+            }
+        }
     }
 }
 

@@ -90,9 +90,9 @@ internal fun SongTempoCard(
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
-            if (readable && songs.timed && song.delayMs(songs.note) != null) {
+            if (readable && songs.timed && song.delayMs(songs.sounding) != null) {
                 Text(
-                    stringResource(Res.string.song_delay, NoteWords.phrase(songs.note).lowercase()),
+                    stringResource(Res.string.song_delay, NoteWords.phrase(songs.sounding).lowercase()),
                     fontSize = 13.sp,
                     color = colors.onSurfaceVariant,
                     modifier = Modifier.testTag("song_delay"),

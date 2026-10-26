@@ -42,7 +42,7 @@ public object SongCommand : Command {
         hk song move <amp-id> <name> <position> [--dir D]
         hk song export <amp-id> <name> <file> [--dir D]
         hk song import <amp-id> <file> [--dir D]    (a song for another amp model is refused)
-        hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats> ... [--no-count-in] [--name N] [--dir D]
+        hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats>[@<note>] ... [--no-count-in] [--name N] [--dir D]
         hk song play ${AmpTarget.USAGE} <amp-id> [--lock [--note 1/8d]] [--name N] [--dir D] [--tones D]
         """.trimIndent()
 
@@ -295,7 +295,10 @@ public object SongCommand : Command {
     private fun tones(args: Options): ToneStore =
         ToneStore(args.value("tones")?.let(::Path) ?: Path(System.getProperty("user.home"), ".hk", "tones"))
 
-    /** A song from `<bpm> <preset>:<beats> tone:<name>:<beats> ...`; anything else is reported, not thrown. */
+    /**
+     * A song from `<bpm> <preset>:<beats> tone:<name>:<beats> ...`, each step taking `@<note>` for a note length of
+     * its own; anything else is reported, not thrown.
+     */
     private fun parse(
         amp: AmpModel,
         words: List<String>,
@@ -309,32 +312,48 @@ public object SongCommand : Command {
                     ),
                 )
         val steps =
-            words.drop(1).map { word ->
-                if (word.startsWith(TONE)) {
-                    val name = word.removePrefix(TONE).substringBeforeLast(':', "").trim()
-                    val beats = word.substringAfterLast(':').toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
-                    if (name.isEmpty() || beats == null) {
-                        return Result.failure(
-                            IllegalArgumentException(
-                                "a tone step is tone:<name>:<beats>, beats 1..${SongStep.MOST_BEATS}, got '$word'",
-                            ),
-                        )
+            words.drop(1).map { given ->
+                val word = given.substringBeforeLast('@')
+                val note =
+                    given.substringAfterLast('@', "").takeIf { '@' in given }?.let { text ->
+                        NoteLength.of(text)
+                            ?: return Result.failure(
+                                IllegalArgumentException("no note '$text' in '$given'; there are ${NoteLength.IDS}"),
+                            )
                     }
-                    return@map SongStep(beats = beats, tone = name)
-                }
-                val parts = word.split(':')
-                val preset = parts.getOrNull(0)?.toIntOrNull()?.takeIf { it in 1..amp.presetCount }
-                val beats = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
-                if (parts.size != 2 || preset == null || beats == null) {
-                    return Result.failure(
-                        IllegalArgumentException(
-                            "a step is <preset>:<beats>, preset 1..${amp.presetCount} and beats 1..${SongStep.MOST_BEATS}, got '$word'",
-                        ),
-                    )
-                }
-                SongStep(preset, beats)
+                step(amp, word).getOrElse { return Result.failure(it) }.copy(note = note)
             }
         return Result.success(Song(amp, tempo, steps, countIn))
+    }
+
+    /** One step from `<preset>:<beats>` or `tone:<name>:<beats>`. */
+    private fun step(
+        amp: AmpModel,
+        word: String,
+    ): Result<SongStep> {
+        if (word.startsWith(TONE)) {
+            val name = word.removePrefix(TONE).substringBeforeLast(':', "").trim()
+            val beats = word.substringAfterLast(':').toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
+            if (name.isEmpty() || beats == null) {
+                return Result.failure(
+                    IllegalArgumentException(
+                        "a tone step is tone:<name>:<beats>, beats 1..${SongStep.MOST_BEATS}, got '$word'",
+                    ),
+                )
+            }
+            return Result.success(SongStep(beats = beats, tone = name))
+        }
+        val parts = word.split(':')
+        val preset = parts.getOrNull(0)?.toIntOrNull()?.takeIf { it in 1..amp.presetCount }
+        val beats = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it in 1..SongStep.MOST_BEATS }
+        if (parts.size != 2 || preset == null || beats == null) {
+            return Result.failure(
+                IllegalArgumentException(
+                    "a step is <preset>:<beats>, preset 1..${amp.presetCount} and beats 1..${SongStep.MOST_BEATS}, got '$word'",
+                ),
+            )
+        }
+        return Result.success(SongStep(preset, beats))
     }
 
     private fun print(
@@ -351,7 +370,8 @@ public object SongCommand : Command {
             ),
         )
         song.steps.forEachIndexed { index, step ->
-            out.println(Json.line("step" to index + 1, sound(step), "beats" to step.beats))
+            val fields = listOf("step" to index + 1, sound(step), "beats" to step.beats)
+            out.println(Json.line(*(fields + listOfNotNull(step.note?.let { "note" to it.id })).toTypedArray()))
         }
     }
 

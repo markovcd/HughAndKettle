@@ -102,6 +102,8 @@
     <string name="song_summary">%1$s steps · %2$s beats · %3$s</string>
     <string name="song_preset">Preset %1$s</string>
     <string name="song_beats">beats</string>
+    <string name="song_note">Step %1$d note: %2$s</string>
+    <string name="song_note_picked">Note picked on Delay</string>
     <string name="song_beat_count">%1$s beats</string>
     <string name="song_beat_fraction">%1$s / %2$s</string>
     <string name="song_add">Add step</string>
