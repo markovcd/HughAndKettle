@@ -2,7 +2,6 @@ package io.github.markovcd.hughandkettle.desktop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import io.github.markovcd.hughandkettle.amp.AmpModels
@@ -57,7 +56,7 @@ fun FrameWindowScope.DesktopMenuBar(
             )
             Item(
                 stringResource(Res.string.tap),
-                shortcut = KeyShortcut(Key.T, ctrl = true),
+                shortcut = DesktopOs.shortcut(Key.T),
                 enabled = panel.linked,
                 onClick = { commands.tap(System.nanoTime().nanoseconds) },
             )
@@ -65,13 +64,13 @@ fun FrameWindowScope.DesktopMenuBar(
         Menu(stringResource(Res.string.tones)) {
             Item(
                 stringResource(Res.string.tone_previous),
-                shortcut = KeyShortcut(Key.DirectionUp, ctrl = true),
+                shortcut = DesktopOs.shortcut(Key.DirectionUp),
                 enabled = panel.linked,
                 onClick = commands::previousTone,
             )
             Item(
                 stringResource(Res.string.tone_next),
-                shortcut = KeyShortcut(Key.DirectionDown, ctrl = true),
+                shortcut = DesktopOs.shortcut(Key.DirectionDown),
                 enabled = panel.linked,
                 onClick = commands::nextTone,
             )
@@ -87,7 +86,7 @@ fun FrameWindowScope.DesktopMenuBar(
         Menu(stringResource(Res.string.song)) {
             Item(
                 stringResource(if (commands.playing) Res.string.song_stop else Res.string.song_play),
-                shortcut = KeyShortcut(Key.P, ctrl = true),
+                shortcut = DesktopOs.shortcut(Key.P),
                 enabled = panel.linked,
                 onClick = commands::playOrStop,
             )
