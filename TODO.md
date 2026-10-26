@@ -8,14 +8,13 @@ that lands it.
 
 - Run phase 0 of the [implementation plan](docs/handoff/01-implementation-plan.md#phase-0-confirm-the-link-on-hardware) on the hardware and paste the output; everything after it waits on this.
 - While the WMI-1 is missing, run the [cable test](docs/cable.md#the-test) instead and paste what it asks for.
-- Try phase 1 on a phone with the real box: it finds the box, connects, survives screen-off and recovers from a power cycle ([plan, phase 1](docs/handoff/01-implementation-plan.md#phase-1-the-link-on-the-phone)).
 - Play a song through the amp with `hk song play` against a click, on two presets with very different delay times, and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's. On 2026-10-22 each recall left within 9 ms of its beat and the song's delay time was back 130 ms later; by ear it could not be judged without a click.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 - Make the Windows signing certificate, commit its public half as `release/msix.cer` and set its two secrets ([release/README.md](release/README.md#the-windows-certificate)).
 
 ## Code
 
-- Parked: write tones into the amp's presets and move presets between slots, as the GrandMeister app does. Storing over MIDI was not found ([wmi-1.md](docs/wmi-1.md#storing-a-preset)); sending the amp its own value block is the untried guess.
+- Parked: write tones into the amp's presets and move presets between slots, as the GrandMeister app does. STORE pressed by hand then a program change from the app stores the panel ([wmi-1.md](docs/wmi-1.md#storing-a-preset)), so a tone can be written by sending it, asking for STORE, and sending the preset's program change; arming a store over MIDI alone was not found.
 - Parked: keep a preset file whole, named, read-only if wanted and shared as one, rather than as loose tones.
 - Parked: set the WMI-1's name, access point channel, password and home WiFi, as WMI Connect does, likely through the WiFly module's `$$$` command mode over TCP. A wrong setting locks the app out until a factory reset.
 - Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names. `AmpModels` carries numbered placeholders until then.

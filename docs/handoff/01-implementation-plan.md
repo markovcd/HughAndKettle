@@ -96,6 +96,10 @@ build, in a commit of its own).
 **Done when:** on a phone, the app finds the real box, connects, survives screen-off, and recovers
 from the box being power-cycled.
 
+Done on 2026-10-26 with a GrandMeister Deluxe 40: the link held through a minute of screen-off, and
+after the amp and box were power-cycled the app linked again by itself once the phone was back on the
+box's WiFi, which Android left to the user to rejoin.
+
 ## Phase 2: the amp's state
 
 Shaped by what phase 0 heard.

@@ -42,3 +42,11 @@ the file through a first-party `BinaryPlist` reader, with no dependency.
 The amp's own orders are confirmed on the GrandMeister Deluxe 40: its power soak steps Off, 1 W, 5 W,
 20 W, 40 W from the bottom, and its modulation types chorus, flanger, phaser, tremolo (docs/wmi-1.md).
 Which number H&K's files give each is still read from the files alone.
+
+## Amendment (2026-10-26)
+
+The files' modulation numbers follow the amp's order. In H&K's thirteen artist files, presets named
+for chorus ("Clean Chorus Delay") carry `modType` 0 and those named for tremolo ("Bo Knows Trem",
+"Any Color Trem Solo", "Vibey Clean") carry 3. No name settles 1 and 2, which sit between them as
+flanger and phaser do on the amp. `speakerPower` is 2 in nearly every preset, 3 in a few and 0 in one,
+and no name says which wattage is meant, so its step order is still read from the files alone.

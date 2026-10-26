@@ -87,6 +87,11 @@ Pressing STORE on the amp reports controller 80 at 127 and flashes. A footswitch
 its program change (bank 32 is programs 124 to 127), the amp reports 80 at 0, sends the value block
 for the preset just stored, and reports controller 16 at the preset's number.
 
+A program change from the client stores just as the footswitch's does: on 2026-10-26, STORE pressed
+on the amp and then a preset picked in the app stored the panel there, with no footswitch on the amp.
+Under a volume trim of +20 the preset kept its own volume, not the trimmed one, confirmed by a recall
+from an app started afresh; why the amp stores the untrimmed volume is not known.
+
 Sending controller 80 at 127 does not arm a store: the amp neither reports it nor stores on the
 program change that follows, which recalls the preset as usual. How the iPad apps store is unknown,
 though they do: the GrandMeister Deluxe 40 Remote app's App Store listing and the manual's chapter 2.5
