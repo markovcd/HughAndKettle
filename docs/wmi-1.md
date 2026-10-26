@@ -66,7 +66,9 @@ modulation type report 0 to 255, twice MIDI's resolution; switches and the other
   and 255, and a change on 12 at the middle of each quarter of 0..127 (15, 47, 79, 111) sounds as
   that effect.
 - The power soak, 30, runs off, 1 W, 5 W, 20 W, 40 W from the bottom (reported 0, 32, 64, 95, 127).
-- Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, so the sweep looks even.
+- Dly Time is 4 and Feedback 27. A change on 4 at 64 reported 129 of 255, and the delay is even
+  over 0..127 from 51 ms to 1360 ms: repeats timed from recordings on 2026-10-26 came 154, 700.7 and
+  1298.7 ms apart at 10, 63 and 121.
 - Noise gate (63) and FX loop (55) report as their switches. Turning the noise gate's intensity
   knob reports nothing, so like Master it is not on MIDI.
 - The cab emulation controls on the back report nothing, as the MIDI chart's lack of them says.

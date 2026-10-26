@@ -21,6 +21,5 @@ that lands it.
 - Decode the rest of the amp's value block: pairs 14 and 15, and the switches byte's upper bits ([wmi-1.md](docs/wmi-1.md#the-value-block)).
 - Read the amp's system exclusive over a cable on macOS, where Java's MIDI input garbles it ([cable.md](docs/cable.md#what-a-mac-found)); until then `hk cable listen` there prints junk.
 - Send the delay time in the amp's 256 steps: controller 4 with its low byte on 36 at 0 or 64, as tap tempo does ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
-- Time the delay at a few settings to confirm 51 ms to 1360 ms is spread evenly over 0..127; the amp's reports suggest it is, and `Scale` takes it as even.
 - The [desktop app](docs/handoff/03-desktop-app.md), one item per step, in order.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.
