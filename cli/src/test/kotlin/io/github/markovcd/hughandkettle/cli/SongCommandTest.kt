@@ -137,7 +137,7 @@ class SongCommandTest {
     }
 
     @Test
-    fun `A locked song counts in, plays each preset on its beat with the delay time of its tempo, and holds that time`() {
+    fun `A locked song counts in, plays each preset on its beat with its tempo's delay time, and holds it`() {
         // At 400 BPM a beat is 150 ms, which the time knob reaches as 154; a count-in of four and two
         // steps of two play in 1.2 s.
         run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2")

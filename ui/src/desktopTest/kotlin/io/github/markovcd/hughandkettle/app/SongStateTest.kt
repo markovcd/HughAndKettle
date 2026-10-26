@@ -230,7 +230,7 @@ class SongStateTest {
     }
 
     @Test
-    fun `While locked, a song plays a tone step as the tone's values, and a step on a missing tone as the delay time alone`() {
+    fun `While locked, a song plays a tone step as its values, and a missing tone's as the delay time alone`() {
         val gain = amp.control("gain")!!
         val lead = Tone("Lead", amp, mapOf("gain" to 90))
         var shelf = listOf(lead, Tone("Gone", amp, emptyMap()))
