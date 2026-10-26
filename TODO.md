@@ -20,5 +20,6 @@ that lands it.
 - Decode the rest of the amp's value block: pairs 14 and 15, and the switches byte's upper bits ([wmi-1.md](docs/wmi-1.md#the-value-block)).
 - Read the amp's system exclusive over a cable on macOS, where Java's MIDI input garbles it ([cable.md](docs/cable.md#what-a-mac-found)); until then `hk cable listen` there prints junk.
 - Send the delay time in the amp's 256 steps: controller 4 with its low byte on 36 at 0 or 64, as tap tempo does ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
+- `DesktopClickSoundTest`'s first click took 188 ms to start, against 20, in a full build on the Mac, and passed four times alone: find whether the sound output wakes slowly or the build starves it, then fix the click or the test's reason.
 - The [desktop app](docs/handoff/03-desktop-app.md), one item per step, in order.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.
