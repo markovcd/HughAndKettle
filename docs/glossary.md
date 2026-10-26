@@ -42,6 +42,7 @@ Prefer the domain's words over the framework's.
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |
 | **preset** | One of the amp's 128 stored sounds, recalled by a program change. | `preset`; `program` for the MIDI number | patch, program (in prose), slot, bank entry |
 | **preset name** | A name given to one of the amp's presets, kept on the phone or by `hk`; the amp itself names none. | `PresetNames`, `PresetNameStore` | preset title, label, tag |
+| **write** | Putting a tone into one of the amp's presets: the app sends the tone and answers the amp's STORE button with the preset's program change. | `PresetWriting` | upload, save to amp, store (the amp's button) |
 | **tone** | A named set of control values kept on the phone or by `hk`, apart from the amp's presets, and recalled by sending each value. | `Tone`, `ToneFile`, `ToneStore` | preset (the amp's), patch, sound, favorite |
 | **switcher** | The header's − and + and what sits between them: the amp's preset, or the tone loaded, as the menu's "− and + step through" says. | `SwitcherRow`, `SwitcherMode` | preset row, top bar, navigator |
 | **pinned tone** | A tone marked to sit in the header's switcher, which steps through the pinned tones alone. | `Tone.pinned` | favorite, starred tone |

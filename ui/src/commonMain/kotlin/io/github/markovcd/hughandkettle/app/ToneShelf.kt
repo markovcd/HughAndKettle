@@ -3,19 +3,24 @@ package io.github.markovcd.hughandkettle.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.PresetNames
 import io.github.markovcd.hughandkettle.amp.PresetReading
+import io.github.markovcd.hughandkettle.amp.PresetWriting
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneImport
 import io.github.markovcd.hughandkettle.amp.ToneStore
+import io.github.markovcd.hughandkettle.amp.TonesRead
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -29,8 +34,9 @@ import java.io.OutputStream
  * The tones kept on the phone, in their order, and what the panel can do with them: save the amp's
  * state as one, read the amp's presets into them, recall, rename, move, delete, export and import.
  * The folder is read and written off the main thread; the list is replaced whole after every change.
- * Reading listens to what the amp says through [heard] and names each tone after [names]. A tone renamed is
- * handed to [renamed], so the songs that step on it follow.
+ * Reading and writing listen to what the amp says through [heard]; a tone read is named after [names], and a
+ * preset written is handed to [named] with the tone's name. A tone renamed is handed to [renamed], so the songs
+ * that step on it follow.
  */
 class ToneShelf(
     private val store: ToneStore,
@@ -40,6 +46,7 @@ class ToneShelf(
     private val heard: Flow<MidiMessage> = emptyFlow(),
     private val names: () -> PresetNames = { PresetNames(panel.amp) },
     private val renamed: (Tone, String) -> Unit = { _, _ -> },
+    private val named: (Int, String) -> Unit = { _, _ -> },
 ) {
     var tones by mutableStateOf<List<Tone>>(emptyList())
         private set
@@ -110,6 +117,133 @@ class ToneShelf(
     /** Ends a reading after the preset being read, keeping the tones read so far. */
     fun stopReading() {
         stopping = true
+    }
+
+    /** The names of the amp's presets, which a write is picked from. */
+    val presetNames: PresetNames get() = names()
+
+    /** The preset the amp is on, if known. */
+    val preset: Int? get() = panel.state.preset
+
+    /** The write of a tone into a preset under way or just ended, or null. */
+    var writing by mutableStateOf<PresetWriting?>(null)
+        private set
+    private var writes: Channel<WriteEvent>? = null
+
+    /** Whether [tone] can be written into a preset now: it fits the linked amp, and nothing else is reading or writing. */
+    fun canWrite(tone: Tone): Boolean = panel.linked && fits(tone) && reading == null && writing?.over != false
+
+    /**
+     * Writes [tone] into [preset]: the preset is kept first as a backup tone, then the tone is sent and the amp's
+     * STORE answered with the preset's program change. The lock and the trim hold off until it ends.
+     */
+    fun write(
+        tone: Tone,
+        preset: Int,
+    ) {
+        if (!canWrite(tone)) return
+        drive(PresetWriting.start(tone, preset))
+    }
+
+    /** Calls off the write while STORE is still awaited. */
+    fun cancelWrite() {
+        writes?.trySend(WriteEvent.Cancel)
+    }
+
+    /** Recalls the preset of a write left unknown, to see whether it holds the tone. */
+    fun checkWrite() {
+        val now = writing ?: return
+        if (now.stage == PresetWriting.Stage.Unsure && panel.linked) drive(now.check())
+    }
+
+    /** Puts away a write that has ended. */
+    fun closeWrite() {
+        if (writing?.over == true) writing = null
+    }
+
+    private fun drive(started: Pair<PresetWriting, List<MidiMessage>>) {
+        val (start, first) = started
+        writing = start
+        panel.holding = true
+        val inbox = Channel<WriteEvent>(Channel.UNLIMITED)
+        writes = inbox
+        scope.launch {
+            val listening =
+                launch(start = CoroutineStart.UNDISPATCHED) { heard.collect { inbox.send(WriteEvent.Heard(it)) } }
+            val watching = launch { snapshotFlow { panel.linked }.collect { if (!it) inbox.send(WriteEvent.Lost) } }
+            var now = start
+            var timer = late(inbox, now)
+            panel.sendAsIs(first)
+            while (!now.over) {
+                val next =
+                    when (val event = inbox.receive()) {
+                        is WriteEvent.Heard -> {
+                            val (after, send) = now.after(event.message)
+                            panel.sendAsIs(send)
+                            after
+                        }
+
+                        WriteEvent.Cancel -> {
+                            now.cancel()
+                        }
+
+                        WriteEvent.Lost -> {
+                            now.lost()
+                        }
+
+                        is WriteEvent.Late -> {
+                            if (event.stage == now.stage) now.gaveUp() else now
+                        }
+                    }
+                if (next.stage != now.stage) {
+                    timer.cancel()
+                    timer = late(inbox, next)
+                    if (next.stage == PresetWriting.Stage.Waiting) keep(next.backup!!)
+                    if (next.stage is PresetWriting.Stage.Stored) named(next.preset, next.tone.name)
+                }
+                now = next
+                writing = now
+            }
+            timer.cancel()
+            listening.cancel()
+            watching.cancel()
+            writes = null
+            panel.holding = false
+        }
+    }
+
+    /** A timer that tells [inbox] when [writing]'s step outlasts its limit. */
+    private fun CoroutineScope.late(
+        inbox: Channel<WriteEvent>,
+        writing: PresetWriting,
+    ): Job =
+        launch {
+            val limit = writing.limit ?: return@launch
+            delay(limit)
+            inbox.send(WriteEvent.Late(writing.stage))
+        }
+
+    /** Saves [backup] named apart from the tones on the shelf. */
+    private fun keep(backup: Tone) =
+        change {
+            val apart = TonesRead(listOf(backup), emptyList()).namedApartFrom(store.list().tones.map { it.name })
+            val kept = apart.tones.single()
+            store.save(kept).map { ToneNotice.BackedUp(kept.name) }
+        }
+
+    /** What the write's loop takes in, in the order it came. */
+    private sealed interface WriteEvent {
+        data class Heard(
+            val message: MidiMessage,
+        ) : WriteEvent
+
+        data object Cancel : WriteEvent
+
+        data object Lost : WriteEvent
+
+        data class Late(
+            val stage: PresetWriting.Stage,
+        ) : WriteEvent
     }
 
     /** The name of the tone last recalled from the shelf, which stepping moves on from. */

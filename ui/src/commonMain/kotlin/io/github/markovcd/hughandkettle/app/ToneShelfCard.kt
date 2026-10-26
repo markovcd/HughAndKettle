@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.cancel
+import io.github.markovcd.hughandkettle.ui.tone_backed_up
 import io.github.markovcd.hughandkettle.ui.tone_delete
 import io.github.markovcd.hughandkettle.ui.tone_delete_confirm
 import io.github.markovcd.hughandkettle.ui.tone_export
@@ -58,6 +59,8 @@ import io.github.markovcd.hughandkettle.ui.tone_read_stop
 import io.github.markovcd.hughandkettle.ui.tone_reading
 import io.github.markovcd.hughandkettle.ui.tone_rename
 import io.github.markovcd.hughandkettle.ui.tone_save
+import io.github.markovcd.hughandkettle.ui.tone_write
+import io.github.markovcd.hughandkettle.ui.tone_write_what
 import io.github.markovcd.hughandkettle.ui.tones
 import io.github.markovcd.hughandkettle.ui.tones_none
 import io.github.markovcd.hughandkettle.ui.tones_pinned
@@ -65,11 +68,11 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The tones on the phone: save the panel as one, read the amp's presets into them, tap one to recall
- * it, pin it to the header, and a menu per tone, behind its dots or a right-click, to move, rename, export
- * or delete it. The tone last loaded is outlined amber and says so. Tests find the parts by `tone_save`,
- * `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tones_pinned`, `tone:<name>`,
- * `tone_pin:<name>`, `tone_loaded:<name>`, `tone_menu:<name>` and the menu's `tone_delete` and kin, and the
- * dialog's field by `tone_name`.
+ * it, pin it to the header, and a menu per tone, behind its dots or a right-click, to write it into one of the
+ * amp's presets, move, rename, export or delete it. The tone last loaded is outlined amber and says so. Tests find
+ * the parts by `tone_save`, `tone_import`, `tone_read`, `tone_read_confirm`, `tone_read_stop`, `tones_pinned`,
+ * `tone:<name>`, `tone_pin:<name>`, `tone_loaded:<name>`, `tone_menu:<name>` and the menu's `tone_write`,
+ * `tone_delete` and kin, and the dialog's field by `tone_name`.
  */
 @Composable
 fun ToneShelfCard(
@@ -82,6 +85,7 @@ fun ToneShelfCard(
     var naming by remember { mutableStateOf<ToneNaming?>(null) }
     var deleting by remember { mutableStateOf<Tone?>(null) }
     var confirmingRead by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf<Tone?>(null) }
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -158,6 +162,7 @@ fun ToneShelfCard(
                     onRename = { naming = ToneNaming.Existing(tone) },
                     onExport = { files.create("${tone.name}.json") { shelf.export(tone, it) } },
                     onDelete = { deleting = tone },
+                    onWrite = { picking = tone },
                 )
             }
         }
@@ -194,6 +199,8 @@ fun ToneShelfCard(
             },
         )
     }
+    picking?.let { tone -> WritePicker(shelf, tone, onClose = { picking = null }) }
+    shelf.writing?.let { WriteSheet(shelf, it) }
     deleting?.let { tone ->
         AlertDialog(
             onDismissRequest = { deleting = null },
@@ -217,6 +224,7 @@ private fun ToneRow(
     onRename: () -> Unit,
     onExport: () -> Unit,
     onDelete: () -> Unit,
+    onWrite: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     val recallable = enabled && shelf.fits(tone)
@@ -278,6 +286,24 @@ private fun ToneRow(
         Box {
             TextButton(onClick = { menu = true }, modifier = Modifier.testTag("tone_menu:${tone.name}")) { Text("⋮") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(stringResource(Res.string.tone_write))
+                            Text(
+                                stringResource(Res.string.tone_write_what),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    onClick = {
+                        menu = false
+                        onWrite()
+                    },
+                    enabled = shelf.canWrite(tone),
+                    modifier = Modifier.testTag("tone_write"),
+                )
                 listOf(
                     Triple("tone_move_up", Res.string.tone_move_up) { shelf.move(tone, -1) },
                     Triple("tone_move_down", Res.string.tone_move_down) { shelf.move(tone, 1) },
@@ -304,6 +330,10 @@ private fun words(notice: ToneNotice): String =
     when (notice) {
         is ToneNotice.Failed -> {
             stringResource(Res.string.tone_failed, notice.reason)
+        }
+
+        is ToneNotice.BackedUp -> {
+            stringResource(Res.string.tone_backed_up, notice.name)
         }
 
         is ToneNotice.Read -> {

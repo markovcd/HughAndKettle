@@ -83,6 +83,12 @@ class PanelState(
     var trimmed by mutableStateOf(0)
         private set
 
+    /**
+     * True while a tone is written into a preset: the lock and the trim answer nothing the amp says, so what the
+     * amp stores is the tone's own.
+     */
+    var holding by mutableStateOf(false)
+
     /** The last effects randomized, offered for undo until it is taken or a preset is recalled. */
     var rolled by mutableStateOf<EffectRoll?>(null)
         private set
@@ -339,6 +345,9 @@ class PanelState(
     /** The tone [name] holding every value the amp is known to be at, its volume without the trim. */
     fun tone(name: String): Tone = Tone(name, state.amp, trim?.untrimmed(state.values) ?: state.values)
 
+    /** Sends [messages] past the lock and the trim, for a write into a preset. */
+    fun sendAsIs(messages: List<MidiMessage>) = transmit(messages)
+
     private fun send(message: MidiMessage) = send(listOf(message))
 
     /** Sends what the person asked for: a volume among it is answered with itself if a value block comes first. */
@@ -382,6 +391,7 @@ class PanelState(
             } else {
                 moved + state.values.filter { (id, value) -> before.values[id] != value }.keys
             }
+        if (holding) return
         val held = answers.lock?.value
         val answered = answers.heard(message)
         answers = answered.answers

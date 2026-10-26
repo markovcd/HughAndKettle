@@ -3,11 +3,14 @@ package io.github.markovcd.hughandkettle.cli
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.PresetReading
+import io.github.markovcd.hughandkettle.amp.PresetWriting
+import io.github.markovcd.hughandkettle.amp.PresetWriting.Stage
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneImport
 import io.github.markovcd.hughandkettle.amp.ToneStore
+import io.github.markovcd.hughandkettle.amp.TonesRead
 import java.io.IOException
 import java.io.PrintWriter
 import java.nio.file.Path
@@ -18,7 +21,8 @@ import kotlin.io.path.writeText
 
 /**
  * Keeps tones in a folder, `--dir` or `~/.hk/tones`, the way the app keeps them on the phone: save
- * from values typed as `hk set` takes them, read from the amp's presets, recall onto an amp, list,
+ * from values typed as `hk set` takes them, read from the amp's presets, recall onto an amp, write into one of
+ * its presets, list,
  * rename, reorder, pin, delete, and move them between machines as files. A tone renamed is renamed in the
  * steps of the songs in `--songs` or `~/.hk/songs` too.
  */
@@ -30,6 +34,7 @@ public object ToneCommand : Command {
         hk tone save <amp-id> <name> [<control-id>=<value> ...] [--replace] [--dir D]
         hk tone recall ${AmpTarget.USAGE} <name> [--dir D]
         hk tone read ${AmpTarget.USAGE} <amp-id> [<preset>[-<preset>]] [--replace] [--dir D] [--names D]
+        hk tone write ${AmpTarget.USAGE} <name> <preset> [--dir D] [--names D]    (asks for STORE on the amp)
         hk tone rename <name> <new-name> [--dir D] [--songs D]
         hk tone move <name> <position> [--dir D]
         hk tone pin|unpin <name> [--dir D]    (a pinned tone is one the app's − and + step through)
@@ -52,6 +57,7 @@ public object ToneCommand : Command {
                 "save" -> if (rest.size >= 2) save(store, rest, args.flag("replace"), out, err) else null
                 "recall" -> if (rest.size == 2) recall(store, rest[0], rest[1], out, err) else null
                 "read" -> if (rest.size in 2..3) read(store, args, rest, out, err) else null
+                "write" -> if (rest.size == 3) write(store, args, rest, out, err) else null
                 "rename" -> if (rest.size == 2) rename(store, songs(args), rest[0], rest[1], out, err) else null
                 "move" -> if (rest.size == 2) move(store, rest[0], rest[1], out, err) else null
                 "pin", "unpin" -> if (rest.size == 1) pin(store, rest[0], verb == "pin", out, err) else null
@@ -197,6 +203,105 @@ public object ToneCommand : Command {
             "read" to reading.tones.size,
             "missed" to reading.missed,
         )
+    }
+
+    /**
+     * Writes a tone into one of the amp's presets: keeps the preset as a backup tone, sends the tone, asks on
+     * stderr for STORE on the amp, and answers it with the preset's program change. Prints the values the amp
+     * stored otherwise, and names the preset after the tone once stored.
+     */
+    private fun write(
+        store: ToneStore,
+        args: Options,
+        rest: List<String>,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int {
+        val target = AmpTarget.parse(rest[0])
+        if (target == null) {
+            err.println(usage)
+            return ExitCodes.BAD_ARGUMENTS
+        }
+        val tone = found(store, rest[1], err) ?: return ExitCodes.NOTHING_FOUND
+        val amp = tone.amp
+        val preset = presets(amp, rest[2]).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        if (preset.size != 1) {
+            err.println("'${rest[2]}' is a range; a tone is written into one preset")
+            return ExitCodes.BAD_ARGUMENTS
+        }
+        val presetNames = PresetCommand.store(args)
+        val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
+        var (writing, first) = PresetWriting.start(tone, preset.single())
+        var backup: String? = null
+        link.use {
+            it.sendAll(first).orExit(err, ExitCodes.NO_LINK) { code -> return code }
+            var stage = writing.stage
+            var deadline = System.nanoTime() + writing.limit!!.inWholeNanoseconds
+            while (!writing.over) {
+                val wait = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
+                writing =
+                    when (val next = it.next(wait)) {
+                        is QueuedLink.Next.Heard -> {
+                            val (after, send) = writing.after(next.message)
+                            it.sendAll(send).fold({ after }, { after.lost() })
+                        }
+
+                        QueuedLink.Next.Quiet -> {
+                            writing.gaveUp()
+                        }
+
+                        QueuedLink.Next.Over -> {
+                            writing.lost()
+                        }
+                    }
+                if (writing.stage == stage) continue
+                stage = writing.stage
+                writing.limit?.let { limit -> deadline = System.nanoTime() + limit.inWholeNanoseconds }
+                if (stage == Stage.Waiting) {
+                    val kept = writing.backup!!.let { tone -> TonesRead(listOf(tone), emptyList()) }
+                    val named = kept.namedApartFrom(store.list().tones.map { tone -> tone.name }).tones.single()
+                    store.save(named).onFailure { problem ->
+                        err.println(problem.message)
+                        return ExitCodes.BAD_FILE
+                    }
+                    backup = named.name
+                    err.println("press STORE on the amp within ${PresetWriting.storeLimit.inWholeSeconds} s")
+                }
+            }
+        }
+        val fields =
+            arrayOf(
+                *link.where.toTypedArray(),
+                "tone" to tone.name,
+                "preset" to preset.single(),
+                "backup" to backup,
+            )
+        return when (val end = writing.stage) {
+            is Stage.Stored -> {
+                presetNames.name(amp, preset.single(), tone.name).onFailure { err.println(it.message) }
+                val differences =
+                    end.differences.map { mapOf("control" to it.control.id, "stored" to it.stored, "tone" to it.tone) }
+                out.println(Json.line(*fields, "result" to "stored", "differences" to differences))
+                ExitCodes.OK
+            }
+
+            is Stage.NotWritten -> {
+                val why =
+                    when (end.why) {
+                        PresetWriting.Why.NoBackup -> "no_backup"
+                        PresetWriting.Why.NoStore -> "no_store"
+                        PresetWriting.Why.Cancelled -> "cancelled"
+                        PresetWriting.Why.LinkLost -> "link_lost"
+                    }
+                out.println(Json.line(*fields, "result" to "not_written", "why" to why))
+                if (end.why == PresetWriting.Why.LinkLost) ExitCodes.NO_LINK else ExitCodes.NOT_STORED
+            }
+
+            else -> {
+                out.println(Json.line(*fields, "result" to "unsure"))
+                ExitCodes.NOT_STORED
+            }
+        }
     }
 
     /** The presets `[<preset>[-<preset>]]` names, or every one [amp] has. */

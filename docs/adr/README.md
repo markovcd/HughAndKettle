@@ -18,3 +18,4 @@ sentence stating the decision. Check here before proposing a change of shape (th
 | [0011](0011-the-grandmeister-apps-preset-files-import-as-tones.md) | The GrandMeister app's preset files import as tones |
 | [0012](0012-the-screens-are-shared-with-a-desktop-app-through-compose-multiplatform.md) | The screens are shared with a desktop app through Compose Multiplatform |
 | [0013](0013-the-desktop-app-ships-as-a-deb-a-linux-folder-and-a-signed-msix.md) | The desktop app ships as a `.deb`, a Linux folder with its own runtime, and an MSIX signed with a certificate of its own |
+| [0014](0014-a-tone-is-written-into-a-preset-by-answering-the-amps-store-button.md) | A tone is written into a preset by answering the amp's STORE button |
