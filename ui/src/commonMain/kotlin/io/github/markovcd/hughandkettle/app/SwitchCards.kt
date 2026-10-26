@@ -16,6 +16,7 @@ internal fun SwitchCards(
     switches: List<Control>,
     controls: List<Control>,
     panel: PanelState,
+    songs: SongState,
     enabled: Boolean,
 ) {
     var open by rememberSaveable { mutableStateOf<String?>(null) }
@@ -28,6 +29,7 @@ internal fun SwitchCards(
                 switch = switch,
                 behind = behind,
                 panel = panel,
+                songs = songs,
                 enabled = enabled,
                 open = open == switch.id,
                 onOpen = { open = if (it) switch.id else null },

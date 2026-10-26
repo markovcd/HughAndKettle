@@ -21,7 +21,7 @@ section becomes a version's section when `release.sh` ships it.
 - App: opens on a splash of its kettle mark on the dark stage.
 - App: the amp is picked in the settings menu, asked for on first linking to a WMI-1, and remembered for each.
 - `hk latency` measures how long a control change takes to reach a fake WMI-1 on the same machine.
-- Delay time shows in milliseconds, takes a tapped beat in the app, and `hk set` takes `520ms`.
+- Delay time shows in milliseconds, and `hk set` takes `520ms`.
 - App: a tap on the preset opens a grid of all 128 to jump to.
 - App: connects by itself to the last WMI-1 used or the only one heard, and once linked the connection folds into a status glyph.
 - Gain and Volume move the amp's own knobs, landing where the amp reports them.
@@ -38,9 +38,11 @@ section becomes a version's section when `release.sh` ships it.
 - The release APK is shrunk by R8.
 - App: shows which WiFi network the phone is on, named once location is allowed.
 - App and `hk tone import`: import H&K's GrandMeister Deluxe 40 preset files (`.gm40memory`) as tones.
-- App and `hk lock`: lock the delay time so a preset recalled from the footswitch keeps the tempo; the app shows the delay time in BPM too.
+- App and `hk lock`: lock the delay time so a preset recalled from the footswitch keeps the tempo.
 - App and `hk trim`: a volume trim moves every recalled preset's and channel's volume by the same amount, standing in for Master; a preset recalled from the app goes behind the mute so its own volume never sounds.
 - App and `hk song`: a song recalls the amp's presets on their beats at one tempo, with the delay time set to that tempo while the tempo lock is on (`hk song play --lock`).
+- App: the song's tempo is the only tempo; while the tempo lock is on the Delay card picks a note length (1/2 to 1/16, dotted and triplet) and the delay time follows the tempo, and a delay time set on the amp moves the tempo (`hk lock --tempo --note`, `hk song play --note`).
+- App: tap tempo counts the moment a finger lands and fits the beat over the last dozen taps.
 - App: the song has a tab of its own, with a tapped tempo, the preset names on its steps and a big beat count while it plays; the volume trim sits on a dial that lights when it trims a recall.
 - App and `hk song play`: a song counts in a bar of clicks before its first step, unless its count-in is switched off.
 - App: a song step's beats can be typed and its − and + go to the ends of bars.

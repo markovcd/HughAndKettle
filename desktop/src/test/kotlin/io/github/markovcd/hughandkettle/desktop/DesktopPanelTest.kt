@@ -165,13 +165,16 @@ class DesktopPanelTest {
         }
 
     @Test
-    fun `Two taps set the delay time on the box to their beat`() =
+    fun `Two taps set the song's tempo, and through the tempo lock the delay time on the box`() =
         inWindow {
             linked()
+            screen.songs.lock(on = true)
             screen.commands.tap(kotlin.time.Duration.ZERO)
-            screen.commands.tap(kotlin.time.Duration.parse("500ms"))
+            screen.commands.tap(kotlin.time.Duration.parse("750ms"))
+            assertEquals(80, screen.songs.song.tempo)
             val time = AmpModels.blackSpirit200.controls.first { it.timed }
-            heard("the delay time") { it is ControlChange && it.controller == time.controller }
+            val beat = time.scale!!.value(750)
+            heard("the delay time") { it == ControlChange(MidiChannel(1), time.controller, beat) }
         }
 
     @Test

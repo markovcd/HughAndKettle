@@ -37,7 +37,7 @@ class SongTest {
 
     @Test
     fun `A step starts with its preset, then the delay time at one repeat a beat`() {
-        assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1, timed = true) { null })
+        assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1, NoteLength.QUARTER) { null })
     }
 
     @Test
@@ -46,7 +46,7 @@ class SongTest {
         val song = Song(amp, 120, listOf(SongStep(beats = 4, tone = "Lead solo")))
         assertEquals(
             listOf(amp.control("gain")!!.set(90), time.set(time.scale!!.value(500))),
-            song.cue(0, timed = true) { name ->
+            song.cue(0, NoteLength.QUARTER) { name ->
                 lead.takeIf {
                     it.name ==
                         name
@@ -59,9 +59,9 @@ class SongTest {
     fun `An untimed step keeps the delay time of its preset or tone`() {
         val lead = Tone("Lead solo", amp, mapOf("gain" to 90, "delay_time" to 10))
         val song = Song(amp, 120, listOf(SongStep(preset = 7, beats = 4), SongStep(beats = 4, tone = "Lead solo")))
-        assertEquals(listOf(amp.recall(7)), song.cue(0, timed = false) { null })
-        assertEquals(lead.recall(), song.cue(1, timed = false) { lead })
-        assertEquals(emptyList(), song.cue(1, timed = false) { null })
+        assertEquals(listOf(amp.recall(7)), song.cue(0, null) { null })
+        assertEquals(lead.recall(), song.cue(1, null) { lead })
+        assertEquals(emptyList(), song.cue(1, null) { null })
     }
 
     @Test
@@ -69,8 +69,8 @@ class SongTest {
         val song = Song(amp, 120, listOf(SongStep(beats = 4, tone = "Gone")))
         val other = Tone("Gone", AmpModels.blackSpirit200, emptyMap())
         val repeat = time.set(time.scale!!.value(500))
-        assertEquals(listOf(repeat), song.cue(0, timed = true) { null })
-        assertEquals(listOf(repeat), song.cue(0, timed = true) { other })
+        assertEquals(listOf(repeat), song.cue(0, NoteLength.QUARTER) { null })
+        assertEquals(listOf(repeat), song.cue(0, NoteLength.QUARTER) { other })
     }
 
     @Test
@@ -81,12 +81,20 @@ class SongTest {
 
     @Test
     fun `The delay time reads in the milliseconds the knob reaches`() {
-        assertEquals(505, Song(amp, 120).delayMs)
+        assertEquals(505, Song(amp, 120).delayMs(NoteLength.QUARTER))
     }
 
     @Test
-    fun `A tempo slower than the longest delay time sets the delay to its longest`() {
-        assertEquals(time.set(127), Song(amp, 40).delayTime)
+    fun `A dotted eighth repeats at three quarters of a beat`() {
+        assertEquals(time.set(time.scale!!.value(375)), Song(amp, 120).delayTime(NoteLength.of("1/8d")!!))
+    }
+
+    @Test
+    fun `A note longer than the longest delay time sets the delay to its longest, and says it is too long`() {
+        assertEquals(time.set(127), Song(amp, 40).delayTime(NoteLength.QUARTER))
+        assertEquals(NoteReach.TooLong, Song(amp, 60).reach(NoteLength.of("1/2")!!))
+        assertEquals(NoteReach.TooShort, Song(amp, 300).reach(NoteLength.of("1/16")!!))
+        assertEquals(NoteReach.Fits, Song(amp, 120).reach(NoteLength.of("1/8d")!!))
     }
 
     @Test

@@ -92,17 +92,17 @@ fun AmpPanel(
 
                 wide -> {
                     Row(content) {
-                        AmpTab(panel, enabled, Modifier.weight(1f).then(dim).testTag("panel"))
-                        FxTab(panel, enabled, Modifier.weight(1f).then(dim).testTag("controls"))
+                        AmpTab(panel, songs, enabled, Modifier.weight(1f).then(dim).testTag("panel"))
+                        FxTab(panel, songs, enabled, Modifier.weight(1f).then(dim).testTag("controls"))
                     }
                 }
 
                 tab == PanelTab.Amp -> {
-                    AmpTab(panel, enabled, content.then(dim).testTag("panel"))
+                    AmpTab(panel, songs, enabled, content.then(dim).testTag("panel"))
                 }
 
                 else -> {
-                    FxTab(panel, enabled, content.then(dim).testTag("panel"))
+                    FxTab(panel, songs, enabled, content.then(dim).testTag("panel"))
                 }
             }
         }

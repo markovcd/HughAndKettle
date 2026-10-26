@@ -174,6 +174,20 @@ class SongCommandTest {
     }
 
     @Test
+    fun `A locked song played with a note sets the delay time to that note at its tempo`() {
+        run("set", "grandmeister_deluxe_40", "400", "3:2", "--no-count-in")
+        val playing =
+            CompletableFuture.supplyAsync {
+                run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--lock", "--note", "1/2")
+            }
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 4, time.scale!!.value(300))), next())
+        val run = playing.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+    }
+
+    @Test
     fun `A song played without --lock recalls each preset on its beat and leaves the delay time alone`() {
         run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2", "--no-count-in")
         val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }

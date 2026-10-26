@@ -233,15 +233,6 @@ class PanelStateTest {
     }
 
     @Test
-    fun `Tapping a beat on delay time moves it to the beat, from the second tap`() {
-        val delay = AmpModels.blackSpirit200.control("delay_time")!!
-        panel.tap(delay, 10.seconds)
-        assertEquals(null, panel.state.values["delay_time"])
-        panel.tap(delay, 10.seconds + 500.milliseconds)
-        assertEquals(delay.scale!!.value(500), panel.state.values["delay_time"])
-    }
-
-    @Test
     fun `A preset recalled from the footswitch while the tempo is locked gets the locked delay time back`() {
         val delay = AmpModels.blackSpirit200.control("delay_time")!!
         connected()

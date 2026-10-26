@@ -36,6 +36,8 @@ public object Cli {
             "tones",
             "songs",
             "seed",
+            "note",
+            "tempo",
         )
 
     public fun run(

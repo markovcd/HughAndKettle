@@ -21,6 +21,7 @@ import io.github.markovcd.hughandkettle.amp.Section
 @Composable
 fun FxTab(
     panel: PanelState,
+    songs: SongState,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -42,7 +43,7 @@ fun FxTab(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             RandomizeCard(panel, enabled)
-            SwitchCards(fx.filter { it.kind == ControlKind.Switch }, fx, panel, enabled)
+            SwitchCards(fx.filter { it.kind == ControlKind.Switch }, fx, panel, songs, enabled)
         }
         if (rolled != null) {
             UndoBar(rolled, panel::undoRoll, Modifier.align(Alignment.BottomCenter).padding(12.dp))

@@ -9,11 +9,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.SongStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.deleteRecursively
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,14 +30,18 @@ class FxTabTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val amp = AmpModels.grandMeisterDeluxe40
     private val panel = PanelState(amp, holder, scope, flowOf(null))
+    private val folder: Path = Files.createTempDirectory("songs")
+    private val songs = SongState(SongStore(folder), panel, scope, Dispatchers.Unconfined)
 
     @AfterTest
+    @OptIn(ExperimentalPathApi::class)
     fun teardown() {
         scope.cancel()
         holder.close()
+        folder.deleteRecursively()
     }
 
-    private fun ComposeUiTest.shown() = setContent { FxTab(panel, enabled = true) }
+    private fun ComposeUiTest.shown() = setContent { FxTab(panel, songs, enabled = true) }
 
     /** Modulation and delay on with every knob behind them at 64, reverb off. */
     private fun effectsOn() {

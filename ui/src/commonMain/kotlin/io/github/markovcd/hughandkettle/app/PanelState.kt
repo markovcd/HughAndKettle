@@ -8,7 +8,6 @@ import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.EffectRoll
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
-import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.VolumeTrim
@@ -22,10 +21,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.random.Random
-import kotlin.time.Duration
 
 /**
  * What the panel shows and does: the link's state or the cable's, which amp is behind the box, and the
@@ -67,6 +67,11 @@ class PanelState(
     /** The delay time held across preset recalls, while locked. */
     val lock: TempoLock? get() = answers.lock
 
+    private val heldMoves = MutableSharedFlow<Int>(extraBufferCapacity = HELD_MOVES_KEPT)
+
+    /** Each time the amp moved the held time itself, from its knob or a footswitch tap, the time it moved to. */
+    val held: SharedFlow<Int> = heldMoves
+
     /** How many recalled presets the lock has given the held time back, so the panel can show each one. */
     var restored by mutableStateOf(0)
         private set
@@ -97,7 +102,6 @@ class PanelState(
     private var choicesRead = false
     private var pickedByHand = false
     private var askedAbout: WmiAddress? = null
-    private var taps = TapTempo()
 
     init {
         scope.launch {
@@ -186,7 +190,6 @@ class PanelState(
         this.amp = amp
         state = AmpState(amp)
         moved = emptySet()
-        taps = TapTempo()
         rolled = null
         answers = RecallAnswers(trim = trimFor(amp, trim?.trim ?: 0))
     }
@@ -254,20 +257,6 @@ class PanelState(
     /** Mutes or unmutes the amp by its Mute switch, when it has one. */
     fun mute(on: Boolean) {
         amp.control("mute")?.let { set(it, if (on) MUTE_ON else 0) }
-    }
-
-    /**
-     * A tap on [control]'s beat at [at], from any fixed point; from the second tap on, the knob moves to
-     * the beat, as near as its scale reaches.
-     */
-    fun tap(
-        control: Control,
-        at: Duration,
-    ) {
-        val scale = control.scale ?: return
-        taps = taps.after(at)
-        val beat = taps.beat ?: return
-        set(control, scale.value(beat.inWholeMilliseconds.toInt()))
     }
 
     /** Holds [control]'s time, at its value now, across preset recalls; or lets it go. */
@@ -393,8 +382,11 @@ class PanelState(
             } else {
                 moved + state.values.filter { (id, value) -> before.values[id] != value }.keys
             }
+        val held = answers.lock?.value
         val answered = answers.heard(message)
         answers = answered.answers
+        val now = answers.lock?.value
+        if (held != null && now != null && now != held) heldMoves.tryEmit(now)
         if (answered.trimmed.isNotEmpty()) trimmed++
         if (answered.restored != null) restored++
         if (answered.replies.isNotEmpty()) transmit(answered.replies)
@@ -415,5 +407,8 @@ class PanelState(
     private companion object {
         // A switch reads on from 64; the amp's own footswitch sends 127.
         const val MUTE_ON = 127
+
+        // Only the latest move matters; a few more cover a burst of taps read before anyone collects.
+        const val HELD_MOVES_KEPT = 8
     }
 }

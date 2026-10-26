@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
@@ -169,6 +170,43 @@ class CliTest {
                 .filter { it.isNotEmpty() }
                 .map { it.replace(Regex("""^\{"ms":\d+,"""), "") },
         )
+    }
+
+    @Test
+    fun `A lock on a tempo holds its note's delay time, a quarter unless a note is given`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val locking =
+            started(
+                "lock",
+                "127.0.0.1:${fake.port}",
+                "grandmeister_deluxe_40",
+                "--tempo",
+                "120",
+                "--note",
+                "1/8d",
+                "--seconds",
+                "1",
+            )
+        assertTrue(next() is FakeWmiEvent.Opened)
+        fake.emit(ValueBlock(mapOf(4 to 141), preset = 3).message())
+        val held =
+            AmpModels.grandMeisterDeluxe40
+                .control("delay_time")!!
+                .scale!!
+                .value(375)
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 4, held)), next())
+        val run = locking.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+    }
+
+    @Test
+    fun `A lock on a note there is none of, or a tempo as well as a time, is refused before anything is sent`() {
+        val note = run("lock", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--tempo", "120", "--note", "1/5")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, note.code)
+        assertTrue("no note '1/5'; there are 1/2, 1/4, 1/8" in note.err, note.err)
+        val both = run("lock", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "500ms", "--tempo", "120")
+        assertEquals(ExitCodes.BAD_ARGUMENTS, both.code)
+        assertTrue("--tempo is 20..400 BPM, given instead of a time" in both.err, both.err)
     }
 
     @Test
