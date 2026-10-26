@@ -32,6 +32,7 @@ import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -189,7 +190,7 @@ class SongStateTest {
     }
 
     @Test
-    fun `A song plays each preset on its beat with the delay time of its tempo, then lets the time go`() {
+    fun `While the tempo lock is on, a song plays each preset on its beat with the delay time of its tempo`() {
         connected()
         songs.tempo(400)
         songs.add()
@@ -198,19 +199,38 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
         songs.add()
         songs.beats(1, 2)
+        panel.lock(time, on = true)
         val delay = ControlChange(MidiChannel(1), time.controller, time.scale!!.value(150))
         songs.start()
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(FakeWmiEvent.Received(delay), next())
-        assertEquals(time, panel.lock?.control)
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
         assertEquals(FakeWmiEvent.Received(delay), next())
+        until("song over") { songs.position == null }
+        assertEquals(time, panel.lock?.control)
+    }
+
+    @Test
+    fun `With the tempo lock off, a song plays each preset on its beat and leaves the delay time to the preset`() {
+        connected()
+        songs.tempo(400)
+        songs.countIn(false)
+        songs.add()
+        songs.beats(0, 2)
+        panel.recall(3)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
+        songs.add()
+        songs.beats(1, 2)
+        assertFalse(songs.timed)
+        songs.start()
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
         until("song over") { songs.position == null }
         assertNull(panel.lock)
     }
 
     @Test
-    fun `A song plays a tone step as the tone's values, and a step on a missing tone as the delay time alone`() {
+    fun `While locked, a song plays a tone step as its values, and a missing tone's as the delay time alone`() {
         val gain = amp.control("gain")!!
         val lead = Tone("Lead", amp, mapOf("gain" to 90))
         var shelf = listOf(lead, Tone("Gone", amp, emptyMap()))
@@ -223,6 +243,7 @@ class SongStateTest {
         listOf(0, 1).forEach { songs.beats(it, 2) }
         shelf = listOf(lead)
         assertEquals(listOf(false, true), songs.song.steps.map(songs::missing))
+        panel.lock(time, on = true)
         val delay = ControlChange(MidiChannel(1), time.controller, time.scale!!.value(150))
         songs.start()
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), gain.controller, 90)), next())
@@ -269,7 +290,6 @@ class SongStateTest {
         assertEquals(4, songs.countdown)
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(4, clicks.get())
-        next()
         songs.stop()
         assertNull(songs.countdown)
         songs.countIn(false)
@@ -323,10 +343,11 @@ class SongStateTest {
     }
 
     @Test
-    fun `A song stopped part way lets go of the time it held, and no song is changed or opened while it plays`() {
+    fun `A song stopped part way leaves the tempo lock on, and no song is changed or opened while it plays`() {
         songs.tempo(60)
         songs.add()
         connected()
+        panel.lock(time, on = true)
         songs.start()
         next()
         next()
@@ -336,6 +357,6 @@ class SongStateTest {
         assertEquals("", songs.song.name)
         songs.stop()
         assertNull(songs.position)
-        assertNull(panel.lock)
+        assertEquals(time, panel.lock?.control)
     }
 }

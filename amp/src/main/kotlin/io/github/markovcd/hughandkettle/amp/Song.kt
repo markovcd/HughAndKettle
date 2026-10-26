@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.minutes
 
 /**
  * A run of the amp's presets and tones at one [tempo], in beats per minute: each [step] recalls its preset or
- * tone and holds it for its beats, and the delay time is set to one repeat a beat. With [countIn], a bar of clicks comes
+ * tone and holds it for its beats, and while timed the delay time is set to one repeat a beat. With [countIn], a bar of clicks comes
  * first. A song kept on the phone has a [name], unique for its amp; a blank one is untitled. The clock is
  * the caller's; a song only says what plays when.
  */
@@ -72,16 +72,18 @@ public data class Song(
         }
 
     /**
-     * The messages that start [step]: its preset, or the values of its tone found by [tone], then the delay
-     * time, so the preset's own gives way to the song's and the tone's is never sent. A tone missing, or kept
-     * for another amp, cues the delay time alone, and the step before keeps sounding.
+     * The messages that start [step]: its preset, or the values of its tone found by [tone]. When [timed], the
+     * delay time follows, so the preset's own gives way to the song's and the tone's is never sent; otherwise
+     * each keeps its own. A tone missing, or kept for another amp, cues the delay time alone, or nothing, and
+     * the step before keeps sounding.
      */
     public fun cue(
         step: Int,
+        timed: Boolean,
         tone: (String) -> Tone?,
     ): List<MidiMessage> {
         val at = steps[step]
-        val time = delayTime
+        val time = delayTime?.takeIf { timed }
         val sound =
             at.preset?.let { listOf(amp.recall(it)) }
                 ?: at.tone

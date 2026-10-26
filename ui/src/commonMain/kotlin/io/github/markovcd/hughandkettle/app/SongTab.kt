@@ -136,7 +136,7 @@ fun SongTab(
                     SongCountdown(countdown, song)
                 } else if (at != null) {
                     SongBeatHero(song, at, names)
-                    if (song.delayMs != null) SongHeldStrip(song)
+                    if (song.delayMs != null && songs.timed) SongHeldStrip(song)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         song.steps.forEachIndexed { index, step ->
                             PlayedStepRow(index + 1, step, step.preset?.let(names::get), at.step, at.beat)

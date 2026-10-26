@@ -25,9 +25,10 @@ import kotlin.time.TimeSource
  * The songs of each amp model, the way the app keeps them, in a folder, `--dir` or `~/.hk/songs`: a tempo and
  * a run of presets and tones, each held for its beats. `show`, `set` and `play` work on the song `--name` names,
  * else the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then
- * recalls each preset, or sends each tone kept in `--tones` or `~/.hk/tones`, on its beat with the delay time at
- * one repeat a beat, and holds that time across the recalls, as the tempo lock does. A step whose tone is
- * missing sets the delay time alone. The rest of the verbs keep the list as the app's song list does.
+ * recalls each preset, or sends each tone kept in `--tones` or `~/.hk/tones`, on its beat. With `--lock` it sets
+ * the delay time at one repeat a beat and holds it across the recalls, as the app does while its tempo lock is
+ * on; a step whose tone is missing then sets the delay time alone. The rest of the verbs keep the list as the
+ * app's song list does.
  */
 public object SongCommand : Command {
     override val name: String = "song"
@@ -41,7 +42,7 @@ public object SongCommand : Command {
         hk song export <amp-id> <name> <file> [--dir D]
         hk song import <amp-id> <file> [--dir D]    (a song for another amp model is refused)
         hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats> ... [--no-count-in] [--name N] [--dir D]
-        hk song play ${AmpTarget.USAGE} <amp-id> [--name N] [--dir D] [--tones D]
+        hk song play ${AmpTarget.USAGE} <amp-id> [--lock] [--name N] [--dir D] [--tones D]
         """.trimIndent()
 
     override fun run(
@@ -129,7 +130,7 @@ public object SongCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        return play(song, tones(args), target, out, err)
+        return play(song, tones(args), target, args.flag("lock"), out, err)
     }
 
     /** Keeps an empty song called [name] at the end of [amp]'s list and opens it, as the app's New song does. */
@@ -377,21 +378,24 @@ public object SongCommand : Command {
         }
     }
 
-    /** Plays [song] on the amp behind [target] from now to its last beat, holding its delay time; tones come from [tones]. */
+    /** Plays [song] on the amp behind [target] from now to its last beat, holding its delay time if [locked]; tones come from [tones]. */
     private fun play(
         song: Song,
         tones: ToneStore,
         target: AmpTarget,
+        locked: Boolean,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
         val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
         val time = song.delayTime
+        val delayMs = if (locked) arrayOf("delay_ms" to song.delayMs) else emptyArray()
         var answers =
             RecallAnswers(
                 lock =
                     song.amp.controls
                         .firstOrNull(Control::timed)
+                        ?.takeIf { locked }
                         ?.let { TempoLock(it, time?.value) },
             )
         // Measured from the first step, so the count-in reads in negative milliseconds.
@@ -414,7 +418,7 @@ public object SongCommand : Command {
                 if (next < song.steps.size && started.elapsedNow() >= song.startOf(next)) {
                     val step = song.steps[next]
                     val tone = step.tone?.let(tones::find)?.takeIf { it.amp == song.amp }
-                    val cue = song.cue(next) { tone }
+                    val cue = song.cue(next, locked) { tone }
                     answers = answers.sent(cue)
                     if (!send(cue)) return ExitCodes.NO_LINK
                     val missing = if (step.tone != null && tone == null) arrayOf("missing" to true) else emptyArray()
@@ -424,7 +428,7 @@ public object SongCommand : Command {
                             "step" to next + 1,
                             sound(step),
                             *missing,
-                            "delay_ms" to song.delayMs,
+                            *delayMs,
                         ),
                     )
                     out.flush()

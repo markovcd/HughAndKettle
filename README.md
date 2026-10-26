@@ -49,7 +49,7 @@ hk randomize <target> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new val
 hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> | tone:<name>:<beats> ... [--no-count-in]  # takes --name N, --dir D
 hk song new|open|duplicate|delete <amp-id> <name> | rename <amp-id> <name> <new-name> | move <amp-id> <name> <position>  # the song list, as the app keeps it
 hk song export <amp-id> <name> <file> | import <amp-id> <file>  # a song for another amp model is refused
-hk song play <target> <amp-id> [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat, delay time at the tempo
+hk song play <target> <amp-id> [--lock] [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat; --lock sets the delay time to the tempo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <target> <name>
 hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <name>  # a rename follows into the songs
 hk tone pin <name> | unpin <name>                           # a pinned tone is one the app's − and + step through
@@ -78,8 +78,9 @@ range, and a preset that sends nothing within 2 s is skipped and said on stderr.
 amp's presets in `--dir` (`~/.hk/preset-names` by default), the way the app does; `tone read` finds
 them there or in `--names`. `song` keeps the songs of each amp model in `--dir` (`~/.hk/songs` by default),
 the way the app does; `show`, `set` and `play` take the song `--name` names, else the one open in the app,
-and `set` makes the song when no song has that name; `play` recalls each step's preset on its beat from the moment it starts, sets the
-delay time to one repeat a beat, and holds it across the recalls as `lock` does. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
+and `set` makes the song when no song has that name; `play` recalls each step's preset on its beat from the moment it starts; with `--lock` it
+sets the delay time to one repeat a beat and holds it across the recalls as `lock` does, as the app's song does
+while its tempo lock is on. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
 `grandmeister_36`.
 Exit codes: 0 done, 2 bad arguments, 3 no link, 4 nothing found, 5 a file that could not be read or
 written, or is not a tone.
