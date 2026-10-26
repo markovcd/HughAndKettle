@@ -6,7 +6,6 @@ import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.CappedRead
-import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.KeptSong
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongFile
@@ -37,8 +36,9 @@ import kotlin.time.TimeSource
  * The songs of the panel's amp, kept on the phone in the person's order, and the one open: its tempo and steps,
  * edited and kept as they change, and played from a tap. A bar of [click]s counts it in, unless its count-in is
  * off, each played the sound output's [lag] ahead of its beat so it is heard on the beat the amp switches on.
- * While it plays, each step recalls its preset, or sends its tone from [tones], on its beat with the delay time
- * at one repeat a beat, and the tempo lock holds that time across the recalls; no other song can be opened. An amp with no songs opens on an
+ * While it plays, each step recalls its preset, or sends its tone from [tones], on its beat; while the tempo lock
+ * is on, the delay time follows at one repeat a beat and the lock holds it across the recalls, and otherwise each
+ * step keeps its own. No other song can be opened while one plays. An amp with no songs opens on an
  * untitled one, kept once it has a step or a name. A song that cannot be read plays nothing, says why in
  * [failure], and is left as it is. The folder is read and written off the main thread, one change at a time.
  */
@@ -61,9 +61,6 @@ class SongState(
     private var taps = TapTempo()
     private val writes = Mutex()
 
-    /** Whether the song turned the tempo lock on, so it turns it off again when it ends. */
-    private var locking = false
-
     private var unsaved by mutableStateOf<String?>(null)
 
     /** Why the open song cannot be read, or why a change could not be saved. */
@@ -72,6 +69,9 @@ class SongState(
     /** The clicks of the count-in still to come, this one among them, or null while not counting in. */
     var countdown by mutableStateOf<Int?>(null)
         private set
+
+    /** Whether a song sets the delay time to its tempo: only while the tempo lock is on. */
+    val timed: Boolean get() = panel.lock != null
 
     /** Where the playing song stands, or null while none plays. */
     var position by mutableStateOf<Song.Position?>(null)
@@ -293,7 +293,6 @@ class SongState(
     fun start() {
         val song = song
         if (playing != null || song.steps.isEmpty() || !panel.linked) return
-        val time = song.amp.controls.firstOrNull(Control::timed)
         playing =
             scope.launch {
                 val counts = if (song.countIn) Song.COUNT_IN_BEATS else 0
@@ -313,11 +312,7 @@ class SongState(
                     val elapsed = started.elapsedNow().coerceAtLeast(Duration.ZERO)
                     val at = song.at(elapsed) ?: break
                     if (at.step != cued) {
-                        if (cued < 0 && time != null && panel.lock == null) {
-                            panel.lock(time, on = true)
-                            locking = true
-                        }
-                        panel.cue(song.cue(at.step, ::tone))
+                        panel.cue(song.cue(at.step, timed, ::tone))
                         cued = at.step
                     }
                     position = at
@@ -334,9 +329,6 @@ class SongState(
     }
 
     private fun ended() {
-        val held = panel.lock
-        if (locking && held != null) panel.lock(held.control, on = false)
-        locking = false
         countdown = null
         position = null
         playing = null

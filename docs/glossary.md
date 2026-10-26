@@ -32,7 +32,7 @@ Prefer the domain's words over the framework's.
 | **tempo lock** | Holding the delay time across preset recalls by sending it back after each one. | `TempoLock` | BPM lock, tempo hold, sync |
 | **volume trim** | An amount added to the volume of every preset recalled and channel switched to, standing in for Master, which is not on MIDI. | `VolumeTrim` | master (the amp's knob), offset, global volume |
 | **randomize** | Giving the controls behind every effect that is on new random values, never switching one on or off, a locked delay time aside; one undo puts them back. | `EffectRoll`, `PanelState.randomize` | shuffle, dice (the button's picture), mutate |
-| **song** | A tempo and a run of the amp's presets and tones, each held for a number of beats, played on the app's clock with the delay time at one repeat a beat. | `Song`, `SongStep`, `SongStore` | setlist (a list of songs), sequence, chain, playlist |
+| **song** | A tempo and a run of the amp's presets and tones, each held for a number of beats, played on the app's clock; while the tempo lock is on, the delay time is set to one repeat a beat. | `Song`, `SongStep`, `SongStore` | setlist (a list of songs), sequence, chain, playlist |
 | **tone step** | A song step that sends a tone rather than recalling a preset; it names its tone, and a step whose tone was deleted is a **missing tone** and sets only the delay time. | `SongStep.tone` | tone preset, sound step |
 | **count-in** | The bar of clicks a song plays before its first step, so the band starts on the beat. | `Song.countIn`, `ClickSound` | countdown, pre-roll |
 | **open song** | The one song of an amp model the Song tab shows and plays; the others wait in the song list. | `SongState.song`, `SongList.open` | loaded song, current song |

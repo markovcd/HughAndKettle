@@ -37,7 +37,7 @@ class SongTest {
 
     @Test
     fun `A step starts with its preset, then the delay time at one repeat a beat`() {
-        assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1) { null })
+        assertEquals(listOf(amp.recall(7), time.set(time.scale!!.value(500))), song.cue(1, timed = true) { null })
     }
 
     @Test
@@ -46,7 +46,7 @@ class SongTest {
         val song = Song(amp, 120, listOf(SongStep(beats = 4, tone = "Lead solo")))
         assertEquals(
             listOf(amp.control("gain")!!.set(90), time.set(time.scale!!.value(500))),
-            song.cue(0) { name ->
+            song.cue(0, timed = true) { name ->
                 lead.takeIf {
                     it.name ==
                         name
@@ -56,12 +56,21 @@ class SongTest {
     }
 
     @Test
+    fun `An untimed step keeps the delay time of its preset or tone`() {
+        val lead = Tone("Lead solo", amp, mapOf("gain" to 90, "delay_time" to 10))
+        val song = Song(amp, 120, listOf(SongStep(preset = 7, beats = 4), SongStep(beats = 4, tone = "Lead solo")))
+        assertEquals(listOf(amp.recall(7)), song.cue(0, timed = false) { null })
+        assertEquals(lead.recall(), song.cue(1, timed = false) { lead })
+        assertEquals(emptyList(), song.cue(1, timed = false) { null })
+    }
+
+    @Test
     fun `A step on a missing tone, or one kept for another amp, cues the delay time alone`() {
         val song = Song(amp, 120, listOf(SongStep(beats = 4, tone = "Gone")))
         val other = Tone("Gone", AmpModels.blackSpirit200, emptyMap())
         val repeat = time.set(time.scale!!.value(500))
-        assertEquals(listOf(repeat), song.cue(0) { null })
-        assertEquals(listOf(repeat), song.cue(0) { other })
+        assertEquals(listOf(repeat), song.cue(0, timed = true) { null })
+        assertEquals(listOf(repeat), song.cue(0, timed = true) { other })
     }
 
     @Test

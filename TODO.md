@@ -8,7 +8,6 @@ that lands it.
 
 - Run phase 0 of the [implementation plan](docs/handoff/01-implementation-plan.md#phase-0-confirm-the-link-on-hardware) on the hardware and paste the output; everything after it waits on this.
 - While the WMI-1 is missing, run the [cable test](docs/cable.md#the-test) instead and paste what it asks for.
-- Play a song through the amp with `hk song play` against a click, on two presets with very different delay times, and say whether each switch lands on its beat and whether the preset's own delay time is heard before the song's. On 2026-10-22 each recall left within 9 ms of its beat and the song's delay time was back 130 ms later; by ear it could not be judged without a click.
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 - Make the Windows signing certificate, commit its public half as `release/msix.cer` and set its two secrets ([release/README.md](release/README.md#the-windows-certificate)).
 

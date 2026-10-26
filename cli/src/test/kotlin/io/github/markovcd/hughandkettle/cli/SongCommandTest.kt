@@ -92,10 +92,11 @@ class SongCommandTest {
     }
 
     @Test
-    fun `A song plays a tone step as the tone's values, and a missing tone's as the delay time alone`() {
+    fun `A locked song plays a tone step as the tone's values, and a missing tone's as the delay time alone`() {
         ToneStore(tones).save(Tone("Lead", AmpModels.grandMeisterDeluxe40, mapOf("gain" to 90))).getOrThrow()
         run("set", "grandmeister_deluxe_40", "400", "tone:Lead:2", "tone:Gone:2", "--no-count-in")
-        val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }
+        val playing =
+            CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--lock") }
         val delay = ControlChange(MidiChannel(1), 4, time.scale!!.value(150))
         assertTrue(next() is FakeWmiEvent.Opened)
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 56, 90)), next())
@@ -136,11 +137,12 @@ class SongCommandTest {
     }
 
     @Test
-    fun `A song counts in, plays each preset on its beat with the delay time of its tempo, and holds that time`() {
+    fun `A locked song counts in, plays each preset on its beat with the delay time of its tempo, and holds that time`() {
         // At 400 BPM a beat is 150 ms, which the time knob reaches as 154; a count-in of four and two
         // steps of two play in 1.2 s.
         run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2")
-        val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }
+        val playing =
+            CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--lock") }
         val delay = ControlChange(MidiChannel(1), 4, time.scale!!.value(150))
         assertTrue(next() is FakeWmiEvent.Opened)
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
@@ -169,6 +171,24 @@ class SongCommandTest {
             ),
             lines,
         )
+    }
+
+    @Test
+    fun `A song played without --lock recalls each preset on its beat and leaves the delay time alone`() {
+        run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2", "--no-count-in")
+        val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
+        fake.emit(ValueBlock(mapOf(4 to 200), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 4)), next())
+        val run = playing.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val lines =
+            run.out
+                .lines()
+                .filter { it.isNotEmpty() }
+                .map { it.replace(Regex("""^\{"ms":-?\d+,"""), "{") }
+        assertEquals(listOf("""{"step":1,"preset":3}""", """{"step":2,"preset":5}""", """{"ended":true}"""), lines)
     }
 
     @Test
