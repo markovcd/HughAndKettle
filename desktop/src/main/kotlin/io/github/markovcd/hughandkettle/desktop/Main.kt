@@ -17,6 +17,7 @@ import javax.imageio.ImageIO
 
 /** The desktop app: a window over the shared screens, keeping its things in `~/.hk` beside `hk`'s. */
 fun main() {
+    DesktopOs.settle()
     val app = DesktopApp(DesktopApp.HK_FOLDER)
     // The same picture the .deb and the MSIX show, for the title bar and the task bar.
     val icon = BitmapPainter(ImageIO.read(DesktopApp::class.java.getResource("/icon.png")).toComposeImageBitmap())
