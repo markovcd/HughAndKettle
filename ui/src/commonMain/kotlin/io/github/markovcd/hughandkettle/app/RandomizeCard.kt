@@ -85,9 +85,18 @@ internal fun RandomizeCard(
                 Note(changes)
                 return@Row
             }
-            Note("$changes ${stringResource(Res.string.fx_randomize_kept, kept.name)}")
+            // The sentence wraps in what the padlock and its word leave, never the other way round.
+            Note(
+                "$changes ${stringResource(Res.string.fx_randomize_kept, kept.name)}",
+                Modifier.weight(1f, fill = false),
+            )
             Padlock(open = false, color = colors.primary, size = 13.dp)
-            Text(stringResource(Res.string.fx_randomize_locked), style = style, color = colors.onSurfaceVariant)
+            Text(
+                stringResource(Res.string.fx_randomize_locked),
+                style = style,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.testTag("fx_randomize_locked"),
+            )
         }
     }
 }
@@ -101,9 +110,13 @@ internal fun names(effects: List<Control>): String {
 }
 
 @Composable
-private fun Note(text: String) {
+private fun Note(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
     Text(
         text,
+        modifier = modifier,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
