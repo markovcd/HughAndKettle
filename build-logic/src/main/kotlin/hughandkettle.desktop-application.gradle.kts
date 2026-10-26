@@ -80,10 +80,11 @@ val installDist =
 tasks.named("assemble") { dependsOn(installDist) }
 
 // The packages, each with its own Java runtime: a .deb and a portable folder (`createDistributable`) on Linux,
-// and on Windows the folder the MSIX is packed from. The version is the release's, or 0.0.0 for any other build.
+// on Windows the folder the MSIX is packed from, and on macOS an app bundle and a .dmg. The version is the
+// release's, or 0.0.0 for any other build.
 val desktop = the<ComposeExtension>().extensions.getByType<DesktopExtension>()
 desktop.application.nativeDistributions {
-    targetFormats(TargetFormat.Deb)
+    targetFormats(TargetFormat.Deb, TargetFormat.Dmg)
     packageName = "hughandkettle"
     packageVersion = buildVersion().name.substringBefore('-')
     description = "Remote for Hughes & Kettner amps over a WMI-1 or a USB MIDI cable"
@@ -99,6 +100,11 @@ desktop.application.nativeDistributions {
     }
     windows {
         iconFile.set(project.file("packaging/icon.ico"))
+    }
+    macOS {
+        bundleID = "io.github.markovcd.hughandkettle"
+        // macOS refuses a version whose first number is 0.
+        packageVersion = buildVersion().name.substringBefore('-').takeUnless { it.startsWith("0.") } ?: "1.0.0"
     }
 }
 

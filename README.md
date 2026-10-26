@@ -26,6 +26,7 @@ Needs JDK 21, and an Android SDK with `ANDROID_HOME` pointing at it (or `local.p
 | The desktop app as a folder that runs on Linux or Windows with Java 21, under `desktop/build/install/hughandkettle` (`bin/hughandkettle`, or `bin\hughandkettle.bat`) | `./gradlew :desktop:installDist` |
 | The desktop app's Linux packages: a `.deb` under `desktop/build/compose/binaries/main/deb`, and a folder carrying its own runtime as `desktop/build/packages/hughandkettle-linux-x64.tar.gz` | `./gradlew :desktop:packageDeb :desktop:portableLinux` |
 | The desktop app's Windows MSIX, on Windows, signed with a throwaway certificate whose `.cer` lands beside it | `gradlew.bat :desktop:createDistributable` then `desktop\packaging\msix.ps1 -Version 0.0.0 -Out build\msix\hughandkettle.msix` |
+| The desktop app for macOS, on an Apple silicon Mac: an app bundle under `desktop/build/compose/binaries/main/app` and a `.dmg` under `desktop/build/compose/binaries/main/dmg`. With Homebrew's JDK, add `-Pcompose.desktop.packaging.checkJdkVendor=false` | `./gradlew :desktop:createDistributable :desktop:packageDmg` |
 | Try a release with throwaway keys, publishing nothing | `./release.sh` |
 
 Test reports with a duration per test land in `<module>/build/test-results/test/*.xml`.
