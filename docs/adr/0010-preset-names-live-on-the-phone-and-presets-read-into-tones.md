@@ -38,3 +38,8 @@ holds its channel, boost, noise gate, FX loop and power soak as well as its knob
 switches are not in the block, so one the amp did not report during the recall is taken as on when
 its level (delay volume, reverb volume, modulation intensity) is above 0, as the amp stores an effect
 switched off.
+
+## Amendment (2026-10-26)
+
+A tone is written back into a preset with the amp's own STORE button pressed by hand, answered by the app
+([ADR 0014](0014-a-tone-is-written-into-a-preset-by-answering-the-amps-store-button.md)).

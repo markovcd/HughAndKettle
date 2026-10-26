@@ -2,7 +2,7 @@ package io.github.markovcd.hughandkettle.app
 
 /**
  * What the tone shelf has to tell after a change: a failure, what an import of a tone or a preset file
- * brought in, or what a reading of the presets did.
+ * brought in, what a reading of the presets did, or the backup a write into a preset kept.
  */
 sealed interface ToneNotice {
     data class Failed(
@@ -22,5 +22,9 @@ sealed interface ToneNotice {
     data class Read(
         val count: Int,
         val missed: List<Int>,
+    ) : ToneNotice
+
+    data class BackedUp(
+        val name: String,
     ) : ToneNotice
 }

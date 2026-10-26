@@ -37,5 +37,6 @@ class PanelScreen(
             heard = link.heard,
             names = { presetNames.names },
             renamed = songs::renameTone,
+            named = presetNames::name,
         )
 }

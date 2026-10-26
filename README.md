@@ -56,6 +56,7 @@ hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <
 hk tone pin <name> | unpin <name>                           # a pinned tone is one the app's − and + step through
 hk tone export <name> <file> | import <file> [--replace]     # every tone command takes --dir D
 hk tone read <target> <amp-id> [<preset>[-<preset>]] [--replace] [--names D]  # the amp's presets into tones
+hk tone write <target> <name> <preset> [--names D]           # a tone into a preset, once STORE is pressed on the amp
 hk preset list <amp-id> | name <amp-id> <preset> <name> | unname <amp-id> <preset>  # takes --dir D
 hk fake-wmi [--port N] [--name ID] [--broadcast-to ADDRESS | --no-broadcast] [--seconds N]
 hk latency [--count N]                                      # send-to-parsed time against a local fake WMI-1
@@ -77,7 +78,9 @@ given, printed one per line and then as a `{"presets":N}` line. `tone read` reca
 knobs and switches the amp reports for it as a tone named after the preset; it reads every preset unless given one or a
 range, and a preset that sends nothing within 2 s is skipped and said on stderr. `preset` names the
 amp's presets in `--dir` (`~/.hk/preset-names` by default), the way the app does; `tone read` finds
-them there or in `--names`. `song` keeps the songs of each amp model in `--dir` (`~/.hk/songs` by default),
+them there or in `--names`. `tone write` keeps the preset as a tone named "Backup of" it, sends the tone, asks on
+stderr for STORE on the amp within a minute, answers it with the preset's program change, prints the values the amp
+stored otherwise and names the preset after the tone; it exits 6 when the amp confirmed no store. `song` keeps the songs of each amp model in `--dir` (`~/.hk/songs` by default),
 the way the app does; `show`, `set` and `play` take the song `--name` names, else the one open in the app,
 and `set` makes the song when no song has that name; `play` recalls each step's preset on its beat from the moment it starts; with `--lock` it
 sets the delay time to one `--note` at the tempo (a quarter, one repeat a beat, unless given; a step's own `@<note>` wins) and holds it across the recalls as `lock` does, as the app's song does

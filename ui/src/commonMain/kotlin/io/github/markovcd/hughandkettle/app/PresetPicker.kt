@@ -55,7 +55,6 @@ import org.jetbrains.compose.resources.stringResource
  * `preset_picker_list`, a row by `preset_bank:<n>`, a preset by `preset_pick:<n>` and the close by
  * `preset_picker_close`.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun PresetPicker(
     panel: PanelState,
@@ -92,58 +91,19 @@ internal fun PresetPicker(
                     color = colors.onSurfaceVariant,
                 )
                 names.failure?.let { Text(it, color = colors.error) }
-                val now = current?.let { (it - 1) / perRow } ?: 0
-                LazyColumn(
-                    state = rememberLazyListState(initialFirstVisibleItemIndex = now),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.heightIn(max = 480.dp).testTag("preset_picker_list"),
-                ) {
-                    items(rows) { row ->
-                        Column(
-                            Modifier.testTag("preset_bank:${row + 1}"),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            if (banked) {
-                                Text(
-                                    stringResource(
-                                        if (row == now &&
-                                            current != null
-                                        ) {
-                                            Res.string.preset_bank_now
-                                        } else {
-                                            Res.string.preset_bank
-                                        },
-                                        row + 1,
-                                    ),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color =
-                                        if (row == now &&
-                                            current != null
-                                        ) {
-                                            colors.primary
-                                        } else {
-                                            colors.onSurfaceVariant
-                                        },
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                (1..perRow).map { row * perRow + it }.forEach { preset ->
-                                    PresetTile(
-                                        preset,
-                                        names.names[preset],
-                                        lit = preset == current,
-                                        onPick = {
-                                            panel.recall(preset)
-                                            onClose()
-                                        },
-                                        onHold = { renaming = preset },
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                PresetGrid(
+                    amp,
+                    current,
+                    names.names,
+                    lit = current,
+                    listTag = "preset_picker_list",
+                    tileTag = "preset_pick",
+                    onPick = { preset ->
+                        panel.recall(preset)
+                        onClose()
+                    },
+                    onHold = { renaming = it },
+                )
             }
         }
     }
@@ -159,52 +119,6 @@ internal fun PresetPicker(
             onCancel = { renaming = null },
             needsName = false,
         )
-    }
-}
-
-/** A preset's number large and its name small, or "No name" in italics; amber when [lit]. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun PresetTile(
-    preset: Int,
-    name: String?,
-    lit: Boolean,
-    onPick: () -> Unit,
-    onHold: () -> Unit,
-    modifier: Modifier,
-) {
-    val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(12.dp)
-    Surface(
-        shape = shape,
-        color = if (lit) colors.primary else colors.surfaceContainerHigh,
-        border = if (lit) null else BorderStroke(1.dp, colors.outlineVariant),
-        modifier =
-            modifier
-                .clip(shape)
-                .combinedClickable(role = Role.Button, onLongClick = onHold, onClick = onPick)
-                .testTag("preset_pick:$preset"),
-    ) {
-        Column(
-            Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                "$preset",
-                style = MaterialTheme.typography.headlineSmall,
-                fontSize = 20.sp,
-                color = if (lit) colors.onPrimary else colors.onSurface,
-            )
-            Text(
-                name ?: stringResource(Res.string.preset_no_name),
-                style = MaterialTheme.typography.bodyMedium,
-                fontSize = 11.sp,
-                fontStyle = if (name == null) FontStyle.Italic else FontStyle.Normal,
-                color = if (lit) colors.onPrimary else colors.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -230,4 +144,4 @@ internal fun PickerTitle(
     Spacer(Modifier.height(4.dp))
 }
 
-private const val PER_ROW = 4
+internal const val PER_ROW = 4

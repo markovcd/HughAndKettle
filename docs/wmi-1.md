@@ -97,6 +97,8 @@ on the amp and then a preset picked in the app stored the panel there, with no f
 Under a volume trim of +20 the preset kept its own volume, not the trimmed one, confirmed by a recall
 from an app started afresh; why the amp stores the untrimmed volume is not known.
 
+The app and `hk tone write` write a tone into a preset this way, one STORE press per preset (ADR 0014).
+
 Sending controller 80 at 127 does not arm a store: the amp neither reports it nor stores on the
 program change that follows, which recalls the preset as usual. How the iPad apps store is unknown,
 though they do: the GrandMeister Deluxe 40 Remote app's App Store listing and the manual's chapter 2.5

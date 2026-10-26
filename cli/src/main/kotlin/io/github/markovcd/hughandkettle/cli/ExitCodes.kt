@@ -9,4 +9,7 @@ public object ExitCodes {
 
     /** A file or folder could not be read or written, or is not what it should be. */
     public const val BAD_FILE: Int = 5
+
+    /** The amp did not confirm a store: nothing was written, or what was is unknown; stdout says which. */
+    public const val NOT_STORED: Int = 6
 }

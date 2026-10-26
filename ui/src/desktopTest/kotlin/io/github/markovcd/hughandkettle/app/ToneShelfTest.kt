@@ -1,13 +1,16 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.ControlReport
 import io.github.markovcd.hughandkettle.amp.PresetNames
+import io.github.markovcd.hughandkettle.amp.PresetWriting
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.ToneFile
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
+import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
 import io.github.markovcd.hughandkettle.wmi.FakeWmi
 import io.github.markovcd.hughandkettle.wmi.FakeWmiEvent
@@ -216,6 +219,68 @@ class ToneShelfTest {
             assertEquals(listOf("Preset 1", "2 Lead", "Preset 4"), reader.tones.map { it.name })
             assertEquals(listOf(0, 1, 3), reader.tones.map { it.values["bass"] })
             assertEquals(ToneNotice.Read(3, listOf(3)), reader.notice)
+        }
+    }
+
+    @Test
+    fun `A tone is written into a preset once the amp reports STORE, its backup kept and the lock answering nothing`() {
+        lateinit var amp: FakeWmi
+        val received = LinkedBlockingQueue<MidiMessage>()
+        var recalls = 0
+        // A stand-in amp: the first recall of preset 47 answers with what it holds, the tone's volume is met
+        // with STORE pressed, and the second recall, which stores, with what it stored.
+        amp =
+            FakeWmi(onEvent = { event ->
+                val message = (event as? FakeWmiEvent.Received)?.message ?: return@FakeWmi
+                received.put(message)
+                if (message == ProgramChange(MidiChannel(1), 46)) {
+                    recalls++
+                    val values = if (recalls == 1) mapOf(56 to 60, 4 to 20) else mapOf(56 to 200, 57 to 180)
+                    amp.emit(ValueBlock(values, 47).message())
+                }
+                if (message == ControlChange(MidiChannel(1), 57, 90)) amp.emit(ControlReport(80, 127).message())
+            })
+        amp.use {
+            val named = LinkedBlockingQueue<Pair<Int, String>>()
+            val writer =
+                ToneShelf(
+                    ToneStore(folder.resolve("write")),
+                    panel,
+                    scope,
+                    Dispatchers.Unconfined,
+                    holder.heard,
+                    named = { preset, name -> named.put(preset to name) },
+                )
+            connect(amp.port)
+            val delay = this.amp.control("delay_time")!!
+            panel.set(delay, 50)
+            panel.lock(delay, on = true)
+            val tone = Tone("Solo", this.amp, mapOf("gain" to 100, "volume" to 90))
+            assertTrue(writer.canWrite(tone))
+            writer.write(tone, 47)
+            val started = TimeSource.Monotonic.markNow()
+            while (writer.writing?.over != true || writer.tones.isEmpty() || panel.holding) {
+                if (started.elapsedNow() >
+                    10.seconds
+                ) {
+                    fail("never finished: ${writer.writing?.stage}, kept ${writer.tones}")
+                }
+                Thread.sleep(5)
+            }
+            assertEquals(PresetWriting.Stage.Stored(emptyList()), writer.writing?.stage)
+            assertEquals(47 to "Solo", named.poll(5, TimeUnit.SECONDS))
+            assertEquals(listOf("Backup of Preset 47"), writer.tones.map { it.name })
+            assertEquals(30, writer.tones.single().values["gain"])
+            // Nothing more comes once the write has ended; a tenth of a second drains what is in flight.
+            val drained = generateSequence { received.poll(100, TimeUnit.MILLISECONDS) }.toList()
+            val sent = drained.dropWhile { it !is ProgramChange }
+            assertEquals(listOf(46, 46), sent.filterIsInstance<ProgramChange>().map { it.program })
+            assertTrue(
+                sent.none { it is ControlChange && it.controller == delay.controller },
+                "the lock answered: $sent",
+            )
+            writer.closeWrite()
+            assertEquals(null, writer.writing)
         }
     }
 

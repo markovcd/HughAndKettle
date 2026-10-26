@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.cli
 
+import io.github.markovcd.hughandkettle.amp.ControlReport
 import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
@@ -10,6 +11,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.ExperimentalPathApi
@@ -113,6 +115,44 @@ class ToneCommandTest {
             ),
             events.filterIsInstance<FakeWmiEvent.Received>(),
         )
+    }
+
+    /** The next message the fake WMI-1 received, skipping the link opening. */
+    private fun received(): FakeWmiEvent.Received =
+        generateSequence { seen.poll(5, TimeUnit.SECONDS) }.filterIsInstance<FakeWmiEvent.Received>().first()
+
+    @Test
+    fun `A tone is written into a preset once STORE is pressed, the preset backed up first and named after it`() {
+        ok("save", "grandmeister_deluxe_40", "Solo", "gain=100", "volume=90")
+        val names = folder.resolve("names").toString()
+        val writing =
+            CompletableFuture.supplyAsync { run("write", "127.0.0.1:${fake.port}", "Solo", "47", "--names", names) }
+        val recall = FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 46))
+        assertEquals(recall, received())
+        fake.emit(ValueBlock(mapOf(56 to 60), preset = 47).message())
+        assertEquals(
+            listOf(56 to 100, 57 to 90),
+            List(2) { (received().message as ControlChange).let { it.controller to it.value } },
+        )
+        fake.emit(ControlReport(80, 127).message())
+        assertEquals(recall, received())
+        fake.emit(ValueBlock(mapOf(56 to 200, 57 to 170), preset = 47).message())
+        val run = writing.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        assertEquals(
+            """{"host":"127.0.0.1","port":${fake.port},"tone":"Solo","preset":47,"backup":"Backup of Bank 12 · 3",""" +
+                """"result":"stored","differences":[{"control":"volume","stored":85,"tone":90}]}""",
+            run.out.trim(),
+        )
+        assertTrue("press STORE on the amp" in run.err, run.err)
+        assertEquals(listOf("Solo", "Backup of Bank 12 · 3"), names())
+        val listed = StringWriter()
+        Cli.run(
+            listOf("preset", "list", "grandmeister_deluxe_40", "--dir", names),
+            PrintWriter(listed, true),
+            PrintWriter(StringWriter(), true),
+        )
+        assertTrue(""""name":"Solo"""" in listed.toString(), listed.toString())
     }
 
     @Test
