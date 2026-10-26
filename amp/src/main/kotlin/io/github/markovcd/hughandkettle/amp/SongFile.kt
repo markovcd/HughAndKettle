@@ -16,6 +16,8 @@ import kotlinx.serialization.json.putJsonArray
  * ```
  *
  * A step names a preset or a tone. An older reader refuses a song with a tone step as a step with no preset.
+ * A step with its own note length adds `"note": "1/8d"`; an older reader passes over it, and a note this
+ * version does not know leaves the step on the note picked.
  * A file with no `count_in` counts in, and one with no `name` is untitled; an older reader passes over both.
  * The keys are persisted: never renamed.
  */
@@ -37,6 +39,7 @@ public object SongFile {
                         it.preset?.let { preset -> put("preset", preset) }
                         it.tone?.let { tone -> put("tone", tone) }
                         put("beats", it.beats)
+                        it.note?.let { note -> put("note", note.id) }
                     }
                 }
             }
@@ -97,7 +100,7 @@ public object SongFile {
                             "step ${index + 1} lasts ${step["beats"]} beats; a step lasts 1..${SongStep.MOST_BEATS}",
                         )
                     }
-                    return@mapIndexed SongStep(beats = beats, tone = name)
+                    return@mapIndexed SongStep(beats = beats, tone = name, note = step.note())
                 }
                 val preset = step?.int("preset")?.takeIf { it in 1..amp.presetCount }
                 if (preset == null) {
@@ -110,12 +113,14 @@ public object SongFile {
                         "step ${index + 1} lasts ${step["beats"]} beats; a step lasts 1..${SongStep.MOST_BEATS}",
                     )
                 }
-                SongStep(preset, beats)
+                SongStep(preset, beats, note = step.note())
             }
         return Result.success(Song(amp, tempo, kept, countIn, name))
     }
 
     private fun JsonObject.int(key: String): Int? = JsonFile.int(this, key)
+
+    private fun JsonObject.note(): NoteLength? = JsonFile.string(this, "note")?.let(NoteLength::of)
 
     private fun failure(why: String): Result<Song> = Result.failure(IllegalArgumentException(why))
 }

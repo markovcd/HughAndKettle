@@ -137,7 +137,7 @@ fun SongTab(
                     SongCountdown(countdown, song)
                 } else if (at != null) {
                     SongBeatHero(song, at, names)
-                    if (song.delayMs(songs.note) != null && songs.timed) SongHeldStrip(song, songs.note)
+                    if (song.delayMs(songs.sounding) != null && songs.timed) SongHeldStrip(song, songs.sounding)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         song.steps.forEachIndexed { index, step ->
                             PlayedStepRow(index + 1, step, step.preset?.let(names::get), at.step, at.beat)
@@ -169,6 +169,8 @@ fun SongTab(
                                     songs.missing(step),
                                     songs.editable,
                                     last = index == song.steps.lastIndex,
+                                    timed = songs.timed,
+                                    onNote = { songs.note(index, it) },
                                     onBeats = { songs.beats(index, it) },
                                     onMove = { songs.move(index, index + it) },
                                     onRemove = { songs.remove(index) },

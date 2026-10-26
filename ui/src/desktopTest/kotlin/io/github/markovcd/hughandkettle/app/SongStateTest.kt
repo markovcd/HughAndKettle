@@ -212,6 +212,29 @@ class SongStateTest {
     }
 
     @Test
+    fun `A step with a note of its own plays the delay at it, and the steps without at the note picked`() {
+        connected()
+        songs.tempo(400)
+        songs.add()
+        songs.beats(0, 2)
+        songs.note(0, NoteLength.of("1/2"))
+        songs.add()
+        songs.beats(1, 2)
+        assertEquals(NoteLength.of("1/2"), songs.song.steps[0].note)
+        songs.lock(on = true)
+        val quarter = ControlChange(MidiChannel(1), time.controller, time.scale!!.value(150))
+        assertEquals(FakeWmiEvent.Received(quarter), next())
+        songs.start()
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        val half = ControlChange(MidiChannel(1), time.controller, time.scale!!.value(300))
+        assertEquals(FakeWmiEvent.Received(half), next())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
+        assertEquals(FakeWmiEvent.Received(quarter), next())
+        until("song over") { songs.position == null }
+        assertEquals(NoteLength.QUARTER, songs.sounding)
+    }
+
+    @Test
     fun `While locked, the delay time is the note at the song's tempo, moved with either`() {
         connected()
         songs.lock(on = true)

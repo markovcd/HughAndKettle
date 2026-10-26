@@ -82,8 +82,8 @@ public data class Song(
 
     /**
      * The messages that start [step]: its preset, or the values of its tone found by [tone]. With a [note],
-     * the delay time at that note follows, so the preset's own gives way to the song's and the tone's is never
-     * sent; without, each keeps its own. A tone missing, or kept for another amp, cues the delay time alone,
+     * the delay time at the step's own note, else that one, follows, so the preset's own gives way to the
+     * song's and the tone's is never sent; without, each keeps its own. A tone missing, or kept for another amp, cues the delay time alone,
      * or nothing, and the step before keeps sounding.
      */
     public fun cue(
@@ -92,7 +92,7 @@ public data class Song(
         tone: (String) -> Tone?,
     ): List<MidiMessage> {
         val at = steps[step]
-        val time = note?.let(::delayTime)
+        val time = note?.let { delayTime(at.note ?: it) }
         val sound =
             at.preset?.let { listOf(amp.recall(it)) }
                 ?: at.tone

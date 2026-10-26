@@ -68,7 +68,7 @@ internal fun DelayTempo(
     val colors = MaterialTheme.colorScheme
     val locked = songs.timed
     val song = songs.song
-    val note = songs.note
+    val note = songs.sounding
     val reach = song.reach(note)
     var held by remember { mutableStateOf(false) }
     var answered by remember { mutableStateOf(panel.restored) }

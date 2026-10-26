@@ -2,12 +2,14 @@ package io.github.markovcd.hughandkettle.amp
 
 /**
  * One step of a [Song], held for [beats]: either the amp's [preset], counted from 1, or the [tone] of that
- * name, kept on the phone. A tone step names its tone; the tone itself may since have been deleted.
+ * name, kept on the phone. A tone step names its tone; the tone itself may since have been deleted. A step
+ * with a [note] plays the delay at that note while the tempo lock is on; one without, at the note picked.
  */
 public data class SongStep(
     val preset: Int? = null,
     val beats: Int,
     val tone: String? = null,
+    val note: NoteLength? = null,
 ) {
     init {
         require(beats in 1..MOST_BEATS) { "a step lasts 1..$MOST_BEATS beats, got $beats" }

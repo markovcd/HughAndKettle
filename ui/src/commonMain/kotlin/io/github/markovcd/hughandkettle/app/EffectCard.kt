@@ -165,7 +165,7 @@ private fun LockedLine(
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
         Padlock(open = false, color = colors.primary, size = 14.dp)
         Text(
-            stringResource(Res.string.tempo_locked_at, NoteWords.phrase(songs.note), "${songs.song.tempo}"),
+            stringResource(Res.string.tempo_locked_at, NoteWords.phrase(songs.sounding), "${songs.song.tempo}"),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = colors.onPrimaryContainer,

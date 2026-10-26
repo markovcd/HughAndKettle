@@ -82,6 +82,9 @@ class SongState(
     var note by mutableStateOf(NoteLength.QUARTER)
         private set
 
+    /** The note the delay repeats at now: the playing step's own, else the one picked. */
+    val sounding: NoteLength get() = position?.let { song.steps.getOrNull(it.step)?.note } ?: note
+
     /** Whether the tempo was last set by the amp's own delay time, rather than on the phone. */
     var tempoFromAmp by mutableStateOf(false)
         private set
@@ -252,6 +255,25 @@ class SongState(
         retime()
     }
 
+    /** Gives [step] a note of its own while the tempo lock is on, or with null leaves it on the note picked. */
+    fun note(
+        step: Int,
+        note: NoteLength?,
+    ) = change { song ->
+        song.copy(
+            steps =
+                song.steps.mapIndexed { i, it ->
+                    if (i ==
+                        step
+                    ) {
+                        it.copy(note = note)
+                    } else {
+                        it
+                    }
+                },
+        )
+    }
+
     fun countIn(on: Boolean) = change { it.copy(countIn = on) }
 
     /** A tap on the song's beat at [at], from any fixed point; from the second tap on, the tempo follows the taps. */
@@ -370,7 +392,7 @@ class SongState(
     /** Moves the delay time to the note at the song's tempo, while the tempo lock is on. */
     private fun retime() {
         if (!timed) return
-        val time = song.delayTime(note) ?: return
+        val time = song.delayTime(sounding) ?: return
         val control = panel.amp.controls.firstOrNull(Control::timed) ?: return
         panel.set(control, time.value)
     }
