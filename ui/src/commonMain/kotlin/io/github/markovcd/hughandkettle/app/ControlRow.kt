@@ -15,8 +15,7 @@ import io.github.markovcd.hughandkettle.ui.moved_on_amp
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One row of the panel: up to [PanelRows.KNOBS_PER_ROW] knobs sharing the width, a time knob with its tempo,
- * or one switch or selector, each described by its control's name and outlined while the amp has moved it.
+ * One row of the panel: up to [PanelRows.KNOBS_PER_ROW] knobs sharing the width, or one switch or selector, each described by its control's name and outlined while the amp has moved it.
  */
 @Composable
 internal fun ControlRow(
@@ -35,17 +34,13 @@ internal fun ControlRow(
             Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { control ->
                     val cell = Modifier.weight(1f).marked(control).testTag("control:${control.id}")
-                    if (control.timed) {
-                        TempoCell(control, panel, enabled, cell)
-                    } else {
-                        KnobCell(
-                            control,
-                            panel.state.values[control.id] ?: 0,
-                            enabled,
-                            { panel.set(control, it) },
-                            cell,
-                        )
-                    }
+                    KnobCell(
+                        control,
+                        panel.state.values[control.id] ?: 0,
+                        enabled,
+                        { panel.set(control, it) },
+                        cell,
+                    )
                 }
             }
         }

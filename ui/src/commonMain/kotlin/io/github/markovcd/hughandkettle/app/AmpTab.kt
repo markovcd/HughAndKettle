@@ -18,6 +18,7 @@ import io.github.markovcd.hughandkettle.amp.Section
 @Composable
 fun AmpTab(
     panel: PanelState,
+    songs: SongState,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -34,7 +35,7 @@ fun AmpTab(
                 Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SwitchCards(switches, controls, panel, enabled)
+                SwitchCards(switches, controls, panel, songs, enabled)
             }
         }
         panel.trim?.let {

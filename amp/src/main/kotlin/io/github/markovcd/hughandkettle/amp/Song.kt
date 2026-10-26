@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.minutes
 
 /**
  * A run of the amp's presets and tones at one [tempo], in beats per minute: each [step] recalls its preset or
- * tone and holds it for its beats, and while timed the delay time is set to one repeat a beat. With [countIn], a bar of clicks comes
+ * tone and holds it for its beats, and while the tempo lock is on the delay time is set to a note at that tempo. With [countIn], a bar of clicks comes
  * first. A song kept on the phone has a [name], unique for its amp; a blank one is untitled. The clock is
  * the caller's; a song only says what plays when.
  */
@@ -53,37 +53,46 @@ public data class Song(
         return null
     }
 
-    /** The delay time at one repeat a beat, as near as the amp's time knob reaches; null on an amp with none. */
-    val delayTime: ControlChange?
-        get() {
-            val time = amp.controls.firstOrNull(Control::timed) ?: return null
-            val scale = time.scale ?: return null
-            return time.set(scale.value((beat.inWholeMilliseconds).toInt()))
-        }
+    /** The delay time at one [note] a repeat, as near as the amp's time knob reaches; null on an amp with none. */
+    public fun delayTime(note: NoteLength): ControlChange? {
+        val time = amp.controls.firstOrNull(Control::timed) ?: return null
+        val scale = time.scale ?: return null
+        return time.set(scale.value(note.ms(tempo)))
+    }
 
     /** The delay time [delayTime] sets, in milliseconds as the knob reaches them; null on an amp with no time knob. */
-    val delayMs: Int?
-        get() {
-            val time = delayTime ?: return null
-            return amp.controls
-                .firstOrNull(Control::timed)
-                ?.scale
-                ?.amount(time.value)
+    public fun delayMs(note: NoteLength): Int? {
+        val time = delayTime(note) ?: return null
+        return amp.controls
+            .firstOrNull(Control::timed)
+            ?.scale
+            ?.amount(time.value)
+    }
+
+    /** Whether [note] at the song's tempo is within the amp's delay times; null on an amp with no time knob. */
+    public fun reach(note: NoteLength): NoteReach? {
+        val scale = amp.controls.firstOrNull(Control::timed)?.scale ?: return null
+        val ms = note.ms(tempo)
+        return when {
+            ms < scale.lowest -> NoteReach.TooShort
+            ms > scale.highest -> NoteReach.TooLong
+            else -> NoteReach.Fits
         }
+    }
 
     /**
-     * The messages that start [step]: its preset, or the values of its tone found by [tone]. When [timed], the
-     * delay time follows, so the preset's own gives way to the song's and the tone's is never sent; otherwise
-     * each keeps its own. A tone missing, or kept for another amp, cues the delay time alone, or nothing, and
-     * the step before keeps sounding.
+     * The messages that start [step]: its preset, or the values of its tone found by [tone]. With a [note],
+     * the delay time at that note follows, so the preset's own gives way to the song's and the tone's is never
+     * sent; without, each keeps its own. A tone missing, or kept for another amp, cues the delay time alone,
+     * or nothing, and the step before keeps sounding.
      */
     public fun cue(
         step: Int,
-        timed: Boolean,
+        note: NoteLength?,
         tone: (String) -> Tone?,
     ): List<MidiMessage> {
         val at = steps[step]
-        val time = delayTime?.takeIf { timed }
+        val time = note?.let(::delayTime)
         val sound =
             at.preset?.let { listOf(amp.recall(it)) }
                 ?: at.tone

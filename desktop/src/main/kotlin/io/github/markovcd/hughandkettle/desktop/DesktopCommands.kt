@@ -1,6 +1,5 @@
 package io.github.markovcd.hughandkettle.desktop
 
-import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.app.PanelState
 import io.github.markovcd.hughandkettle.app.SongState
 import io.github.markovcd.hughandkettle.app.ToneShelf
@@ -20,12 +19,8 @@ class DesktopCommands(
         shelf.step(-1)
     }
 
-    /** A tap on the beat at [at], from any fixed point, for the amp's time knob. */
-    fun tap(at: Duration) {
-        panel.amp.controls
-            .firstOrNull(Control::timed)
-            ?.let { panel.tap(it, at) }
-    }
+    /** A tap on the beat at [at], from any fixed point, for the song's tempo. */
+    fun tap(at: Duration) = songs.tap(at)
 
     /** Whether the amp is muted, by its Mute switch. */
     val muted: Boolean get() = panel.muted

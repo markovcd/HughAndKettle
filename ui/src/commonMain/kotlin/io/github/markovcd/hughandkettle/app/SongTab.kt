@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import io.github.markovcd.hughandkettle.amp.KeptSong
+import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.Tone
@@ -136,7 +137,7 @@ fun SongTab(
                     SongCountdown(countdown, song)
                 } else if (at != null) {
                     SongBeatHero(song, at, names)
-                    if (song.delayMs != null && songs.timed) SongHeldStrip(song)
+                    if (song.delayMs(songs.note) != null && songs.timed) SongHeldStrip(song, songs.note)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         song.steps.forEachIndexed { index, step ->
                             PlayedStepRow(index + 1, step, step.preset?.let(names::get), at.step, at.beat)
@@ -585,7 +586,10 @@ private fun SongAlert(
 
 /** The tempo lock holding the song's delay time, under the beat while the song plays. */
 @Composable
-private fun SongHeldStrip(song: Song) {
+private fun SongHeldStrip(
+    song: Song,
+    note: NoteLength,
+) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(12.dp)
     Row(
@@ -601,7 +605,7 @@ private fun SongHeldStrip(song: Song) {
     ) {
         Padlock(open = false, color = colors.primary, size = 16.dp)
         Text(
-            stringResource(Res.string.song_held, song.delayMs ?: 0),
+            stringResource(Res.string.song_held, song.delayMs(note) ?: 0),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = colors.onPrimaryContainer,

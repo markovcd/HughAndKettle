@@ -1,6 +1,7 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongFile
 import io.github.markovcd.hughandkettle.amp.SongStep
@@ -208,6 +209,41 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(delay), next())
         until("song over") { songs.position == null }
         assertEquals(time, panel.lock?.control)
+    }
+
+    @Test
+    fun `While locked, the delay time is the note at the song's tempo, moved with either`() {
+        connected()
+        songs.lock(on = true)
+        assertEquals(
+            FakeWmiEvent.Received(ControlChange(MidiChannel(1), time.controller, time.scale!!.value(500))),
+            next(),
+        )
+        songs.note(NoteLength.of("1/8d")!!)
+        assertEquals(
+            FakeWmiEvent.Received(ControlChange(MidiChannel(1), time.controller, time.scale!!.value(375))),
+            next(),
+        )
+        songs.tempo(100)
+        assertEquals(
+            FakeWmiEvent.Received(ControlChange(MidiChannel(1), time.controller, time.scale!!.value(450))),
+            next(),
+        )
+    }
+
+    @Test
+    fun `A delay time the amp sets itself while locked sets the song's tempo instead`() {
+        connected()
+        songs.lock(on = true)
+        next()
+        val tapped = time.scale!!.value(476)
+        fake.emit(ControlChange(MidiChannel(1), time.controller, tapped))
+        val bpm = NoteLength.QUARTER.tempo(time.scale!!.amount(tapped))
+        until("tempo from the amp") { songs.song.tempo == bpm }
+        assertTrue(songs.tempoFromAmp)
+        assertEquals(tapped, panel.lock?.value)
+        // An answer would go out as the change is taken in, so one would be on loopback well inside 200 ms.
+        assertNull(seen.poll(200, TimeUnit.MILLISECONDS))
     }
 
     @Test

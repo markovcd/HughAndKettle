@@ -2,7 +2,8 @@ package io.github.markovcd.hughandkettle.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,16 +32,18 @@ import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.bpm
 import io.github.markovcd.hughandkettle.ui.song_delay
-import io.github.markovcd.hughandkettle.ui.song_no_delay
 import io.github.markovcd.hughandkettle.ui.song_tap
 import io.github.markovcd.hughandkettle.ui.song_tempo
 import io.github.markovcd.hughandkettle.ui.song_tempo_down
 import io.github.markovcd.hughandkettle.ui.song_tempo_up
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * The song's tempo, big, with the delay time it makes, stepped down and up by one or tapped. A song that
+ * The song's tempo, big, with the note the delay repeats at while the tempo lock is on, stepped down and up
+ * by one or tapped on the touch, not the lift. A song that
  * could not be read shows "—" and dims. Tests find the tempo by `song_tempo`, the buttons by `song_tempo_down`,
  * `song_tap` and `song_tempo_up`.
  */
@@ -83,12 +90,14 @@ internal fun SongTempoCard(
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
-            Text(
-                song.delayMs?.takeIf { readable }?.let { stringResource(Res.string.song_delay, it) }
-                    ?: stringResource(Res.string.song_no_delay),
-                fontSize = 13.sp,
-                color = colors.onSurfaceVariant,
-            )
+            if (readable && songs.timed && song.delayMs(songs.note) != null) {
+                Text(
+                    stringResource(Res.string.song_delay, NoteWords.phrase(songs.note).lowercase()),
+                    fontSize = 13.sp,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.testTag("song_delay"),
+                )
+            }
         }
         RoundButton(
             up = false,
@@ -97,7 +106,7 @@ internal fun SongTempoCard(
             onClick = { songs.tempo(song.tempo - 1) },
             modifier = Modifier.testTag("song_tempo_down"),
         )
-        TapButton(editable) { songs.tap(System.nanoTime().nanoseconds) }
+        TapButton(editable, songs::tap)
         RoundButton(
             up = true,
             description = stringResource(Res.string.song_tempo_up),
@@ -111,7 +120,7 @@ internal fun SongTempoCard(
 @Composable
 private fun TapButton(
     enabled: Boolean,
-    onTap: () -> Unit,
+    onTap: (Duration) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(12.dp)
@@ -122,8 +131,20 @@ private fun TapButton(
             .clip(shape)
             .background(colors.surfaceContainerHigh)
             .border(1.dp, colors.outlineVariant, shape)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onTap)
-            .testTag("song_tap"),
+            // A tap counts when the finger lands, by the touch's own time, so neither how long it is held nor
+            // how late the frame is moves the beat.
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                awaitEachGesture { onTap(awaitFirstDown().uptimeMillis.milliseconds) }
+            }.semantics {
+                role = Role.Button
+                if (enabled) {
+                    onClick {
+                        onTap(System.nanoTime().nanoseconds)
+                        true
+                    }
+                }
+            }.testTag("song_tap"),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -52,6 +52,7 @@ fun DesktopLayout(
             Row(Modifier.weight(1f)) {
                 AmpTab(
                     panel,
+                    songs,
                     enabled,
                     Modifier
                         .weight(1f)
@@ -62,6 +63,7 @@ fun DesktopLayout(
                 VerticalDivider()
                 FxTab(
                     panel,
+                    songs,
                     enabled,
                     Modifier
                         .weight(1f)

@@ -4,6 +4,7 @@ import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.CappedRead
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.KeptSong
+import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongFile
@@ -26,8 +27,8 @@ import kotlin.time.TimeSource
  * a run of presets and tones, each held for its beats. `show`, `set` and `play` work on the song `--name` names,
  * else the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then
  * recalls each preset, or sends each tone kept in `--tones` or `~/.hk/tones`, on its beat. With `--lock` it sets
- * the delay time at one repeat a beat and holds it across the recalls, as the app does while its tempo lock is
- * on; a step whose tone is missing then sets the delay time alone. The rest of the verbs keep the list as the
+ * the delay time to a `--note` (a quarter unless given) at the song's tempo and holds it across the recalls, as
+ * the app does while its tempo lock is on; a step whose tone is missing then sets the delay time alone. The rest of the verbs keep the list as the
  * app's song list does.
  */
 public object SongCommand : Command {
@@ -42,7 +43,7 @@ public object SongCommand : Command {
         hk song export <amp-id> <name> <file> [--dir D]
         hk song import <amp-id> <file> [--dir D]    (a song for another amp model is refused)
         hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats> ... [--no-count-in] [--name N] [--dir D]
-        hk song play ${AmpTarget.USAGE} <amp-id> [--lock] [--name N] [--dir D] [--tones D]
+        hk song play ${AmpTarget.USAGE} <amp-id> [--lock [--note 1/8d]] [--name N] [--dir D] [--tones D]
         """.trimIndent()
 
     override fun run(
@@ -130,7 +131,8 @@ public object SongCommand : Command {
             err.println(usage)
             return ExitCodes.BAD_ARGUMENTS
         }
-        return play(song, tones(args), target, args.flag("lock"), out, err)
+        val note = NoteArgument.parse(args).orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        return play(song, tones(args), target, note.takeIf { args.flag("lock") }, out, err)
     }
 
     /** Keeps an empty song called [name] at the end of [amp]'s list and opens it, as the app's New song does. */
@@ -345,7 +347,7 @@ public object SongCommand : Command {
                 "name" to song.name,
                 "tempo" to song.tempo,
                 "count_in" to song.countIn,
-                "delay_ms" to song.delayMs,
+                "delay_ms" to song.delayMs(NoteLength.QUARTER),
             ),
         )
         song.steps.forEachIndexed { index, step ->
@@ -378,24 +380,24 @@ public object SongCommand : Command {
         }
     }
 
-    /** Plays [song] on the amp behind [target] from now to its last beat, holding its delay time if [locked]; tones come from [tones]. */
+    /** Plays [song] on the amp behind [target] from now to its last beat, holding the delay time at [note] if given; tones come from [tones]. */
     private fun play(
         song: Song,
         tones: ToneStore,
         target: AmpTarget,
-        locked: Boolean,
+        note: NoteLength?,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
         val link = QueuedLink.open(target).orExit(err, ExitCodes.NO_LINK) { return it }
-        val time = song.delayTime
-        val delayMs = if (locked) arrayOf("delay_ms" to song.delayMs) else emptyArray()
+        val time = note?.let(song::delayTime)
+        val delayMs = note?.let { arrayOf("delay_ms" to song.delayMs(it)) } ?: emptyArray()
         var answers =
             RecallAnswers(
                 lock =
                     song.amp.controls
                         .firstOrNull(Control::timed)
-                        ?.takeIf { locked }
+                        ?.takeIf { note != null }
                         ?.let { TempoLock(it, time?.value) },
             )
         // Measured from the first step, so the count-in reads in negative milliseconds.
@@ -418,7 +420,7 @@ public object SongCommand : Command {
                 if (next < song.steps.size && started.elapsedNow() >= song.startOf(next)) {
                     val step = song.steps[next]
                     val tone = step.tone?.let(tones::find)?.takeIf { it.amp == song.amp }
-                    val cue = song.cue(next, locked) { tone }
+                    val cue = song.cue(next, note) { tone }
                     answers = answers.sent(cue)
                     if (!send(cue)) return ExitCodes.NO_LINK
                     val missing = if (step.tone != null && tone == null) arrayOf("missing" to true) else emptyArray()
@@ -453,7 +455,7 @@ public object SongCommand : Command {
                 answers = answered.answers
                 val restore = answered.restored ?: continue
                 if (!send(listOf(restore))) return ExitCodes.NO_LINK
-                out.println(Json.line("ms" to ms(), "restored" to restore.value, "delay_ms" to song.delayMs))
+                out.println(Json.line("ms" to ms(), "restored" to restore.value, *delayMs))
             }
         }
         link.lost?.let {

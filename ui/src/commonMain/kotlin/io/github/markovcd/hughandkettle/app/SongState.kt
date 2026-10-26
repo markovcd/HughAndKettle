@@ -6,7 +6,9 @@ import androidx.compose.runtime.setValue
 import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpModels
 import io.github.markovcd.hughandkettle.amp.CappedRead
+import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.KeptSong
+import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.amp.SongFile
 import io.github.markovcd.hughandkettle.amp.SongImport
@@ -14,7 +16,6 @@ import io.github.markovcd.hughandkettle.amp.SongList
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.TapTempo
-import io.github.markovcd.hughandkettle.amp.Tempo
 import io.github.markovcd.hughandkettle.amp.Tone
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -28,17 +29,21 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.TimeSource
 
 /**
  * The songs of the panel's amp, kept on the phone in the person's order, and the one open: its tempo and steps,
  * edited and kept as they change, and played from a tap. A bar of [click]s counts it in, unless its count-in is
  * off, each played the sound output's [lag] ahead of its beat so it is heard on the beat the amp switches on.
- * While it plays, each step recalls its preset, or sends its tone from [tones], on its beat; while the tempo lock
- * is on, the delay time follows at one repeat a beat and the lock holds it across the recalls, and otherwise each
- * step keeps its own. No other song can be opened while one plays. An amp with no songs opens on an
+ * The open song's tempo is the one tempo: while the tempo lock is on, the delay time is a [note] at it, moved
+ * whenever either changes, and a time the amp sets itself (its knob, a footswitch tap) sets the tempo instead.
+ * While it plays, each step recalls its preset, or sends its tone from [tones], on its beat; while locked, the
+ * delay time follows and the lock holds it across the recalls, and otherwise each step keeps its own. No other
+ * song can be opened while one plays. An amp with no songs opens on an
  * untitled one, kept once it has a step or a name. A song that cannot be read plays nothing, says why in
  * [failure], and is left as it is. The folder is read and written off the main thread, one change at a time.
  */
@@ -70,8 +75,16 @@ class SongState(
     var countdown by mutableStateOf<Int?>(null)
         private set
 
-    /** Whether a song sets the delay time to its tempo: only while the tempo lock is on. */
+    /** Whether the delay time is a note at the song's tempo: only while the tempo lock is on. */
     val timed: Boolean get() = panel.lock != null
+
+    /** The note the delay repeats at while the tempo lock is on. */
+    var note by mutableStateOf(NoteLength.QUARTER)
+        private set
+
+    /** Whether the tempo was last set by the amp's own delay time, rather than on the phone. */
+    var tempoFromAmp by mutableStateOf(false)
+        private set
 
     /** Where the playing song stands, or null while none plays. */
     var position by mutableStateOf<Song.Position?>(null)
@@ -79,6 +92,7 @@ class SongState(
 
     init {
         AmpModels.all.forEach { amp -> scope.launch { writes.withLock { refresh(amp) } } }
+        scope.launch { panel.held.collect(::followAmp) }
     }
 
     /** The open song of the panel's amp. */
@@ -117,6 +131,7 @@ class SongState(
         drafts = drafts - amp
         taps = TapTempo()
         queue { store.open(amp, kept.name) }
+        retime()
     }
 
     /** Makes and opens a song called [name], at the starting tempo with the count-in on and no steps. */
@@ -128,6 +143,7 @@ class SongState(
         keep(song, replacing = null)
         drafts = drafts - amp
         queue { store.save(song).mapCatching { store.open(amp, trimmed).getOrThrow() } }
+        retime()
     }
 
     /** Renames the song [name]; the untitled song, not kept yet, is kept under its new name. */
@@ -217,7 +233,24 @@ class SongState(
         notices = notices - panel.amp
     }
 
-    fun tempo(bpm: Int) = change { it.copy(tempo = bpm.coerceIn(Song.TEMPOS)) }
+    fun tempo(bpm: Int) {
+        change { it.copy(tempo = bpm.coerceIn(Song.TEMPOS)) }
+        tempoFromAmp = false
+        retime()
+    }
+
+    /** Turns the tempo lock on, holding a [note] at the song's tempo, or off, leaving each preset its own time. */
+    fun lock(on: Boolean) {
+        val time = panel.amp.controls.firstOrNull(Control::timed) ?: return
+        panel.lock(time, on)
+        retime()
+    }
+
+    /** Sets the note the delay repeats at, moving the delay time to it while locked. */
+    fun note(note: NoteLength) {
+        this.note = note
+        retime()
+    }
 
     fun countIn(on: Boolean) = change { it.copy(countIn = on) }
 
@@ -225,7 +258,7 @@ class SongState(
     fun tap(at: Duration) {
         taps = taps.after(at)
         val beat = taps.beat ?: return
-        tempo(Tempo.beatsPerMinute(beat.inWholeMilliseconds.toInt().coerceAtLeast(1)))
+        tempo((1.minutes / beat).roundToInt())
     }
 
     /** Adds a step on the preset the amp is on, else the first. */
@@ -312,7 +345,7 @@ class SongState(
                     val elapsed = started.elapsedNow().coerceAtLeast(Duration.ZERO)
                     val at = song.at(elapsed) ?: break
                     if (at.step != cued) {
-                        panel.cue(song.cue(at.step, timed, ::tone))
+                        panel.cue(song.cue(at.step, note.takeIf { timed }, ::tone))
                         cued = at.step
                     }
                     position = at
@@ -332,6 +365,27 @@ class SongState(
         countdown = null
         position = null
         playing = null
+    }
+
+    /** Moves the delay time to the note at the song's tempo, while the tempo lock is on. */
+    private fun retime() {
+        if (!timed) return
+        val time = song.delayTime(note) ?: return
+        val control = panel.amp.controls.firstOrNull(Control::timed) ?: return
+        panel.set(control, time.value)
+    }
+
+    /** Takes a delay time the amp set itself as the tempo at which the note lasts that long. */
+    private fun followAmp(value: Int) {
+        val scale =
+            panel.amp.controls
+                .firstOrNull(Control::timed)
+                ?.scale ?: return
+        if (!editable || value == song.delayTime(note)?.value) return
+        val bpm = note.tempo(scale.amount(value)).coerceIn(Song.TEMPOS)
+        if (bpm == song.tempo) return
+        change { it.copy(tempo = bpm) }
+        tempoFromAmp = true
     }
 
     private fun change(how: (Song) -> Song) {

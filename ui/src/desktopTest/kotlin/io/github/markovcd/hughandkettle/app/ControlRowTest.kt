@@ -71,54 +71,16 @@ class ControlRowTest {
         }
 
     @Test
-    fun `Delay time reads in milliseconds and beats per minute and has a tap tempo button`() =
+    fun `Delay time reads in milliseconds, with no tap or tempo of its own`() =
         runComposeUiTest {
             val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
             val row = listOf("delay_time", "delay_feedback").map { panel.amp.control(it)!! }
             panel.set(row[0], 44)
             setContent { ControlRow(row, panel, enabled = true) }
             onNodeWithTag("value:delay_time").assertTextEquals("505 ms")
-            onNodeWithTag("bpm:delay_time").assertTextEquals("119")
             onNodeWithTag("value:delay_feedback").assertTextEquals("0")
-            onNodeWithTag("tap:delay_time").assertExists()
-            onNodeWithTag("tap:delay_feedback").assertDoesNotExist()
-        }
-
-    @Test
-    fun `A delay time the amp has not reported reads as a dash`() =
-        runComposeUiTest {
-            val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
-            setContent { ControlRow(listOf(panel.amp.control("delay_time")!!), panel, enabled = true) }
-            onNodeWithTag("value:delay_time").assertTextEquals("—")
-            onNodeWithTag("bpm:delay_time").assertTextEquals("—")
-        }
-
-    @Test
-    fun `A closed delay card with its time locked says so, with the delay off`() =
-        runComposeUiTest {
-            val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
-            val delay = panel.amp.control("delay")!!
-            val behind = panel.amp.controls.filter { it.needs == "delay" }
-            panel.set(behind.first { it.timed }, 44)
-            setContent { EffectCard(delay, behind, panel, enabled = true, open = false, onOpen = {}) }
-            onNodeWithTag("locked:delay", useUnmergedTree = true).assertDoesNotExist()
-            panel.lock(behind.first { it.timed }, on = true)
-            waitForIdle()
-            onNodeWithTag("locked:delay", useUnmergedTree = true).assertExists()
-        }
-
-    @Test
-    fun `The lock on delay time holds it and lets it go`() =
-        runComposeUiTest {
-            val panel = PanelState(AmpModels.blackSpirit200, holder, scope, flowOf(null))
-            val row = listOf("delay_time", "delay_feedback").map { panel.amp.control(it)!! }
-            panel.set(row[0], 40)
-            setContent { ControlRow(row, panel, enabled = true) }
-            onNodeWithTag("lock:delay_feedback").assertDoesNotExist()
-            onNodeWithTag("lock:delay_time").performClick()
-            assertEquals(40, panel.lock?.value)
-            onNodeWithTag("lock:delay_time").performClick()
-            assertEquals(null, panel.lock)
+            onNodeWithTag("tap:delay_time").assertDoesNotExist()
+            onNodeWithTag("bpm:delay_time").assertDoesNotExist()
         }
 
     @Test

@@ -43,13 +43,13 @@ hk cable list | send <name> cc|pc|raw ... [--channel 1..16] | listen <name> [--s
 hk set <target> <amp-id> <control-id> <0..127 | on | off | option>
 hk set <target> <amp-id> preset <1..128>
 hk state <target> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
-hk lock <target> <amp-id> [<0..127 | 520ms>] [--seconds N]  # hold the delay time across preset recalls
+hk lock <target> <amp-id> [<0..127 | 520ms> | --tempo BPM [--note 1/8d]] [--seconds N]  # hold the delay time across preset recalls
 hk trim <target> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
 hk randomize <target> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new values behind each effect heard on
 hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats> | tone:<name>:<beats> ... [--no-count-in]  # takes --name N, --dir D
 hk song new|open|duplicate|delete <amp-id> <name> | rename <amp-id> <name> <new-name> | move <amp-id> <name> <position>  # the song list, as the app keeps it
 hk song export <amp-id> <name> <file> | import <amp-id> <file>  # a song for another amp model is refused
-hk song play <target> <amp-id> [--lock] [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat; --lock sets the delay time to the tempo
+hk song play <target> <amp-id> [--lock [--note 1/8d]] [--name N] [--tones D]  # count in a bar, then recall each preset or tone on its beat; --lock sets the delay time to the tempo
 hk tone list | save <amp-id> <name> [<control-id>=<value> ...] [--replace] | recall <target> <name>
 hk tone rename <name> <new-name> [--songs D] | move <name> <position> | delete <name>  # a rename follows into the songs
 hk tone pin <name> | unpin <name>                           # a pinned tone is one the app's − and + step through
@@ -79,7 +79,7 @@ amp's presets in `--dir` (`~/.hk/preset-names` by default), the way the app does
 them there or in `--names`. `song` keeps the songs of each amp model in `--dir` (`~/.hk/songs` by default),
 the way the app does; `show`, `set` and `play` take the song `--name` names, else the one open in the app,
 and `set` makes the song when no song has that name; `play` recalls each step's preset on its beat from the moment it starts; with `--lock` it
-sets the delay time to one repeat a beat and holds it across the recalls as `lock` does, as the app's song does
+sets the delay time to one `--note` at the tempo (a quarter, one repeat a beat, unless given) and holds it across the recalls as `lock` does, as the app's song does
 while its tempo lock is on. Amp ids: `black_spirit_200`, `grandmeister_deluxe_40`,
 `grandmeister_36`.
 Exit codes: 0 done, 2 bad arguments, 3 no link, 4 nothing found, 5 a file that could not be read or

@@ -28,11 +28,12 @@ Prefer the domain's words over the framework's.
 | **selector** | A control whose 0 to 127 is cut into a few equal sectors, one per option. | `ControlKind.Selector` | enum, mode, picker |
 | **sector** | One slice of a selector's 0 to 127. | `Sectors` | range, bucket, zone |
 | **scale** | What a knob's 0 to 127 means on the amp, where the manual gives it: delay time from 51 ms to 1360 ms. | `Scale` | range, mapping, curve |
-| **tap tempo** | Setting a time knob by tapping its beat. | `TapTempo` | tap delay, BPM |
-| **tempo lock** | Holding the delay time across preset recalls by sending it back after each one. | `TempoLock` | BPM lock, tempo hold, sync |
+| **tap tempo** | Setting the song's tempo by tapping its beat. | `TapTempo` | tap delay, BPM |
+| **tempo lock** | Holding the delay time across preset recalls by sending it back after each one; in the app the time held is the note length at the song's tempo. | `TempoLock` | BPM lock, tempo hold, sync |
+| **note length** | The fraction of a beat one delay repeat lasts while the tempo lock is on: 1/2, 1/4, 1/8, 1/16, dotted or triplet. | `NoteLength` | note value, division, subdivision |
 | **volume trim** | An amount added to the volume of every preset recalled and channel switched to, standing in for Master, which is not on MIDI. | `VolumeTrim` | master (the amp's knob), offset, global volume |
 | **randomize** | Giving the controls behind every effect that is on new random values, never switching one on or off, a locked delay time aside; one undo puts them back. | `EffectRoll`, `PanelState.randomize` | shuffle, dice (the button's picture), mutate |
-| **song** | A tempo and a run of the amp's presets and tones, each held for a number of beats, played on the app's clock; while the tempo lock is on, the delay time is set to one repeat a beat. | `Song`, `SongStep`, `SongStore` | setlist (a list of songs), sequence, chain, playlist |
+| **song** | A tempo and a run of the amp's presets and tones, each held for a number of beats, played on the app's clock; while the tempo lock is on, the delay time is set to the note length at that tempo. | `Song`, `SongStep`, `SongStore` | setlist (a list of songs), sequence, chain, playlist |
 | **tone step** | A song step that sends a tone rather than recalling a preset; it names its tone, and a step whose tone was deleted is a **missing tone** and sets only the delay time. | `SongStep.tone` | tone preset, sound step |
 | **count-in** | The bar of clicks a song plays before its first step, so the band starts on the beat. | `Song.countIn`, `ClickSound` | countdown, pre-roll |
 | **open song** | The one song of an amp model the Song tab shows and plays; the others wait in the song list. | `SongState.song`, `SongList.open` | loaded song, current song |

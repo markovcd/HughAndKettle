@@ -28,27 +28,27 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Sectors
-import io.github.markovcd.hughandkettle.amp.Tempo
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.effect_collapse
 import io.github.markovcd.hughandkettle.ui.effect_expand
 import io.github.markovcd.hughandkettle.ui.effect_on
 import io.github.markovcd.hughandkettle.ui.effect_switched_off
 import io.github.markovcd.hughandkettle.ui.tempo_locked_at
-import io.github.markovcd.hughandkettle.ui.time_tempo
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * An effect's card: its name over a one-line summary and its switch, and while [open] and on, the
- * controls [behind] the switch. Closed, a card whose time is locked is outlined in amber and says so, even
- * with the effect off. Tests find the header by `effect:<id>`, the switch by `control:<id>` and the lock's
- * line by `locked:<id>`.
+ * controls [behind] the switch; a time among them sits under its tempo lock, and gives way to the notes
+ * while locked. Closed, a card whose time is locked is outlined in amber and says so, even with the effect
+ * off. Tests find the header by `effect:<id>`, the switch by `control:<id>` and the lock's line by
+ * `locked:<id>`.
  */
 @Composable
 internal fun EffectCard(
     switch: Control,
     behind: List<Control>,
     panel: PanelState,
+    songs: SongState,
     enabled: Boolean,
     open: Boolean,
     onOpen: (Boolean) -> Unit,
@@ -82,7 +82,7 @@ internal fun EffectCard(
                     Column(Modifier.weight(1f)) {
                         Text(switch.name, style = MaterialTheme.typography.titleMedium)
                         if (lock != null && locked != null) {
-                            LockedLine(lock.control, locked, Modifier.testTag("locked:${switch.id}"))
+                            LockedLine(songs, Modifier.testTag("locked:${switch.id}"))
                         } else if (!shown) {
                             Text(
                                 summary(on, behind, values),
@@ -115,8 +115,11 @@ internal fun EffectCard(
                             name = it.name.removePrefix("${switch.name} ").replaceFirstChar(Char::uppercase),
                         )
                     }
+                val timed = behind.any(Control::timed)
+                if (timed) DelayTempo(songs, panel, enabled, Modifier.padding(horizontal = 12.dp))
+                val knobs = if (timed && songs.timed) named.filterNot(Control::timed) else named
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    PanelRows.of(named).forEach { row ->
+                    PanelRows.of(knobs).forEach { row ->
                         ControlRow(row, panel, enabled, Modifier.padding(horizontal = 4.dp))
                     }
                 }
@@ -143,32 +146,26 @@ private fun summary(
     return stringResource(Res.string.effect_on)
 }
 
-/** A knob's amount in its unit, and for a time knob its tempo too: "505 ms · 119 BPM". */
-@Composable
+/** A knob's amount in its unit: "505 ms". */
 private fun timeWords(
     control: Control,
     value: Int,
 ): String {
     val scale = control.scale ?: return "$value"
-    val amount = scale.amount(value)
-    val words = "$amount ${scale.unit}"
-    return if (control.timed) stringResource(Res.string.time_tempo, words, "${Tempo.beatsPerMinute(amount)}") else words
+    return "${scale.amount(value)} ${scale.unit}"
 }
 
-/** A closed card's line while its time is locked at [value]: a padlock and "Tempo lock · 505 ms · 119 BPM". */
+/** A closed card's line while its time is locked: a padlock and "Tempo lock · Dotted 1/8 · 120 BPM". */
 @Composable
 private fun LockedLine(
-    control: Control,
-    value: Int,
+    songs: SongState,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    val scale = control.scale ?: return
-    val amount = scale.amount(value)
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
         Padlock(open = false, color = colors.primary, size = 14.dp)
         Text(
-            stringResource(Res.string.tempo_locked_at, "$amount ${scale.unit}", "${Tempo.beatsPerMinute(amount)}"),
+            stringResource(Res.string.tempo_locked_at, NoteWords.phrase(songs.note), "${songs.song.tempo}"),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = colors.onPrimaryContainer,
