@@ -16,14 +16,12 @@ import io.github.markovcd.hughandkettle.ui.song
 import io.github.markovcd.hughandkettle.ui.song_play
 import io.github.markovcd.hughandkettle.ui.song_stop
 import io.github.markovcd.hughandkettle.ui.switcher_steps_through
-import io.github.markovcd.hughandkettle.ui.tap
 import io.github.markovcd.hughandkettle.ui.theme
 import io.github.markovcd.hughandkettle.ui.theme_system_desktop
 import io.github.markovcd.hughandkettle.ui.tone_next
 import io.github.markovcd.hughandkettle.ui.tone_previous
 import io.github.markovcd.hughandkettle.ui.tones
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Duration.Companion.nanoseconds
 
 /**
  * The window's menus, in place of the phone's header menu: the link, the amp behind the box and its mute, the
@@ -53,12 +51,6 @@ fun FrameWindowScope.DesktopMenuBar(
                 checked = commands.muted,
                 enabled = panel.linked,
                 onCheckedChange = commands::mute,
-            )
-            Item(
-                stringResource(Res.string.tap),
-                shortcut = DesktopOs.shortcut(Key.T),
-                enabled = panel.linked,
-                onClick = { commands.tap(System.nanoTime().nanoseconds) },
             )
         }
         Menu(stringResource(Res.string.tones)) {
