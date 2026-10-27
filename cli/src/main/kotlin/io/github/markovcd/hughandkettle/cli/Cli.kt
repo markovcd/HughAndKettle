@@ -15,6 +15,7 @@ public object Cli {
             LockCommand,
             TrimCommand,
             RandomizeCommand,
+            LfoCommand,
             SongCommand,
             CableCommand,
             DiscoverCommand,
@@ -39,6 +40,10 @@ public object Cli {
             "note",
             "tempo",
             "from",
+            "shape",
+            "hz",
+            "low",
+            "high",
         )
 
     public fun run(

@@ -19,4 +19,9 @@ class JsonTest {
             Json.line("values" to mapOf("gain" to 100, "mid" to 3), "empty" to emptyMap<String, Int>()),
         )
     }
+
+    @Test
+    fun `A fraction is a bare number, and one that is not a number is null`() {
+        assertEquals("""{"hz":0.25,"bad":null}""", Json.line("hz" to 0.25, "bad" to Double.NaN))
+    }
 }

@@ -64,6 +64,7 @@ class CliTest {
             listOf("lock", "cable:no-such-cable-here", "grandmeister_deluxe_40", "--seconds", "1"),
             listOf("trim", "cable:no-such-cable-here", "grandmeister_deluxe_40", "5", "--seconds", "1"),
             listOf("randomize", "cable:no-such-cable-here", "grandmeister_deluxe_40", "--seconds", "1"),
+            listOf("lfo", "cable:no-such-cable-here", "grandmeister_deluxe_40", "reverb_volume", "--seconds", "1"),
         ).forEach { args ->
             val run = run(*args.toTypedArray())
             assertEquals(ExitCodes.NO_LINK, run.code, "${args.first()}: ${run.err}")
@@ -170,6 +171,48 @@ class CliTest {
                 .filter { it.isNotEmpty() }
                 .map { it.replace(Regex("""^\{"ms":\d+,"""), "") },
         )
+    }
+
+    @Test
+    fun `An LFO sweeps its control between the ends at its rate and says how many changes it sent`() {
+        // One second is the shortest --seconds takes; this test is that second long.
+        val sweeping =
+            started(
+                "lfo",
+                "127.0.0.1:${fake.port}",
+                "grandmeister_deluxe_40",
+                "reverb_volume",
+                "--shape",
+                "square",
+                "--hz",
+                "1",
+                "--low",
+                "10",
+                "--high",
+                "100",
+                "--seconds",
+                "1",
+            )
+        assertTrue(next() is FakeWmiEvent.Opened)
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 29, 100)), next())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), 29, 10)), next())
+        val run = sweeping.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val lines = run.out.lines().filter { it.isNotEmpty() }
+        assertEquals(
+            """{"amp":"grandmeister_deluxe_40","control":"reverb_volume","shape":"square","hz":1.0,"low":10,"high":100}""",
+            lines.first(),
+        )
+        assertTrue(lines.last().matches(Regex("""\{"sent":[23]}""")), lines.last())
+    }
+
+    @Test
+    fun `An LFO on a switch or a control outside the effects is refused before anything is sent`() {
+        listOf("reverb", "gain").forEach { control ->
+            val run = run("lfo", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", control, "--seconds", "1")
+            assertEquals(ExitCodes.BAD_ARGUMENTS, run.code, control)
+            assertTrue(run.err.startsWith("an LFO sweeps one of modulation_type"), run.err)
+        }
     }
 
     @Test

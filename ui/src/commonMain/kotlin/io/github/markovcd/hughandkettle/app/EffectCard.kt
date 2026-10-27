@@ -24,15 +24,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
-import io.github.markovcd.hughandkettle.amp.Sectors
+import io.github.markovcd.hughandkettle.amp.Lfo
+import io.github.markovcd.hughandkettle.amp.Section
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.effect_collapse
 import io.github.markovcd.hughandkettle.ui.effect_expand
 import io.github.markovcd.hughandkettle.ui.effect_on
 import io.github.markovcd.hughandkettle.ui.effect_switched_off
+import io.github.markovcd.hughandkettle.ui.lfo_after
+import io.github.markovcd.hughandkettle.ui.lfo_hz
+import io.github.markovcd.hughandkettle.ui.lfo_running
+import io.github.markovcd.hughandkettle.ui.lfo_waiting
 import io.github.markovcd.hughandkettle.ui.tempo_locked_at
 import org.jetbrains.compose.resources.stringResource
 
@@ -40,8 +46,9 @@ import org.jetbrains.compose.resources.stringResource
  * An effect's card: its name over a one-line summary and its switch, and while [open] and on, the
  * controls [behind] the switch; a time among them sits under its tempo lock, and gives way to the notes
  * while locked. Closed, a card whose time is locked is outlined in amber and says so, even with the effect
- * off. Tests find the header by `effect:<id>`, the switch by `control:<id>` and the lock's line by
- * `locked:<id>`.
+ * off. Under the controls sits the card's LFO; the control it sweeps shows its swing, and a closed card
+ * says the LFO runs, or waits for the effect. Tests find the header by `effect:<id>`, the switch by
+ * `control:<id>`, the lock's line by `locked:<id>` and the LFO's by `lfo_line:<id>`.
  */
 @Composable
 internal fun EffectCard(
@@ -60,6 +67,7 @@ internal fun EffectCard(
     val toggle = stringResource(if (shown) Res.string.effect_collapse else Res.string.effect_expand, switch.name)
     val lock = panel.lock?.takeIf { held -> behind.any { it.controller == held.control.controller } }
     val locked = lock?.value?.takeIf { !shown }
+    val lfo = panel.lfos.running[switch.id]
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -81,7 +89,9 @@ internal fun EffectCard(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(switch.name, style = MaterialTheme.typography.titleMedium)
-                        if (lock != null && locked != null) {
+                        if (lfo != null && !shown) {
+                            LfoLine(switch, lfo, on, detail(behind, values), Modifier.testTag("lfo_line:${switch.id}"))
+                        } else if (lock != null && locked != null) {
                             LockedLine(songs, Modifier.testTag("locked:${switch.id}"))
                         } else if (!shown) {
                             Text(
@@ -109,20 +119,20 @@ internal fun EffectCard(
             }
             if (shown) {
                 // On the effect's own card its name need not lead every label: "Delay time" reads "Time".
-                val named =
-                    behind.map {
-                        it.copy(
-                            name = it.name.removePrefix("${switch.name} ").replaceFirstChar(Char::uppercase),
-                        )
-                    }
+                val named = behind.map { it.copy(name = CardWords.short(switch, it)) }
                 val timed = behind.any(Control::timed)
                 if (timed) DelayTempo(songs, panel, enabled, Modifier.padding(horizontal = 12.dp))
                 val knobs = if (timed && songs.timed) named.filterNot(Control::timed) else named
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     PanelRows.of(knobs).forEach { row ->
-                        ControlRow(row, panel, enabled, Modifier.padding(horizontal = 4.dp))
+                        if (lfo != null && row.any { it.id == lfo.control.id }) {
+                            LfoRow(row, switch, lfo, panel, enabled, Modifier.padding(horizontal = 4.dp))
+                        } else {
+                            ControlRow(row, panel, enabled, Modifier.padding(horizontal = 4.dp))
+                        }
                     }
                 }
+                if (switch.section == Section.Fx) LfoPanel(switch, panel, enabled, Modifier.padding(horizontal = 12.dp))
             }
         }
     }
@@ -136,23 +146,96 @@ private fun summary(
     values: Map<String, Int>,
 ): String {
     if (!on) return stringResource(Res.string.effect_switched_off)
+    return detail(behind, values) ?: stringResource(Res.string.effect_on)
+}
+
+/** The first selector's pick or the first knob in a unit, as a closed card names its effect; null for neither. */
+private fun detail(
+    behind: List<Control>,
+    values: Map<String, Int>,
+): String? {
     behind.forEach { control ->
         val value = values[control.id] ?: return@forEach
         val kind = control.kind
         val scale = control.scale
-        if (kind is ControlKind.Selector) return kind.options[Sectors.index(value, kind.options.size)]
-        if (scale != null) return timeWords(control, value)
+        if (kind is ControlKind.Selector) return CardWords.option(kind, value)
+        if (scale != null) return CardWords.amount(control, value)
     }
-    return stringResource(Res.string.effect_on)
+    return null
 }
 
-/** A knob's amount in its unit: "505 ms". */
-private fun timeWords(
-    control: Control,
-    value: Int,
-): String {
-    val scale = control.scale ?: return "$value"
-    return "${scale.amount(value)} ${scale.unit}"
+/**
+ * A closed card's line while its LFO runs: its wave and "LFO · Volume · 0.5 Hz"; with the effect off,
+ * "Chorus · LFO waiting: Modulation is off".
+ */
+@Composable
+private fun LfoLine(
+    switch: Control,
+    lfo: Lfo,
+    on: Boolean,
+    detail: String?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    val color = if (on) colors.primary else colors.error
+    val text =
+        if (on) {
+            stringResource(
+                Res.string.lfo_running,
+                CardWords.short(switch, lfo.control),
+                stringResource(Res.string.lfo_hz, CardWords.hz(lfo.hz)),
+            )
+        } else {
+            val waiting = stringResource(Res.string.lfo_waiting, switch.name)
+            if (detail == null) waiting else stringResource(Res.string.lfo_after, detail, waiting)
+        }
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (on) LfoGlyph(lfo.shape, color, Modifier.size(18.dp, 11.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** A row of knobs, or a selector, one of which an LFO sweeps: that one shows its swing, the rest turn as ever. */
+@Composable
+private fun LfoRow(
+    row: List<Control>,
+    switch: Control,
+    lfo: Lfo,
+    panel: PanelState,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
+        row.forEach { control ->
+            val value = panel.state.values[control.id] ?: 0
+            if (control.id == lfo.control.id) {
+                LfoRange(
+                    lfo.control,
+                    control.name,
+                    lfo,
+                    value,
+                    enabled,
+                    { panel.lfos.set(switch, it) },
+                    "fx_lfo_${switch.id}",
+                    Modifier.weight(1f).testTag("control:${control.id}"),
+                )
+            } else {
+                KnobCell(
+                    control,
+                    value,
+                    enabled,
+                    { panel.set(control, it) },
+                    Modifier.weight(1f).testTag("control:${control.id}"),
+                )
+            }
+        }
+    }
 }
 
 /** A closed card's line while its time is locked: a padlock and "Tempo lock · Dotted 1/8 · 120 BPM". */

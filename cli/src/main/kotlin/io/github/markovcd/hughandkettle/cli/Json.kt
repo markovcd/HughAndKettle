@@ -15,6 +15,10 @@ public object Json {
                 value.toString()
             }
 
+            is Double -> {
+                if (value.isFinite()) value.toString() else "null"
+            }
+
             is List<*> -> {
                 value.joinToString(",", "[", "]") { render(it) }
             }

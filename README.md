@@ -47,6 +47,7 @@ hk state <target> <amp-id> [--seconds N]                # what the amp reported,
 hk lock <target> <amp-id> [<0..127 | 520ms> | --tempo BPM [--note 1/8d]] [--seconds N]  # hold the delay time across preset recalls
 hk trim <target> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
 hk randomize <target> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new values behind each effect heard on
+hk lfo <target> <amp-id> <control-id> [--shape sine] [--hz 0.5] [--low 0] [--high 127] [--seconds N]  # sweep an effect control up and down
 hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats>[@<note>] | tone:<name>:<beats>[@<note>] ... [--no-count-in]  # takes --name N, --dir D
 hk song new|open|duplicate|delete <amp-id> <name> | rename <amp-id> <name> <new-name> | move <amp-id> <name> <position>  # the song list, as the app keeps it
 hk song export <amp-id> <name> <file> | import <amp-id> <file>  # a song for another amp model is refused

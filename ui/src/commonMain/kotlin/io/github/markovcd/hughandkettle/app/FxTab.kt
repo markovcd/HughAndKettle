@@ -6,17 +6,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.amp.Section
+import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.lfo_note
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The effects, one card each under the dice that randomizes them: an effect with controls behind its switch
  * opens to show them, one at a time and only while it is on; switching one on opens it. A switch with nothing
- * behind it is a plain card. After a randomize, a bar over the bottom offers its undo.
+ * behind it is a plain card. While an LFO runs, a line under the cards says how LFOs behave. After a
+ * randomize, a bar over the bottom offers its undo.
  */
 @Composable
 fun FxTab(
@@ -44,6 +51,14 @@ fun FxTab(
         ) {
             RandomizeCard(panel, enabled)
             SwitchCards(fx.filter { it.kind == ControlKind.Switch }, fx, panel, songs, enabled)
+            if (panel.lfos.running.isNotEmpty()) {
+                Text(
+                    stringResource(Res.string.lfo_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp).testTag("fx_lfo_note"),
+                )
+            }
         }
         if (rolled != null) {
             UndoBar(rolled, panel::undoRoll, Modifier.align(Alignment.BottomCenter).padding(12.dp))

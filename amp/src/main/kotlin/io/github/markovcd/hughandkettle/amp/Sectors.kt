@@ -22,6 +22,15 @@ public object Sectors {
         return value * count / 128
     }
 
+    /** Every value in sector [index] of [count]. */
+    public fun range(
+        index: Int,
+        count: Int,
+    ): IntRange {
+        require(index in 0 until count) { "sector $index is outside 0 until $count" }
+        return first(index, count) until first(index + 1, count)
+    }
+
     /** The lowest value in sector [index]: the smallest v with v * count / 128 == index. */
     private fun first(
         index: Int,

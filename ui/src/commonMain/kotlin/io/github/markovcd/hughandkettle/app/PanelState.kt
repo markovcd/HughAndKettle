@@ -7,6 +7,7 @@ import io.github.markovcd.hughandkettle.amp.AmpModel
 import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.EffectRoll
+import io.github.markovcd.hughandkettle.amp.Lfo
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.SoundSwitch
 import io.github.markovcd.hughandkettle.amp.TempoLock
@@ -27,6 +28,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+import kotlin.time.Duration
+import kotlin.time.TimeSource
 
 /**
  * What the panel shows and does: the link's state or the cable's, which amp is behind the box, and the
@@ -40,6 +43,8 @@ class PanelState(
     lastWmi: Flow<WmiAddress?>,
     ampChoices: Flow<Map<WmiAddress, AmpModel>> = flowOf(emptyMap()),
     private val rememberAmp: suspend (WmiAddress, AmpModel) -> Unit = { _, _ -> },
+    lfoClock: () -> Duration = TimeSource.Monotonic.markNow()::elapsedNow,
+    lfoPace: suspend () -> Unit = { delay(Lfo.STEP) },
 ) {
     var amp by mutableStateOf(amp)
         private set
@@ -99,6 +104,9 @@ class PanelState(
     var rolled by mutableStateOf<EffectRoll?>(null)
         private set
 
+    /** The LFOs on the effect cards. */
+    val lfos: LfoState = LfoState(this, scope, lfoClock, lfoPace)
+
     /** The last box a link reached, offered first. */
     var last by mutableStateOf<WmiAddress?>(null)
         private set
@@ -119,6 +127,7 @@ class PanelState(
         scope.launch {
             holder.state.collect {
                 link = it
+                if (!linked) lfos.dropped()
                 follow()
             }
         }
@@ -132,6 +141,7 @@ class PanelState(
         scope.launch {
             holder.cable.collect {
                 cable = it
+                if (!linked) lfos.dropped()
                 follow()
             }
         }
@@ -203,6 +213,7 @@ class PanelState(
         state = AmpState(amp)
         moved = emptySet()
         rolled = null
+        lfos.clear()
         answers = RecallAnswers(trim = trimFor(amp, trim?.trim ?: 0))
     }
 
@@ -271,11 +282,12 @@ class PanelState(
         amp.control("mute")?.let { set(it, if (on) MUTE_ON else 0) }
     }
 
-    /** Holds [control]'s time, at its value now, across preset recalls; or lets it go. */
+    /** Holds [control]'s time, at its value now, across preset recalls, stopping an LFO on it; or lets it go. */
     fun lock(
         control: Control,
         on: Boolean,
     ) {
+        if (on) lfos.yieldTo(control)
         answers = answers.copy(lock = if (on) TempoLock(control, state.values[control.id]) else null)
     }
 
