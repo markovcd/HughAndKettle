@@ -218,7 +218,7 @@ class SongTabTest {
     @Test
     fun `Record shows the take as it grows, and Stop keeps it with Discard offered`() =
         runComposeUiTest {
-            val fake = FakeWmi()
+            val fake = FakeWmi(onEvent = {})
             try {
                 panel.connect(WmiAddress("127.0.0.1", fake.port))
                 waitUntil("linked", timeoutMillis = 5_000) { panel.linked }
