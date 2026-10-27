@@ -143,7 +143,15 @@ fun SongTab(
                 }
                 songs.failure?.let { SongAlert(readable, it) }
                 if (countdown != null) {
-                    val first = if (recording) songs.take?.marks?.firstOrNull()?.sound else song.steps.firstOrNull()
+                    val first =
+                        if (recording) {
+                            songs.take
+                                ?.marks
+                                ?.firstOrNull()
+                                ?.sound
+                        } else {
+                            song.steps.firstOrNull()
+                        }
                     SongCountdown(countdown, first?.let { songStepTitle(it) } ?: songs.takeName, song.tempo)
                 } else if (recording) {
                     SongTake(songs, names)

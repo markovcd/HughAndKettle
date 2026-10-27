@@ -87,7 +87,7 @@ class TakeTest {
 
     @Test
     fun `A sound held past the most a step lasts goes on in a step after it`() {
-        val end = take.preset(5, Duration.ZERO).steps((SongStep.MOST_BEATS + 10) * 500.milliseconds)
+        val end = take.preset(5, Duration.ZERO).steps(500.milliseconds * (SongStep.MOST_BEATS + 10))
         assertEquals(listOf(SongStep(5, SongStep.MOST_BEATS), SongStep(5, 10)), end)
     }
 

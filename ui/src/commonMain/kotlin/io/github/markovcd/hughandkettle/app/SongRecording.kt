@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.markovcd.hughandkettle.amp.PresetNames
 import io.github.markovcd.hughandkettle.amp.Song
 import io.github.markovcd.hughandkettle.app.theme.RecordingColors
 import io.github.markovcd.hughandkettle.ui.Res
@@ -65,7 +66,7 @@ import kotlin.time.Duration
 @Composable
 internal fun SongTake(
     songs: SongState,
-    names: Map<Int, String>,
+    names: PresetNames,
 ) {
     val take = songs.take ?: return
     val at = songs.takeAt ?: Duration.ZERO
@@ -382,7 +383,13 @@ private fun RecordDot(
     size: Dp,
     lit: Boolean,
 ) {
-    Box(Modifier.size(size).alpha(if (lit) 1f else FADED).clip(CircleShape).background(recording.mark))
+    Box(
+        Modifier
+            .size(size)
+            .alpha(if (lit) 1f else FADED)
+            .clip(CircleShape)
+            .background(recording.mark),
+    )
 }
 
 private const val DISABLED = 0.38f
