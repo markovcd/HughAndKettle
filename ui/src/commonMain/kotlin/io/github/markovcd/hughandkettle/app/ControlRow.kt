@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.ControlKind
 import io.github.markovcd.hughandkettle.ui.Res
+import io.github.markovcd.hughandkettle.ui.match_mark
 import io.github.markovcd.hughandkettle.ui.moved_on_amp
 import org.jetbrains.compose.resources.stringResource
 
@@ -40,6 +41,7 @@ internal fun ControlRow(
                         enabled,
                         { panel.set(control, it) },
                         cell,
+                        matchMark(panel, control),
                     )
                 }
             }
@@ -57,4 +59,15 @@ internal fun ControlRow(
             }, modifier.marked(first).testTag("control:${first.id}"))
         }
     }
+}
+
+/** "60 −11 match" under the volume while the preset playing carries a loudness match correction: its stored volume and the correction. */
+@Composable
+private fun matchMark(
+    panel: PanelState,
+    control: Control,
+): String? {
+    val trim = panel.trim?.takeIf { it.control == control } ?: return null
+    val shift = trim.shift?.takeIf { it.correction != 0 } ?: return null
+    return stringResource(Res.string.match_mark, shift.stored, signed(shift.correction))
 }

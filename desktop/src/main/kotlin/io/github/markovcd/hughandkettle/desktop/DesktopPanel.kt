@@ -18,7 +18,15 @@ fun DesktopPanel(
 ) {
     HughAndKettleTheme(dark = theme.dark(isSystemInDarkTheme())) {
         Surface(Modifier.fillMaxSize()) {
-            DesktopLayout(screen.panel, screen.discovery, screen.shelf, screen.presetNames, screen.songs, mode)
+            DesktopLayout(
+                screen.panel,
+                screen.discovery,
+                screen.shelf,
+                screen.presetNames,
+                screen.songs,
+                screen.match,
+                mode,
+            )
         }
     }
 }

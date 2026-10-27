@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity() {
                         screen.shelf,
                         screen.presetNames,
                         screen.songs,
+                        screen.match,
                         theme,
                         onTheme = { scope.launch { app.home.theme.pick(it) } },
                         mode,

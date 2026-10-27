@@ -38,6 +38,8 @@ import io.github.markovcd.hughandkettle.ui.connect
 import io.github.markovcd.hughandkettle.ui.connected
 import io.github.markovcd.hughandkettle.ui.connected_wmi
 import io.github.markovcd.hughandkettle.ui.disconnect
+import io.github.markovcd.hughandkettle.ui.match_menu
+import io.github.markovcd.hughandkettle.ui.match_menu_line
 import io.github.markovcd.hughandkettle.ui.mute
 import io.github.markovcd.hughandkettle.ui.switcher_steps_through
 import io.github.markovcd.hughandkettle.ui.theme
@@ -46,9 +48,10 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The header's menu on the phone: the amp behind the box, which opens the list of amps; what − and + step
- * through; the mute; the link, with a button that ends it or opens the link card through [onLink]; and the
- * theme. Picking closes the menu through [onClose]. Tests find the parts by `menu_amp`, `amp:<id>`,
- * `switcher_mode:<id>`, `menu_mute`, `menu_connect` and `theme:<id>`.
+ * through; the loudness match, opened through [onMatch] where the amp has a volume; the mute; the link, with a
+ * button that ends it or opens the link card through [onLink]; and the theme. Picking closes the menu through
+ * [onClose]. Tests find the parts by `menu_amp`, `amp:<id>`, `switcher_mode:<id>`, `menu_match`, `menu_mute`,
+ * `menu_connect` and `theme:<id>`.
  */
 @Composable
 fun ColumnScope.HeaderMenu(
@@ -59,6 +62,7 @@ fun ColumnScope.HeaderMenu(
     onTheme: (ThemeChoice) -> Unit,
     onClose: () -> Unit,
     onLink: () -> Unit,
+    onMatch: (() -> Unit)?,
 ) {
     val colors = MaterialTheme.colorScheme
     var amps by remember { mutableStateOf(false) }
@@ -112,6 +116,26 @@ fun ColumnScope.HeaderMenu(
                 modifier = Modifier.testTag("switcher_mode:${choice.id}"),
             ) { Text(stringResource(choice.label), maxLines = 1) }
         }
+    }
+    if (onMatch != null) {
+        HorizontalDivider()
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+                    onClose()
+                    onMatch()
+                }.padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("menu_match"),
+        ) {
+            Text(stringResource(Res.string.match_menu), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                stringResource(Res.string.match_menu_line),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.onSurfaceVariant,
+            )
+        }
+        HorizontalDivider()
     }
     if (panel.mutable) {
         val on = panel.muted

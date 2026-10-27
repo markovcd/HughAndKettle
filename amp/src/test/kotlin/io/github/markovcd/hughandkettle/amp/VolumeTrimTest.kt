@@ -146,4 +146,47 @@ class VolumeTrimTest {
         assertEquals(listOf(gain.set(9), volume.set(40)), quieter.trimmed(listOf(gain.set(9), volume.set(60))))
         assertEquals(mapOf("gain" to 9, "volume" to 60), quieter.untrimmed(mapOf("gain" to 9, "volume" to 40)))
     }
+
+    @Test
+    fun `A corrected preset is answered with its own volume plus its correction plus the trim`() {
+        val corrected = quieter.corrected(mapOf(3 to -11))
+        assertEquals(listOf(volume.set(29)), corrected.restore(recalled(3, 60)))
+        assertEquals(listOf(volume.set(40)), corrected.restore(recalled(4, 60)))
+    }
+
+    @Test
+    fun `A correction is answered with no trim`() {
+        assertEquals(listOf(volume.set(49)), VolumeTrim.of(volume).corrected(mapOf(3 to -11)).restore(recalled(3, 60)))
+    }
+
+    @Test
+    fun `A corrected preset recalled again is answered on its program change`() {
+        val trim =
+            VolumeTrim
+                .of(volume)
+                .corrected(mapOf(3 to -11))
+                .after(recalled(3, 60))
+                .after(reported(49))
+        assertEquals(listOf(listOf(49), emptyList()), trim.answers(amp.recall(3), recalled(3, 49)))
+    }
+
+    @Test
+    fun `A new trim keeps the correction of the preset on now`() {
+        val trim = quieter.corrected(mapOf(3 to -11)).after(recalled(3, 60)).after(reported(29))
+        assertEquals(volume.set(39), trim.retrimmed(-10).second)
+    }
+
+    @Test
+    fun `The preset on now tells its stored volume and its correction`() {
+        val trim = quieter.corrected(mapOf(3 to -11)).after(recalled(3, 60)).after(reported(29))
+        assertEquals(VolumeTrim.Shift(stored = 60, correction = -11), trim.shift)
+        assertEquals(60, trim.stored(3))
+    }
+
+    @Test
+    fun `A recall of a corrected preset goes behind the mute with no trim`() {
+        val answers = RecallAnswers(trim = VolumeTrim.of(volume).corrected(mapOf(3 to -11)))
+        assertEquals(listOf(mute.switched(true), amp.recall(3)), answers.recall(amp.recall(3), mute, false).second)
+        assertEquals(listOf(amp.recall(4)), answers.recall(amp.recall(4), mute, false).second)
+    }
 }

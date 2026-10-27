@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The loudness match measures each preset through the microphone; asked for when a soundcheck starts. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+</manifest>

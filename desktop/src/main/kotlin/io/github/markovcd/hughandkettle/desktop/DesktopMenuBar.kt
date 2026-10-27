@@ -11,6 +11,7 @@ import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.amp
 import io.github.markovcd.hughandkettle.ui.disconnect
 import io.github.markovcd.hughandkettle.ui.link
+import io.github.markovcd.hughandkettle.ui.match_menu
 import io.github.markovcd.hughandkettle.ui.mute
 import io.github.markovcd.hughandkettle.ui.song
 import io.github.markovcd.hughandkettle.ui.song_play
@@ -26,7 +27,7 @@ import io.github.markovcd.hughandkettle.ui.tones
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The window's menus, in place of the phone's header menu: the link, the amp behind the box and its mute, the
+ * The window's menus, in place of the phone's header menu: the link, the amp behind the box, its loudness match and its mute, the
  * tones with their shortcuts and what the header's − and + step through, the song and its takes, and the theme.
  */
 @Composable
@@ -48,6 +49,11 @@ fun FrameWindowScope.DesktopMenuBar(
                 RadioButtonItem(amp.name, selected = amp == panel.amp, onClick = { panel.choose(amp) })
             }
             Separator()
+            Item(
+                stringResource(Res.string.match_menu),
+                enabled = screen.match.available && !screen.match.shown,
+                onClick = screen.match::open,
+            )
             CheckboxItem(
                 stringResource(Res.string.mute),
                 checked = commands.muted,

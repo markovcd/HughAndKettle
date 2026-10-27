@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import io.github.markovcd.hughandkettle.app.DiscoveryState
+import io.github.markovcd.hughandkettle.app.MatchState
 import io.github.markovcd.hughandkettle.app.PanelScreen
 import io.github.markovcd.hughandkettle.app.PanelState
 import io.github.markovcd.hughandkettle.app.PresetNamesState
@@ -22,6 +23,7 @@ class DesktopScreen(
     val presetNames: PresetNamesState = screen.presetNames
     val songs: SongState = screen.songs
     val shelf: ToneShelf = screen.shelf
+    val match: MatchState = screen.match
     val commands: DesktopCommands = DesktopCommands(panel, shelf, songs)
 }
 

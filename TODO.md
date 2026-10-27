@@ -16,6 +16,8 @@ that lands it.
 - Parked: set the WMI-1's name, access point channel, password and home WiFi, as WMI Connect does, likely through the WiFly module's `$$$` command mode over TCP. A wrong setting locks the app out until a factory reset.
 - Read the selector option names off the hardware or the manual: Black Spirit 200 cabinet and sagging names. `AmpModels` carries numbered placeholders until then.
 - Read the amp's system exclusive over a cable on macOS, where Java's MIDI input garbles it ([cable.md](docs/cable.md#what-a-mac-found)); until then `hk cable listen` there prints junk.
+- The loudness match's summary writes the matched volumes into the presets, one STORE each, through the write flow, as Arek's canvas board DF draws it.
+- `hk trim`, `hk lock`, `hk song play` and every other `hk` recall answer add the loudness match's corrections kept in `~/.hk/loudness`, as the app does.
 - Send the delay time in the amp's 256 steps: controller 4 with its low byte on 36 at 0 or 64, as tap tempo does ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
 - `DesktopClickSoundTest`'s first click took 188 ms to start, against 20, in a full build on the Mac, and passed four times alone: find whether the sound output wakes slowly or the build starves it, then fix the click or the test's reason.
 - The [desktop app](docs/handoff/03-desktop-app.md), one item per step, in order.

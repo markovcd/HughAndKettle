@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.LoudnessCorrectionStore
 import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.ToneStore
@@ -47,6 +48,15 @@ class AmpPanelTest {
     private val presetNames =
         PresetNamesState(PresetNameStore(folder.resolve("preset-names")), panel, scope, Dispatchers.Unconfined)
     private val songs = SongState(SongStore(folder.resolve("songs")), panel, scope, Dispatchers.Unconfined)
+    private val match =
+        MatchState(
+            LoudnessCorrectionStore(folder.resolve("loudness")),
+            panel,
+            scope,
+            { presetNames.names },
+            { songs.song },
+            Dispatchers.Unconfined,
+        )
 
     @After
     @OptIn(ExperimentalPathApi::class)
@@ -66,6 +76,7 @@ class AmpPanelTest {
                 shelf,
                 presetNames,
                 songs,
+                match,
                 ThemeChoice.Dark,
                 onTheme = { picked = it },
                 mode,

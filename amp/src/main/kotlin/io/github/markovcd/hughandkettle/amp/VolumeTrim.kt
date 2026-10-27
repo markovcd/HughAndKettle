@@ -17,11 +17,15 @@ import kotlin.time.Duration.Companion.seconds
  * remembered from its value block, so the next recall of it from the footswitch is answered on the
  * program change, ahead of the block. A recall from the app goes behind the amp's mute, lifted with the
  * answer to the block.
+ *
+ * A preset with a loudness match [corrections] entry has that amount added as well, the trim on top.
  */
 @ConsistentCopyVisibility
 public data class VolumeTrim private constructor(
     val control: Control,
     val trim: Int,
+    /** The loudness match's correction of each preset's volume, by preset counted from 1. */
+    val corrections: Map<Int, Int> = emptyMap(),
     /** The mute to lift with the next value block's answer, while a recall is behind it. */
     val muting: Control? = null,
     private val channel: Int? = null,
@@ -34,11 +38,30 @@ public data class VolumeTrim private constructor(
         require(trim in -127..127) { "a trim must be -127..127, got $trim" }
     }
 
-    /** A channel's volume as last heard, and the untrimmed volume it stands for. */
+    /** A channel's volume as last heard, the untrimmed volume it stands for, and the correction it carries. */
     private data class Heard(
         val volume: Int,
         val untrimmed: Int,
+        val correction: Int,
     )
+
+    /** The volume stored with what plays now, and the correction added to it. */
+    public data class Shift(
+        val stored: Int,
+        val correction: Int,
+    )
+
+    /** What the channel on now stands for, once a value block has told it. */
+    public val shift: Shift? get() = channel?.let(heard::get)?.let { Shift(it.untrimmed, it.correction) }
+
+    /** The volume [preset] was last heard stored with, counted from 1. */
+    public fun stored(preset: Int): Int? = stored[preset]
+
+    /** The trim with [corrections] in place of its own, from the next recall on. */
+    public fun corrected(corrections: Map<Int, Int>): VolumeTrim = copy(corrections = corrections)
+
+    /** Whether a recall of [preset] would have its volume moved. */
+    public fun moves(preset: ProgramChange): Boolean = trim + correction(preset.program + 1) != 0
 
     /** The trim after [message] heard from the amp. */
     public fun after(message: MidiMessage): VolumeTrim =
@@ -99,8 +122,8 @@ public data class VolumeTrim private constructor(
     public fun retrimmed(trim: Int): Pair<VolumeTrim, ControlChange?> {
         val on = channel ?: return copy(trim = trim) to null
         val now = heard[on] ?: return copy(trim = trim) to null
-        val volume = trimmed(now.untrimmed, trim)
-        val next = copy(trim = trim, heard = heard + (on to Heard(volume, now.untrimmed)))
+        val volume = trimmed(now.untrimmed, trim + now.correction)
+        val next = copy(trim = trim, heard = heard + (on to now.copy(volume = volume)))
         return next to control.set(volume).takeIf { volume != now.volume }
     }
 
@@ -132,7 +155,10 @@ public data class VolumeTrim private constructor(
     private fun after(block: ValueBlock): VolumeTrim {
         val carried = carried(block) ?: return copy(channel = block.channel, muting = null)
         val untrimmed = untrimmed(block, carried)
-        val now = sent?.let { Heard(it, trimmed(it, -trim)) } ?: Heard(trimmed(untrimmed, trim), untrimmed)
+        val correction = correction(block)
+        val now =
+            sent?.let { Heard(it, trimmed(it, -trim - correction), correction) }
+                ?: Heard(trimmed(untrimmed, trim + correction), untrimmed, correction)
         return copy(
             channel = block.channel,
             heard = heard + (block.channel to now),
@@ -146,8 +172,11 @@ public data class VolumeTrim private constructor(
     /** The trim after the amp reported its volume at [volume], set by hand, by the app or by the trim. */
     private fun reported(volume: Int): VolumeTrim {
         val now = channel ?: return copy(sent = null)
-        val known = heard[now]?.takeIf { it.volume == volume }
-        return copy(heard = heard + (now to (known ?: Heard(volume, trimmed(volume, -trim)))), sent = null)
+        val before = heard[now]
+        val correction = before?.correction ?: 0
+        val known =
+            before?.takeIf { it.volume == volume } ?: Heard(volume, trimmed(volume, -trim - correction), correction)
+        return copy(heard = heard + (now to known), sent = null)
     }
 
     private fun carried(block: ValueBlock): Int? = block.values[control.controller]?.let(control::fromReport)
@@ -170,11 +199,17 @@ public data class VolumeTrim private constructor(
     private fun target(
         block: ValueBlock,
         carried: Int,
-    ): Int = sent ?: trimmed(untrimmed(block, carried), trim)
+    ): Int = sent ?: trimmed(untrimmed(block, carried), trim + correction(block))
 
-    /** The trimmed volume of a preset [recall] calls up, known from its last block, while there is a trim. */
+    /** The correction [block] plays with: its preset's, or for a channel switched back to, the one it was given. */
+    private fun correction(block: ValueBlock): Int =
+        if (block.preset != null) correction(block.preset) else heard[block.channel]?.correction ?: 0
+
+    private fun correction(preset: Int): Int = corrections[preset] ?: 0
+
+    /** The moved volume of a preset [recall] calls up, known from its last block, while it would move. */
     private fun early(recall: ProgramChange): Int? =
-        stored[recall.program + 1]?.takeIf { trim != 0 }?.let { trimmed(it, trim) }
+        stored[recall.program + 1]?.takeIf { moves(recall) }?.let { trimmed(it, trim + correction(recall.program + 1)) }
 
     private fun trimmed(
         volume: Int,

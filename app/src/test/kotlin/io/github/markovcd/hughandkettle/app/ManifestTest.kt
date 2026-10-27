@@ -21,4 +21,17 @@ class ManifestTest {
                 .orEmpty()
         assertTrue("android.permission.ACCESS_LOCAL_NETWORK" in asked, asked.joinToString())
     }
+
+    @Test
+    fun `The app asks for the microphone the loudness match listens through`() {
+        val app = ApplicationProvider.getApplicationContext<HughAndKettleApplication>()
+        val asked =
+            app.packageManager
+                .getPackageInfo(
+                    app.packageName,
+                    PackageManager.GET_PERMISSIONS,
+                ).requestedPermissions
+                .orEmpty()
+        assertTrue("android.permission.RECORD_AUDIO" in asked, asked.joinToString())
+    }
 }

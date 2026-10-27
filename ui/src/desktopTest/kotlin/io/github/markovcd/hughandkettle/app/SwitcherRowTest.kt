@@ -67,7 +67,7 @@ class SwitcherRowTest {
             close,
             link,
             ->
-            HeaderMenu(panel, mode, { modes += it }, ThemeChoice.Dark, {}, close, link)
+            HeaderMenu(panel, mode, { modes += it }, ThemeChoice.Dark, {}, close, link, onMatch = null)
         })
     }
 

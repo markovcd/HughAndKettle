@@ -1,7 +1,9 @@
 package io.github.markovcd.hughandkettle.app
 
 import io.github.markovcd.hughandkettle.amp.AmpModels
+import io.github.markovcd.hughandkettle.amp.LoudnessCorrections
 import io.github.markovcd.hughandkettle.amp.ValueBlock
+import io.github.markovcd.hughandkettle.amp.VolumeTrim
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiChannel
 import io.github.markovcd.hughandkettle.midi.MidiMessage
@@ -258,6 +260,32 @@ class PanelStateTest {
         fake.emit(ValueBlock(mapOf(volume.controller to 120), preset = 3).message())
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), volume.controller, 40)), nextSeen())
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 0)), nextSeen())
+    }
+
+    @Test
+    fun `A preset recalled with a loudness correction goes behind the mute and comes back corrected`() {
+        val amp = AmpModels.blackSpirit200
+        val volume = amp.control("volume")!!
+        val mute = amp.control("mute")!!
+        connected()
+        panel.correct(LoudnessCorrections(amp, mapOf(3 to -11)))
+        panel.recall(3)
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 127)), nextSeen())
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), nextSeen())
+        fake.emit(ValueBlock(mapOf(volume.controller to 120), preset = 3).message())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), volume.controller, 49)), nextSeen())
+        assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), mute.controller, 0)), nextSeen())
+        until("the correction counted") { it.corrected == 1 }
+        assertEquals(VolumeTrim.Shift(stored = 60, correction = -11), panel.trim?.shift)
+        assertEquals(0, panel.trimmed)
+    }
+
+    @Test
+    fun `Corrections for another amp leave the panel's recalls alone`() {
+        connected()
+        panel.correct(LoudnessCorrections(AmpModels.grandMeisterDeluxe40, mapOf(3 to -11)))
+        panel.recall(3)
+        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), nextSeen())
     }
 
     @Test

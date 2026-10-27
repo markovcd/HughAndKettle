@@ -105,6 +105,14 @@ desktop.application.nativeDistributions {
         bundleID = "io.github.markovcd.hughandkettle"
         // macOS refuses a version whose first number is 0.
         packageVersion = buildVersion().name.substringBefore('-').takeUnless { it.startsWith("0.") } ?: "1.0.0"
+        // macOS opens the microphone, for the loudness match, only to an app that says why it wants it.
+        infoPlist {
+            extraKeysRawXml =
+                """
+                <key>NSMicrophoneUsageDescription</key>
+                <string>The loudness match listens to each preset to bring them to one loudness.</string>
+                """.trimIndent()
+        }
     }
 }
 

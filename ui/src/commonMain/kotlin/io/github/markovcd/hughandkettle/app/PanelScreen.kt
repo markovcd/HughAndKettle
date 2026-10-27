@@ -6,7 +6,7 @@ import kotlin.time.Duration
 
 /**
  * What a window of either app shows and acts on, over one [link] and what [home] keeps: the panel, the WMI-1s
- * heard through [discovery], the preset names, the tone shelf and the songs. A song counts in with [click],
+ * heard through [discovery], the preset names, the tone shelf, the songs and the loudness match. A song counts in with [click],
  * played the sound output's [lag] ahead. The shelf hands a renamed tone to the songs, and the songs look
  * tones up on the shelf.
  */
@@ -49,4 +49,6 @@ class PanelScreen(
             renamed = songs::renameTone,
             named = presetNames::name,
         )
+    val match: MatchState =
+        MatchState(home.loudness, panel, scope, names = { presetNames.names }, song = { songs.song })
 }

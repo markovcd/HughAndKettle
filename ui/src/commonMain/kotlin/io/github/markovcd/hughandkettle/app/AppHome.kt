@@ -2,13 +2,14 @@ package io.github.markovcd.hughandkettle.app
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import io.github.markovcd.hughandkettle.amp.LoudnessCorrectionStore
 import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import java.nio.file.Path
 
 /**
- * Where the app keeps what it saves: the folders of tones, preset names and songs under [folder], and
+ * Where the app keeps what it saves: the folders of tones, preset names, songs and loudness corrections under [folder], and
  * each setting as a key of its own in [settings]. The phone passes its files folder and its settings file;
  * the desktop passes `~/.hk`, which `hk` reads too, and a settings file there.
  */
@@ -19,6 +20,7 @@ class AppHome(
     val tones: ToneStore = ToneStore(folder.resolve("tones"))
     val presetNames: PresetNameStore = PresetNameStore(folder.resolve("preset-names"))
     val songs: SongStore = SongStore(folder.resolve("songs"))
+    val loudness: LoudnessCorrectionStore = LoudnessCorrectionStore(folder.resolve("loudness"))
     val theme: ThemeStore = ThemeStore(settings)
     val switcher: SwitcherModeStore = SwitcherModeStore(settings)
     val amps: AmpChoiceStore = AmpChoiceStore(settings)

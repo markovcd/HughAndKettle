@@ -14,6 +14,7 @@ public object Cli {
             ListenCommand,
             LockCommand,
             TrimCommand,
+            MatchCommand(),
             RandomizeCommand,
             LfoCommand,
             SongCommand,
@@ -44,6 +45,8 @@ public object Cli {
             "hz",
             "low",
             "high",
+            "presets",
+            "reference",
         )
 
     public fun run(

@@ -13,12 +13,14 @@ import io.github.markovcd.hughandkettle.amp.Section
 
 /**
  * The amp's own controls by section: each section's knobs, then its selectors, then its switches on cards,
- * with the controls behind a switch on its card, and last the volume trim.
+ * with the controls behind a switch on its card, then the loudness match's corrections, and last the volume trim.
  */
 @Composable
 fun AmpTab(
     panel: PanelState,
     songs: SongState,
+    match: MatchState,
+    names: PresetNamesState,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -38,6 +40,7 @@ fun AmpTab(
                 SwitchCards(switches, controls, panel, songs, enabled)
             }
         }
+        MatchCard(match, panel, names, enabled, Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
         panel.trim?.let {
             TrimCard(
                 it.trim,

@@ -46,6 +46,7 @@ hk set <target> <amp-id> preset <1..128>
 hk state <target> <amp-id> [--seconds N]                # what the amp reported, as one snapshot
 hk lock <target> <amp-id> [<0..127 | 520ms> | --tempo BPM [--note 1/8d]] [--seconds N]  # hold the delay time across preset recalls
 hk trim <target> <amp-id> <-127..127> [--recall N] [--seconds N]  # move every recalled preset's volume by a trim
+hk match run <target> <amp-id> --presets 5,7,12 [--reference 5] [--no-keep] | show <amp-id> | clear <amp-id> [<preset>]  # a soundcheck through this machine's microphone; takes --dir D
 hk randomize <target> <amp-id> [--seconds N] [--keep-time] [--seed N]  # new values behind each effect heard on
 hk lfo <target> <amp-id> <control-id> [--shape sine] [--hz 0.5] [--low 0] [--high 127] [--seconds N]  # sweep an effect control up and down
 hk song list <amp-id> | show <amp-id> | set <amp-id> <bpm> <preset>:<beats>[@<note>] | tone:<name>:<beats>[@<note>] ... [--no-count-in]  # takes --name N, --dir D

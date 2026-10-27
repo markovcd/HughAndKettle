@@ -32,9 +32,9 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The whole screen: the header, whose − and + step through the presets or the pinned tones as [mode] says, and
- * whose menu picks the amp, the [mode], the mute, the link and the theme; the switching, always in view; the link card while there is no link; then one tab of
+ * whose menu picks the amp, the [mode], the mute, the link and the theme, and opens the loudness match; the switching, always in view; the link card while there is no link; then one tab of
  * the amp, its effects, the song or the tones, picked along the bottom. A box linked to with no amp picked for it asks
- * which amp it is. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the tabs move to a rail
+ * which amp it is, and the loudness match's sheet lies over all of it while it is open. Wider than [TWO_PANES_FROM], as a phone or a tablet in landscape, the tabs move to a rail
  * at the side and the amp and its effects share a tab side by side. Tests find the tab's content by `panel`,
  * the effects beside the amp by `controls`, and a control by `control:<id>`.
  */
@@ -45,6 +45,7 @@ fun AmpPanel(
     shelf: ToneShelf,
     presetNames: PresetNamesState,
     songs: SongState,
+    match: MatchState,
     theme: ThemeChoice,
     onTheme: (ThemeChoice) -> Unit,
     mode: SwitcherMode,
@@ -68,7 +69,16 @@ fun AmpPanel(
                 mode,
                 onTones = { picked = PanelTab.Tones },
             ) { close, link ->
-                HeaderMenu(panel, mode, onMode, theme, onTheme, close, link)
+                HeaderMenu(
+                    panel,
+                    mode,
+                    onMode,
+                    theme,
+                    onTheme,
+                    close,
+                    link,
+                    onMatch = match::open.takeIf { match.available },
+                )
             }
             if (songs.recording && tab != PanelTab.Song) RecordingStrip(songs) { picked = PanelTab.Song }
             val content = Modifier.weight(1f).fillMaxWidth()
@@ -93,13 +103,20 @@ fun AmpPanel(
 
                 wide -> {
                     Row(content) {
-                        AmpTab(panel, songs, enabled, Modifier.weight(1f).then(dim).testTag("panel"))
+                        AmpTab(
+                            panel,
+                            songs,
+                            match,
+                            presetNames,
+                            enabled,
+                            Modifier.weight(1f).then(dim).testTag("panel"),
+                        )
                         FxTab(panel, songs, enabled, Modifier.weight(1f).then(dim).testTag("controls"))
                     }
                 }
 
                 tab == PanelTab.Amp -> {
-                    AmpTab(panel, songs, enabled, content.then(dim).testTag("panel"))
+                    AmpTab(panel, songs, match, presetNames, enabled, content.then(dim).testTag("panel"))
                 }
 
                 else -> {
@@ -138,6 +155,7 @@ fun AmpPanel(
                 }
             }
         }
+        MatchOverlay(match, presetNames)
     }
 }
 

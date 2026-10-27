@@ -8,14 +8,17 @@ import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.EffectRoll
 import io.github.markovcd.hughandkettle.amp.Lfo
+import io.github.markovcd.hughandkettle.amp.LoudnessCorrections
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
 import io.github.markovcd.hughandkettle.amp.SoundSwitch
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.Tone
+import io.github.markovcd.hughandkettle.amp.ValueBlock
 import io.github.markovcd.hughandkettle.amp.VolumeTrim
 import io.github.markovcd.hughandkettle.midi.ControlChange
 import io.github.markovcd.hughandkettle.midi.MidiMessage
 import io.github.markovcd.hughandkettle.midi.ProgramChange
+import io.github.markovcd.hughandkettle.midi.SystemExclusive
 import io.github.markovcd.hughandkettle.wmi.LinkState
 import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import io.github.markovcd.hughandkettle.wmi.WmiDefaults
@@ -67,6 +70,9 @@ class PanelState(
     var moved by mutableStateOf(emptySet<String>())
         private set
 
+    /** The loudness match's corrections kept for each amp model. */
+    private var corrections = emptyMap<AmpModel, LoudnessCorrections>()
+
     /** The tempo lock and the volume trim, answering every preset recalled and channel switched to. */
     private var answers by mutableStateOf(RecallAnswers(trim = trimFor(amp, 0)))
 
@@ -93,6 +99,15 @@ class PanelState(
     /** How many recalled presets and channels the trim has moved the volume of, so the panel can show each one. */
     var trimmed by mutableStateOf(0)
         private set
+
+    /** How many recalls a loudness match correction has moved the volume of, so the panel can show each one. */
+    var corrected by mutableStateOf(0)
+        private set
+
+    private val blocksHeard = MutableSharedFlow<ValueBlock>(extraBufferCapacity = BLOCKS_KEPT)
+
+    /** Each value block the amp sent, once the panel has answered it. */
+    val blocks: SharedFlow<ValueBlock> = blocksHeard
 
     /**
      * True while a tone is written into a preset: the lock and the trim answer nothing the amp says, so what the
@@ -331,6 +346,12 @@ class PanelState(
      */
     fun recall(preset: Int) = recall(amp.recall(preset), emptyList())
 
+    /** Adds [corrections] to the volume of their amp's presets on every recall from now on. */
+    fun correct(corrections: LoudnessCorrections) {
+        this.corrections += corrections.amp to corrections
+        if (corrections.amp == amp) answers = answers.copy(trim = trim?.corrected(corrections.amounts))
+    }
+
     /** Recalls the preset [by] places on from the current one, wrapping at either end; from none known, down goes to the last. */
     fun step(by: Int) {
         val now = state.preset ?: if (by < 0) 1 else 0
@@ -428,15 +449,29 @@ class PanelState(
         answers = answered.answers
         val now = answers.lock?.value
         if (held != null && now != null && now != held) heldMoves.tryEmit(now)
-        if (answered.trimmed.isNotEmpty()) trimmed++
+        if (answered.trimmed.isNotEmpty()) {
+            val trim = answers.trim
+            val correction =
+                if (message is ProgramChange) {
+                    trim?.corrections?.get(
+                        message.program + 1,
+                    )
+                } else {
+                    trim?.shift?.correction
+                }
+            if (correction != null && correction != 0) corrected++
+            if (trim?.trim != 0) trimmed++
+        }
         if (answered.restored != null) restored++
         if (answered.replies.isNotEmpty()) transmit(answered.replies)
+        if (message is SystemExclusive) ValueBlock.parse(message)?.let(blocksHeard::tryEmit)
     }
 
     private fun trimFor(
         amp: AmpModel,
         amount: Int,
-    ): VolumeTrim? = amp.control("volume")?.let { VolumeTrim.of(it, amount) }
+    ): VolumeTrim? =
+        amp.control("volume")?.let { VolumeTrim.of(it, amount).corrected(corrections[amp]?.amounts.orEmpty()) }
 
     private fun AmpModel.controlFor(change: ControlChange): String? =
         controls
@@ -454,5 +489,8 @@ class PanelState(
 
         // A take reads each switch as it comes; a few more cover a burst before anyone collects.
         const val SWITCHES_KEPT = 8
+
+        // A loudness match waits for one block at a time; a few more cover a burst.
+        const val BLOCKS_KEPT = 4
     }
 }

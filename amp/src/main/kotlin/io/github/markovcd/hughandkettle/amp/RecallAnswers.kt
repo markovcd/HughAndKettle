@@ -42,7 +42,7 @@ public data class RecallAnswers(
         }
 
     /**
-     * The messages that recall [preset] and then send [then]. Under a trim the recall goes behind [mute],
+     * The messages that recall [preset] and then send [then]. Under a trim or a correction the recall goes behind [mute],
      * unless the amp is [muted] already, so the preset's own volume never sounds.
      */
     public fun recall(
@@ -52,7 +52,7 @@ public data class RecallAnswers(
         then: List<MidiMessage> = emptyList(),
     ): Pair<RecallAnswers, List<MidiMessage>> {
         val held = trim
-        if (held == null || held.trim == 0 || mute == null || muted) {
+        if (held == null || !held.moves(preset) || mute == null || muted) {
             val messages = listOf(preset) + then
             return sent(messages) to messages
         }

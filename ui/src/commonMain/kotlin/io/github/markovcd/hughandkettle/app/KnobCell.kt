@@ -1,17 +1,22 @@
 package io.github.markovcd.hughandkettle.app
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.hint_knob
@@ -19,7 +24,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * A knob with its name above and its value below, in a 150 dp cell: in the amp's unit where the manual
- * gives a scale. Tests find the value by `value:<id>`.
+ * gives a scale, and under it an amber [note] where one is given. Tests find the value by `value:<id>` and the
+ * note by `match_mark`.
  */
 @Composable
 internal fun KnobCell(
@@ -28,6 +34,7 @@ internal fun KnobCell(
     enabled: Boolean,
     onValue: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    note: String? = null,
 ) {
     val scale = control.scale
     Column(
@@ -44,5 +51,19 @@ internal fun KnobCell(
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.testTag("value:${control.id}"),
         )
+        note?.let {
+            Text(
+                it,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = 6.dp, vertical = 1.dp)
+                        .testTag("match_mark"),
+            )
+        }
     }
 }
