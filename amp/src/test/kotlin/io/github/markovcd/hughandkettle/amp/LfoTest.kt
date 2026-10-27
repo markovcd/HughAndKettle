@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.amp
 
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -79,6 +80,19 @@ class LfoTest {
         assertEquals(Lfo.RATES.sorted(), Lfo.RATES)
         assertEquals(Lfo.SLOWEST_HZ to Lfo.FASTEST_HZ, Lfo.RATES.first() to Lfo.RATES.last())
         Lfo.RATES.forEach { Lfo(volume, hz = it, low = 0, high = 127) }
+    }
+
+    @Test
+    fun `A rolled LFO keeps its control, a level off 0 and a selector inside one option`() {
+        (1..200).forEach { seed ->
+            val level = Lfo.around(volume, 50).rolled(Random(seed))
+            assertEquals(volume, level.control)
+            assertTrue(level.low in 1..127 && level.high in level.low..127, "seed $seed: $level")
+            assertTrue(level.hz in Lfo.RATES, "seed $seed: $level")
+            assertFalse(Lfo.around(type, 50).rolled(Random(seed)).crosses, "seed $seed")
+        }
+        assertEquals(Lfo.around(volume, 50).rolled(Random(3)), Lfo.around(volume, 50).rolled(Random(3)))
+        assertTrue((1..50).map { Lfo.around(volume, 50).rolled(Random(it)).shape }.toSet().size > 1)
     }
 
     @Test

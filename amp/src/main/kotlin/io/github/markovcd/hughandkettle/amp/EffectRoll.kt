@@ -6,8 +6,9 @@ import kotlin.random.Random
 /**
  * New random values for the controls behind every effect that is on, and the changes that put back the
  * values they had. It switches no effect on or off: a [level][Control.level] never lands on 0, which the
- * amp stores as the effect off. A [kept] control, the time a tempo lock holds, keeps its value. A value
- * nobody knew is not put back.
+ * amp stores as the effect off. A [kept] control, the time a tempo lock holds, keeps its value, and so does
+ * a [swept] control, one an LFO moves, whose LFO is rolled in its place. A value nobody knew is not put
+ * back.
  */
 public data class EffectRoll(
     val effects: List<Control>,
@@ -27,14 +28,15 @@ public data class EffectRoll(
                     behind(state.amp, switch, kept).isNotEmpty()
             }
 
-        /** A roll of every effect [state] has on, with values from [random]; null when none is on. */
+        /** A roll of every effect [state] has on, with values from [random], the [swept] controls' ids aside; null when none is on. */
         public fun of(
             state: AmpState,
             random: Random,
             kept: Control? = null,
+            swept: Set<String> = emptySet(),
         ): EffectRoll? {
             val effects = effects(state, kept).ifEmpty { return null }
-            val rolled = effects.flatMap { behind(state.amp, it, kept) }
+            val rolled = effects.flatMap { behind(state.amp, it, kept) }.filterNot { it.id in swept }
             return EffectRoll(
                 effects = effects,
                 changes = rolled.map { it.set(value(it, random)) },

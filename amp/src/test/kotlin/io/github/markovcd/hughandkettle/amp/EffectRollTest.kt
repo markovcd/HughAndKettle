@@ -49,6 +49,14 @@ class EffectRollTest {
     }
 
     @Test
+    fun `A control an LFO moves keeps its value while the rest of its effect changes`() {
+        assertEquals(
+            listOf("modulation_type", "modulation_intensity", "modulation_speed", "delay_time", "delay_feedback"),
+            changed(EffectRoll.of(state, Random(1), swept = setOf("delay_volume"))),
+        )
+    }
+
+    @Test
     fun `A kept time keeps its value while the rest of its effect changes`() {
         assertEquals(
             listOf("modulation_type", "modulation_intensity", "modulation_speed", "delay_feedback", "delay_volume"),

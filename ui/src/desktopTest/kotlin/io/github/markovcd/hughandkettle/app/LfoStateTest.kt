@@ -11,9 +11,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
+import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -168,5 +170,32 @@ class LfoStateTest {
         lfos.switch(reverb, on = true)
         panel.choose(AmpModels.grandMeister36)
         assertTrue(lfos.running.isEmpty())
+    }
+
+    @Test
+    fun `A randomize rolls a running LFO in place of its knob, the other knobs as ever, and undo puts both back`() {
+        linked()
+        lfos.switch(delay, on = true)
+        val lfo = lfos.running.getValue("delay")
+        val volume = heard("delay_volume")
+        panel.randomize(Random(5))
+        val rolled = lfos.running.getValue("delay")
+        assertEquals(lfo.control, rolled.control)
+        assertNotEquals(lfo, rolled)
+        assertEquals(volume, heard("delay_volume"))
+        assertNotEquals(50, heard("delay_feedback"))
+        panel.undoRoll()
+        assertEquals(lfo, lfos.running.getValue("delay"))
+        assertEquals(50, heard("delay_feedback"))
+    }
+
+    @Test
+    fun `A randomize leaves an LFO whose effect is off as it is`() {
+        linked()
+        lfos.switch(reverb, on = true)
+        val lfo = lfos.running.getValue("reverb")
+        panel.set(reverb, 0)
+        panel.randomize(Random(5))
+        assertEquals(lfo, lfos.running.getValue("reverb"))
     }
 }

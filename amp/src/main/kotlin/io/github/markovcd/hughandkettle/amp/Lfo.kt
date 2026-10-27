@@ -47,6 +47,27 @@ public data class Lfo(
     /** Whether the rate is past what [STEP] can draw smoothly, so the swing may sound stepped. */
     public val stepped: Boolean get() = hz > SMOOTH_UP_TO_HZ
 
+    /**
+     * This LFO on the same control with a shape, a rate and ends from [random]: a level's ends never reach 0,
+     * which the amp stores as the effect off, and a selector's stay inside one option.
+     */
+    public fun rolled(random: Random): Lfo {
+        val kind = control.kind
+        val range =
+            if (kind is ControlKind.Selector) {
+                Sectors.range(random.nextInt(kind.options.size), kind.options.size)
+            } else {
+                (if (control.level) 1 else 0)..127
+            }
+        val ends = List(2) { random.nextInt(range.first, range.last + 1) }.sorted()
+        return copy(
+            shape = LfoShape.entries[random.nextInt(LfoShape.entries.size)],
+            hz = RATES[random.nextInt(RATES.size)],
+            low = ends[0],
+            high = ends[1],
+        )
+    }
+
     public companion object {
         /** How often a change is sent at most: 25 a second, a gentle load on the WMI-1 and the amp. */
         public val STEP: Duration = 40.milliseconds

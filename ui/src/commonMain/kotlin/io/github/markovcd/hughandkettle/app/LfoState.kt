@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 import kotlin.time.Duration
 
 /**
@@ -85,6 +86,27 @@ class LfoState internal constructor(
         val lfo = of(switch) ?: return
         if (lfo.control.id == target.id) return
         set(switch, Lfo.around(target, panel.state.values[target.id]).copy(shape = lfo.shape, hz = lfo.hz))
+    }
+
+    /**
+     * Gives every LFO running on an effect that is on a shape, a rate and ends from [random], on the control it
+     * moves; the LFOs as they were.
+     */
+    internal fun roll(random: Random): Map<String, Lfo> {
+        val was = running
+        was.forEach { (switch, lfo) ->
+            val effect = panel.amp.control(switch) ?: return@forEach
+            if (effect.isOn(panel.state.values[switch] ?: 0)) set(effect, lfo.rolled(random))
+        }
+        return was
+    }
+
+    /** Puts back [lfos], as [roll] gave them, on the cards still running one on the same control. */
+    internal fun unroll(lfos: Map<String, Lfo>) {
+        lfos.forEach { (switch, lfo) ->
+            val effect = panel.amp.control(switch) ?: return@forEach
+            if (running[switch]?.control?.id == lfo.control.id) set(effect, lfo)
+        }
     }
 
     /** Stops any LFO on [control] where it is, for a tempo lock that now holds it. */

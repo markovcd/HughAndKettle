@@ -294,18 +294,28 @@ class PanelState(
     /** The effects that are on and a randomize would change, its locked time aside. */
     val rollable: List<Control> get() = EffectRoll.effects(state, lock?.control)
 
-    /** Gives the controls behind every effect that is on new values from [random], all but a locked time. */
+    /** The LFOs as they were before the last randomize, put back by its undo. */
+    private var rolledLfos = emptyMap<String, Lfo>()
+
+    /**
+     * Gives the controls behind every effect that is on new values from [random], all but a locked time; a
+     * control an LFO moves keeps its value, and the LFO gets a new shape, rate and ends instead.
+     */
     fun randomize(random: Random = Random.Default) {
-        val roll = EffectRoll.of(state, random, lock?.control) ?: return
+        val swept = lfos.running.values.mapTo(HashSet()) { it.control.id }
+        val roll = EffectRoll.of(state, random, lock?.control, swept) ?: return
         send(roll.changes)
+        rolledLfos = lfos.roll(random)
         rolled = roll
     }
 
-    /** Puts back the values the last randomize changed. */
+    /** Puts back the values and the LFOs the last randomize changed. */
     fun undoRoll() {
         val roll = rolled ?: return
         rolled = null
         send(roll.undo)
+        lfos.unroll(rolledLfos)
+        rolledLfos = emptyMap()
     }
 
     /** Adds [amount] to the volume of every preset recalled and channel switched to from now on, and to the channel on now. */
