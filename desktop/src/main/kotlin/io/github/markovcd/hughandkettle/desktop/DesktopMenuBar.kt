@@ -14,6 +14,8 @@ import io.github.markovcd.hughandkettle.ui.link
 import io.github.markovcd.hughandkettle.ui.mute
 import io.github.markovcd.hughandkettle.ui.song
 import io.github.markovcd.hughandkettle.ui.song_play
+import io.github.markovcd.hughandkettle.ui.song_record
+import io.github.markovcd.hughandkettle.ui.song_record_stop
 import io.github.markovcd.hughandkettle.ui.song_stop
 import io.github.markovcd.hughandkettle.ui.switcher_steps_through
 import io.github.markovcd.hughandkettle.ui.theme
@@ -25,7 +27,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The window's menus, in place of the phone's header menu: the link, the amp behind the box and its mute, the
- * tones with their shortcuts and what the header's − and + step through, the tempo, the song, and the theme.
+ * tones with their shortcuts and what the header's − and + step through, the song and its takes, and the theme.
  */
 @Composable
 fun FrameWindowScope.DesktopMenuBar(
@@ -81,6 +83,12 @@ fun FrameWindowScope.DesktopMenuBar(
                 shortcut = DesktopOs.shortcut(Key.P),
                 enabled = panel.linked,
                 onClick = commands::playOrStop,
+            )
+            Item(
+                stringResource(if (commands.recording) Res.string.song_record_stop else Res.string.song_record),
+                shortcut = DesktopOs.shortcut(Key.R),
+                enabled = panel.linked && !commands.playing,
+                onClick = { commands.recordOrStop(screen.shelf.loaded.takeIf { mode == SwitcherMode.Tones }) },
             )
         }
         Menu(stringResource(Res.string.theme)) {

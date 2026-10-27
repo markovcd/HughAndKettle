@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -76,6 +77,8 @@ import io.github.markovcd.hughandkettle.ui.song_none
 import io.github.markovcd.hughandkettle.ui.song_none_now
 import io.github.markovcd.hughandkettle.ui.song_off
 import io.github.markovcd.hughandkettle.ui.song_play
+import io.github.markovcd.hughandkettle.ui.song_record_click
+import io.github.markovcd.hughandkettle.ui.song_record_click_what
 import io.github.markovcd.hughandkettle.ui.song_rename
 import io.github.markovcd.hughandkettle.ui.song_rename_title
 import io.github.markovcd.hughandkettle.ui.song_steps
@@ -90,8 +93,9 @@ import org.jetbrains.compose.resources.stringResource
  * The song's own tab. Stopped: its tempo, its count-in, its steps to lengthen, shorten or remove, a step to
  * add on the preset the amp is on or, in the Tones [mode], on the [loaded] tone, and Play along the foot. A
  * step on a deleted tone is marked, and said over the steps. Counting in: the clicks left, big. Playing: the
- * beat, big, over the steps read only, and Stop. A song that cannot be read says so on top and can be neither
- * changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
+ * beat, big, over the steps read only, and Stop. Record, beside Play, records a take: the steps grow as the
+ * sounds are switched, and the take is kept as a song of its own, offered for discard. A song that cannot be
+ * read says so on top and can be neither changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
  * switch by `song_count_in` and the clicks left by `song_countdown`. The open song's name heads the tab and
  * opens the list of the amp's songs over it.
  */
@@ -109,32 +113,40 @@ fun SongTab(
     val at = songs.position
     val names = presetNames.names
     val countdown = songs.countdown
-    val readable = at != null || countdown != null || songs.editable
-    val playing = at != null || countdown != null
+    val recording = songs.recording
+    val readable = at != null || countdown != null || recording || songs.editable
+    val playing = (at != null || countdown != null) && !recording
     val files = rememberToneFiles()
     var listing by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf<KeptSong?>(null) }
     val export = { name: String -> files.create("${name.ifBlank { "song" }}.song.json") { songs.export(name, it) } }
-    val shown = listing && !playing
+    val shown = listing && !playing && !recording
     Box(modifier) {
         Column(Modifier.fillMaxSize().then(if (shown) Modifier.clearAndSetSemantics {} else Modifier)) {
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(if (at == null) 12.dp else 10.dp),
             ) {
-                SongHeader(
-                    songs,
-                    playing,
-                    onList = { listing = true },
-                    onRename = { renaming = song.name },
-                    onExport = { export(song.name) },
-                    onDelete = { deleting = songs.songs.firstOrNull { it.name.equals(song.name, ignoreCase = true) } },
-                )
+                if (!recording) {
+                    SongHeader(
+                        songs,
+                        playing,
+                        onList = { listing = true },
+                        onRename = { renaming = song.name },
+                        onExport = { export(song.name) },
+                        onDelete = {
+                            deleting = songs.songs.firstOrNull { it.name.equals(song.name, ignoreCase = true) }
+                        },
+                    )
+                }
                 songs.failure?.let { SongAlert(readable, it) }
                 if (countdown != null) {
-                    SongCountdown(countdown, song)
+                    val first = if (recording) songs.take?.marks?.firstOrNull()?.sound else song.steps.firstOrNull()
+                    SongCountdown(countdown, first?.let { songStepTitle(it) } ?: songs.takeName, song.tempo)
+                } else if (recording) {
+                    SongTake(songs, names)
                 } else if (at != null) {
                     SongBeatHero(song, at, names)
                     if (song.delayMs(songs.sounding) != null && songs.timed) SongHeldStrip(song, songs.sounding)
@@ -145,7 +157,7 @@ fun SongTab(
                     }
                 } else {
                     SongTempoCard(songs, readable)
-                    CountInRow(song.countIn, songs.editable, songs::countIn)
+                    SongSwitches(song.countIn, songs.clicking, songs.editable, songs::countIn, songs::recordClick)
                     StepsHeader(song)
                     val adding: (() -> Unit)? =
                         when (mode) {
@@ -199,13 +211,36 @@ fun SongTab(
                     }
                 }
             }
+            songs.keptTake?.takeIf { !recording && !playing }?.let { name ->
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    TakeNotice(name, song.steps.size, songs::discard)
+                }
+            }
+            if (!enabled && !playing && !recording) RecordOffline()
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            PlayBar(
-                playing = playing,
-                enabled = enabled && readable && song.steps.isNotEmpty(),
-                onPlay = songs::start,
-                onStop = songs::stop,
-            )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (recording) {
+                    StopRecordingButton(songs::stopRecording)
+                } else {
+                    PlayBar(
+                        playing = playing,
+                        enabled = enabled && readable && song.steps.isNotEmpty(),
+                        onPlay = songs::start,
+                        onStop = songs::stop,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (!playing) {
+                        RecordButton(
+                            enabled && songs.choosable,
+                            onRecord = { songs.record(loaded.takeIf { mode == SwitcherMode.Tones }) },
+                            modifier = Modifier.width(128.dp),
+                        )
+                    }
+                }
+            }
         }
         if (shown) {
             SongSheet(
@@ -265,42 +300,72 @@ fun SongTab(
     }
 }
 
-/** The count-in, switched on or off. */
+/** The count-in and the click while recording, each switched on or off. */
 @Composable
-private fun CountInRow(
-    on: Boolean,
+private fun SongSwitches(
+    countIn: Boolean,
+    clicking: Boolean,
     enabled: Boolean,
     onCountIn: (Boolean) -> Unit,
+    onClicking: (Boolean) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(16.dp)
-    Row(
+    Column(
         Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(colors.surfaceContainer)
-            .border(1.dp, colors.outlineVariant, shape)
-            .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .border(1.dp, colors.outlineVariant, shape),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(stringResource(Res.string.song_count_in), fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            Text(stringResource(Res.string.song_count_in_what), fontSize = 13.sp, color = colors.onSurfaceVariant)
-        }
-        Switch(
-            checked = on,
-            onCheckedChange = onCountIn,
-            enabled = enabled,
-            modifier = Modifier.testTag("song_count_in"),
+        SwitchRow(
+            stringResource(Res.string.song_count_in),
+            stringResource(Res.string.song_count_in_what),
+            countIn,
+            enabled,
+            "song_count_in",
+            onCountIn,
+        )
+        HorizontalDivider(color = colors.outlineVariant)
+        SwitchRow(
+            stringResource(Res.string.song_record_click),
+            stringResource(Res.string.song_record_click_what),
+            clicking,
+            enabled,
+            "song_record_click",
+            onClicking,
         )
     }
 }
 
-/** The clicks of the count-in still to come, big, in a ring that fills as they pass, and the preset that starts. */
+/** One switch of [SongSwitches]: its [title] and [what] it does, and the switch tests find by [tag]. */
+@Composable
+private fun SwitchRow(
+    title: String,
+    what: String,
+    on: Boolean,
+    enabled: Boolean,
+    tag: String,
+    onSwitch: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(what, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = on, onCheckedChange = onSwitch, enabled = enabled, modifier = Modifier.testTag(tag))
+    }
+}
+
+/** The clicks of the count-in still to come, big, in a ring that fills as they pass, and [then], the sound that starts. */
 @Composable
 private fun SongCountdown(
     left: Int,
-    song: Song,
+    then: String,
+    tempo: Int,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(18.dp)
@@ -348,11 +413,11 @@ private fun SongCountdown(
                 color = colors.onSurfaceVariant,
             )
             Text(
-                stringResource(Res.string.song_then, songStepTitle(song.steps.first())),
+                stringResource(Res.string.song_then, then),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
             )
-            Text("${song.tempo} ${stringResource(Res.string.bpm)}", fontSize = 14.sp, color = colors.onSurfaceVariant)
+            Text("$tempo ${stringResource(Res.string.bpm)}", fontSize = 14.sp, color = colors.onSurfaceVariant)
         }
     }
 }
@@ -465,13 +530,14 @@ private fun AddStep(
     }
 }
 
-/** Play, filled amber, or Stop, outlined, across the foot of the tab. */
+/** Play, filled amber, or Stop, outlined, along the foot of the tab. */
 @Composable
 private fun PlayBar(
     playing: Boolean,
     enabled: Boolean,
     onPlay: () -> Unit,
     onStop: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(16.dp)
@@ -488,9 +554,7 @@ private fun PlayBar(
             else -> colors.onSurfaceVariant
         }
     Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+        modifier
             .height(56.dp)
             .clip(shape)
             .background(ground)

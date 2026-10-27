@@ -28,7 +28,17 @@ class PanelScreen(
             home.amps::remember,
         )
     val presetNames: PresetNamesState = PresetNamesState(home.presetNames, panel, scope)
-    val songs: SongState = SongState(home.songs, panel, scope, click = click, lag = lag, tones = { shelf.tones })
+    val songs: SongState =
+        SongState(
+            home.songs,
+            panel,
+            scope,
+            click = click,
+            lag = lag,
+            tones = { shelf.tones },
+            recordClick = home.recordClick.on,
+            keepRecordClick = home.recordClick::keep,
+        )
     val shelf: ToneShelf =
         ToneShelf(
             home.tones,

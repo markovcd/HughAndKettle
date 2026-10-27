@@ -23,4 +23,5 @@ class AppHome(
     val switcher: SwitcherModeStore = SwitcherModeStore(settings)
     val amps: AmpChoiceStore = AmpChoiceStore(settings)
     val lastWmi: LastWmiStore = LastWmiStore(settings)
+    val recordClick: RecordClickStore = RecordClickStore(settings)
 }

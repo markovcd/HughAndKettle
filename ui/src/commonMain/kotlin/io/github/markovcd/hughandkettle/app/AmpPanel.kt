@@ -70,6 +70,7 @@ fun AmpPanel(
             ) { close, link ->
                 HeaderMenu(panel, mode, onMode, theme, onTheme, close, link)
             }
+            if (songs.recording && tab != PanelTab.Song) RecordingStrip(songs) { picked = PanelTab.Song }
             val content = Modifier.weight(1f).fillMaxWidth()
             when {
                 tab == PanelTab.Tones -> {

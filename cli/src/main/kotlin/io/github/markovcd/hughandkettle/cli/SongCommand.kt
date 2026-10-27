@@ -11,6 +11,8 @@ import io.github.markovcd.hughandkettle.amp.SongFile
 import io.github.markovcd.hughandkettle.amp.SongImport
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
+import io.github.markovcd.hughandkettle.amp.SoundSwitch
+import io.github.markovcd.hughandkettle.amp.Take
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.ToneStore
 import io.github.markovcd.hughandkettle.midi.MidiMessage
@@ -20,6 +22,7 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
+import kotlin.time.Duration
 import kotlin.time.TimeSource
 
 /**
@@ -28,7 +31,10 @@ import kotlin.time.TimeSource
  * else the one open in the app. `play` counts in a bar, unless the song was set with `--no-count-in`, then
  * recalls each preset, or sends each tone kept in `--tones` or `~/.hk/tones`, on its beat. With `--lock` it sets
  * the delay time to a `--note` (a quarter unless given) at the song's tempo and holds it across the recalls, as
- * the app does while its tempo lock is on; a step whose tone is missing then sets the delay time alone. The rest of the verbs keep the list as the
+ * the app does while its tempo lock is on; a step whose tone is missing then sets the delay time alone. `record`
+ * records a take, as the app's Record does: from now, at `--tempo` or the open song's, each preset the amp
+ * reports recalling starts a step, until `--seconds` pass or stdin closes; the take starts on `--from` if given,
+ * else on the first recall heard, and is kept and opened as "Take N". The rest of the verbs keep the list as the
  * app's song list does.
  */
 public object SongCommand : Command {
@@ -44,6 +50,7 @@ public object SongCommand : Command {
         hk song import <amp-id> <file> [--dir D]    (a song for another amp model is refused)
         hk song set <amp-id> <bpm> <preset>:<beats>|tone:<name>:<beats>[@<note>] ... [--no-count-in] [--name N] [--dir D]
         hk song play ${AmpTarget.USAGE} <amp-id> [--lock [--note 1/8d]] [--name N] [--dir D] [--tones D]
+        hk song record ${AmpTarget.USAGE} <amp-id> [--tempo BPM] [--from <preset>] [--seconds N] [--dir D]
         """.trimIndent()
 
     override fun run(
@@ -53,12 +60,12 @@ public object SongCommand : Command {
     ): Int {
         val verb = args.positional.firstOrNull()
         val rest = args.positional.drop(1)
-        val ampAt = if (verb == "play") 1 else 0
+        val ampAt = if (verb == "play" || verb == "record") 1 else 0
         val enough =
             when (verb) {
                 "list", "show" -> rest.size == 1
                 "set" -> rest.size >= 2
-                "play", "import", "new", "open", "duplicate", "delete" -> rest.size == 2
+                "play", "record", "import", "new", "open", "duplicate", "delete" -> rest.size == 2
                 "rename", "move", "export" -> rest.size == 3
                 else -> false
             }
@@ -83,6 +90,10 @@ public object SongCommand : Command {
             )
         }
         val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
+        if (verb == "record") {
+            val open = list.open?.let(list::find)?.song
+            return record(store, amp, open?.tempo ?: Song.DEFAULT_TEMPO, rest[0], args, out, err)
+        }
         if (verb == "list") {
             list.songs.forEach { print(it, it.name.equals(list.open, ignoreCase = true), out) }
             return ExitCodes.OK
@@ -484,6 +495,62 @@ public object SongCommand : Command {
         }
         out.println(Json.line("ms" to ms(), "ended" to true))
         return ExitCodes.OK
+    }
+
+    /**
+     * Records a take on the amp behind [target], at `--tempo` or [tempo], from now until the run ends, and keeps it
+     * as the next "Take N" of [amp], opened. Each recall heard prints a line, and the take's song is printed last.
+     */
+    private fun record(
+        store: SongStore,
+        amp: AmpModel,
+        tempo: Int,
+        target: String,
+        args: Options,
+        out: PrintWriter,
+        err: PrintWriter,
+    ): Int {
+        val at = AmpTarget.parse(target)
+        val bpm = args.optionalInt("tempo").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it } ?: tempo
+        val from = args.optionalInt("from").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+        if (at == null || bpm !in Song.TEMPOS || (from != null && from !in 1..amp.presetCount) ||
+            (seconds != null && seconds < 1)
+        ) {
+            err.println(usage)
+            return ExitCodes.BAD_ARGUMENTS
+        }
+        val link = QueuedLink.open(at).orExit(err, ExitCodes.NO_LINK) { return it }
+        val started = TimeSource.Monotonic.markNow()
+        var take = Take(bpm).let { take -> from?.let { take.after(SoundSwitch(it), Duration.ZERO) } ?: take }
+        link.endAfter(seconds)
+        link.use {
+            while (true) {
+                val message = (it.next() as? QueuedLink.Next.Heard)?.message ?: break
+                val switch = SoundSwitch.heard(message, amp) ?: continue
+                val elapsed = started.elapsedNow()
+                take = take.after(switch, elapsed)
+                out.println(Json.line("ms" to elapsed.inWholeMilliseconds, "preset" to switch.preset))
+                out.flush()
+            }
+        }
+        val steps = take.steps(started.elapsedNow())
+        link.lost?.let { err.println("link lost: $it") }
+        if (steps.isEmpty()) {
+            err.println("no preset was recalled, so there is no take to keep")
+            return ExitCodes.NOTHING_FOUND
+        }
+        val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
+        val song = Song(amp, bpm, steps, name = Take.name { list.find(it) != null })
+        store
+            .save(song)
+            .mapCatching { store.open(amp, song.name).getOrThrow() }
+            .onFailure {
+                err.println(it.message)
+                return ExitCodes.BAD_FILE
+            }
+        print(song, out)
+        return if (link.lost == null) ExitCodes.OK else ExitCodes.NO_LINK
     }
 
     private const val TONE = "tone:"

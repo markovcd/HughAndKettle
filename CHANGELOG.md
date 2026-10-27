@@ -60,6 +60,7 @@ section becomes a version's section when `release.sh` ships it.
 - Every `hk` command that drives the amp reaches it over a USB MIDI cable too, named as `cable:<name>` in place of a WMI-1 address.
 - `hk song` makes, opens, renames, duplicates, moves, deletes, exports and imports songs, as the app's song list does.
 - App: a tone is written into one of the amp's presets with one press of STORE on the amp, the preset backed up as a tone first (`hk tone write`).
+- App: Record on the Song tab records a take while you play: each switch of sound starts a step on the beat, kept as a new song to play back or discard (`hk song record`).
 
 ### Fixes
 

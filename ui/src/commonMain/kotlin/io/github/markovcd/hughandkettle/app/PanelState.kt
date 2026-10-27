@@ -8,6 +8,7 @@ import io.github.markovcd.hughandkettle.amp.AmpState
 import io.github.markovcd.hughandkettle.amp.Control
 import io.github.markovcd.hughandkettle.amp.EffectRoll
 import io.github.markovcd.hughandkettle.amp.RecallAnswers
+import io.github.markovcd.hughandkettle.amp.SoundSwitch
 import io.github.markovcd.hughandkettle.amp.TempoLock
 import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.amp.VolumeTrim
@@ -71,6 +72,11 @@ class PanelState(
 
     /** Each time the amp moved the held time itself, from its knob or a footswitch tap, the time it moved to. */
     val held: SharedFlow<Int> = heldMoves
+
+    private val switchesMade = MutableSharedFlow<SoundSwitch>(extraBufferCapacity = SWITCHES_KEPT)
+
+    /** Each switch of the amp's sound: a preset recalled or a tone sent from the panel, or a preset the amp reported. */
+    val switches: SharedFlow<SoundSwitch> = switchesMade
 
     /** How many recalled presets the lock has given the held time back, so the panel can show each one. */
     var restored by mutableStateOf(0)
@@ -326,6 +332,7 @@ class PanelState(
     ) {
         val (next, messages) = answers.recall(recall, amp.control("mute"), muted, then)
         answers = next
+        if (recall.program < amp.presetCount) switchesMade.tryEmit(SoundSwitch(recall.program + 1))
         // One transmit, so the recall and what follows it reach the amp in order.
         transmit(messages)
         if (!next.muting) return
@@ -340,6 +347,7 @@ class PanelState(
     /** Sends every value [tone] holds, in order, so a channel switch lands before the knobs it carries. */
     fun recall(tone: Tone) {
         send(answers.tone(tone.recall()))
+        switchesMade.tryEmit(SoundSwitch(tone = tone.name))
     }
 
     /** The tone [name] holding every value the amp is known to be at, its volume without the trim. */
@@ -392,6 +400,7 @@ class PanelState(
                 moved + state.values.filter { (id, value) -> before.values[id] != value }.keys
             }
         if (holding) return
+        SoundSwitch.heard(message, amp)?.let(switchesMade::tryEmit)
         val held = answers.lock?.value
         val answered = answers.heard(message)
         answers = answered.answers
@@ -420,5 +429,8 @@ class PanelState(
 
         // Only the latest move matters; a few more cover a burst of taps read before anyone collects.
         const val HELD_MOVES_KEPT = 8
+
+        // A take reads each switch as it comes; a few more cover a burst before anyone collects.
+        const val SWITCHES_KEPT = 8
     }
 }

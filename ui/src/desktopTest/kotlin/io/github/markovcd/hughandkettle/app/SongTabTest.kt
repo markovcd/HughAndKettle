@@ -19,6 +19,8 @@ import io.github.markovcd.hughandkettle.amp.PresetNameStore
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
 import io.github.markovcd.hughandkettle.amp.Tone
+import io.github.markovcd.hughandkettle.wmi.FakeWmi
+import io.github.markovcd.hughandkettle.wmi.WmiAddress
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -195,5 +197,44 @@ class SongTabTest {
             onNodeWithTag("song_delete:Encore").performClick()
             onNodeWithTag("song_delete_confirm").performClick()
             assertEquals(listOf("Set opener"), songs.songs.map { it.name })
+        }
+
+    @Test
+    fun `Record is off and says why while the amp is not linked`() =
+        runComposeUiTest {
+            setContent { SongTab(songs, names, preset = 5, enabled = false) }
+            onNodeWithTag("song_record").assertIsNotEnabled()
+            onNodeWithTag("song_record_offline").assertExists()
+        }
+
+    @Test
+    fun `The click while recording is switched beside the count-in`() =
+        runComposeUiTest {
+            setContent { SongTab(songs, names, preset = 5, enabled = true) }
+            onNodeWithTag("song_record_click").performClick()
+            assertEquals(true, songs.clicking)
+        }
+
+    @Test
+    fun `Record shows the take as it grows, and Stop keeps it with Discard offered`() =
+        runComposeUiTest {
+            val fake = FakeWmi()
+            try {
+                panel.connect(WmiAddress("127.0.0.1", fake.port))
+                waitUntil("linked", timeoutMillis = 5_000) { panel.linked }
+                songs.countIn(false)
+                panel.recall(5)
+                setContent { SongTab(songs, names, preset = 5, enabled = true) }
+                onNodeWithTag("song_record").performClick()
+                onNodeWithTag("song_recording").assertExists()
+                onNodeWithTag("song_step:1").assertExists()
+                onNodeWithTag("song_record_stop").performClick()
+                onNodeWithTag("song_take_notice").assertExists()
+                assertEquals("Take 1", songs.song.name)
+                onNodeWithTag("song_take_discard").performClick()
+                onNodeWithTag("song_take_notice").assertDoesNotExist()
+            } finally {
+                fake.close()
+            }
         }
 }

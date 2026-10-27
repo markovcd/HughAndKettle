@@ -53,7 +53,11 @@ is off. Ratios are the role's text on its container (WCAG 2).
 | outline | `#7F7468` | 4.3 |
 | outlineVariant | `#D2C6B8` | decoration only |
 
-## The two signals
+## The signals
 
 Live: a round dot, a pill, amber (primary). Wrong: a triangle or octagon, squared corners, rose
 (error). Each carries a word, so neither relies on hue, and they differ in lightness as well as hue.
+
+Recording: a round dot that blinks, a rounded outline, red (`#FF6B5B` dark, `#B3261E` light, on a
+ground of `#2A1613` or `#FFE4DF`), always beside the word Recording. Its hue is close to rose, so the
+blinking dot and the word set it apart from wrong. `RecordingColors` holds it.

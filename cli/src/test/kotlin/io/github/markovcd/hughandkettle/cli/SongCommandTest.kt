@@ -213,6 +213,46 @@ class SongCommandTest {
     }
 
     @Test
+    fun `A take records each preset the amp reports recalling and is kept and opened as the next take`() {
+        val target = "127.0.0.1:${fake.port}"
+        val recording =
+            CompletableFuture.supplyAsync {
+                run("record", target, "grandmeister_deluxe_40", "--tempo", "400", "--seconds", "1")
+            }
+        assertTrue(next() is FakeWmiEvent.Opened)
+        fake.emit(ValueBlock(mapOf(4 to 200), preset = 5).message())
+        val run = recording.get(10, TimeUnit.SECONDS)
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val lines = run.out.lines().filter { it.isNotEmpty() }
+        assertTrue(lines.first().endsWith(""","preset":5}"""), lines.first())
+        val shown = run("show", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() }
+        assertTrue(shown.first().contains(""""name":"Take 1","tempo":400"""), shown.first())
+        assertEquals(1, shown.drop(1).size, shown.joinToString("\n"))
+        assertTrue(shown[1].contains(""""preset":5"""), shown[1])
+    }
+
+    @Test
+    fun `A take started on a preset holds it until the first recall, and the next take is numbered after it`() {
+        val target = "127.0.0.1:${fake.port}"
+        val first = run("record", target, "grandmeister_deluxe_40", "--from", "3", "--seconds", "1")
+        assertEquals(ExitCodes.OK, first.code, first.err)
+        val second = run("record", target, "grandmeister_deluxe_40", "--from", "7", "--seconds", "1")
+        assertEquals(ExitCodes.OK, second.code, second.err)
+        val shown = run("show", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() }
+        assertTrue(shown.first().contains(""""name":"Take 2""""), shown.first())
+        // A second at 120 BPM is two beats, give or take the run's own start.
+        assertEquals(1, shown.drop(1).size, shown.joinToString("\n"))
+        assertTrue(shown[1].startsWith("""{"step":1,"preset":7,"""), shown[1])
+    }
+
+    @Test
+    fun `A take in which nothing was recalled is not kept`() {
+        val run = run("record", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--seconds", "1")
+        assertEquals(ExitCodes.NOTHING_FOUND, run.code, run.err)
+        assertEquals("", run("list", "grandmeister_deluxe_40").out)
+    }
+
+    @Test
     fun `A song played without --lock recalls each preset on its beat and leaves the delay time alone`() {
         run("set", "grandmeister_deluxe_40", "400", "3:2", "5:2", "--no-count-in")
         val playing = CompletableFuture.supplyAsync { run("play", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40") }

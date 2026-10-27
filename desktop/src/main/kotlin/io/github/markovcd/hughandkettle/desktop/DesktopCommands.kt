@@ -1,5 +1,6 @@
 package io.github.markovcd.hughandkettle.desktop
 
+import io.github.markovcd.hughandkettle.amp.Tone
 import io.github.markovcd.hughandkettle.app.PanelState
 import io.github.markovcd.hughandkettle.app.SongState
 import io.github.markovcd.hughandkettle.app.ToneShelf
@@ -27,4 +28,10 @@ class DesktopCommands(
     val playing: Boolean get() = songs.busy
 
     fun playOrStop() = if (playing) songs.stop() else songs.start()
+
+    /** Whether a take is being recorded. */
+    val recording: Boolean get() = songs.recording
+
+    /** Records a take starting on [from], else on the preset the amp is on; or stops the one being recorded. */
+    fun recordOrStop(from: Tone? = null) = if (recording) songs.stopRecording() else songs.record(from)
 }

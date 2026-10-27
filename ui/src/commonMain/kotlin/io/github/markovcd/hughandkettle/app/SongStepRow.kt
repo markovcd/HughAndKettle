@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.markovcd.hughandkettle.amp.NoteLength
 import io.github.markovcd.hughandkettle.amp.SongStep
+import io.github.markovcd.hughandkettle.app.theme.RecordingColors
 import io.github.markovcd.hughandkettle.ui.Res
 import io.github.markovcd.hughandkettle.ui.cancel
 import io.github.markovcd.hughandkettle.ui.ok
@@ -68,6 +69,7 @@ import io.github.markovcd.hughandkettle.ui.song_move_down
 import io.github.markovcd.hughandkettle.ui.song_move_up
 import io.github.markovcd.hughandkettle.ui.song_note
 import io.github.markovcd.hughandkettle.ui.song_note_picked
+import io.github.markovcd.hughandkettle.ui.song_record_beats_so_far
 import io.github.markovcd.hughandkettle.ui.song_remove
 import io.github.markovcd.hughandkettle.ui.song_step_missing
 import io.github.markovcd.hughandkettle.ui.song_step_tone
@@ -258,6 +260,47 @@ internal fun PlayedStepRow(
                     .background(colors.primary),
             )
         }
+    }
+}
+
+/**
+ * One step of a take being recorded, read only; the [last] is the step sounding now, outlined red with the beats
+ * it has lasted so far. Tests find it by `song_step:<n>`.
+ */
+@Composable
+internal fun TakenStepRow(
+    n: Int,
+    step: SongStep,
+    name: String?,
+    last: Boolean,
+) {
+    val colors = MaterialTheme.colorScheme
+    val recording = RecordingColors.current()
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clip(shape)
+            .background(if (last) recording.ground else colors.surfaceContainer)
+            .border(1.dp, if (last) recording.mark else colors.outlineVariant, shape)
+            .padding(start = 10.dp, end = 14.dp)
+            .testTag("song_step:$n"),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StepNumber { Text("$n", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.primary) }
+        PresetName(songStepTitle(step), name, colors.onSurfaceVariant, Modifier.weight(1f))
+        Text(
+            if (last) {
+                stringResource(Res.string.song_record_beats_so_far, step.beats)
+            } else {
+                stringResource(Res.string.song_beat_count, step.beats)
+            },
+            fontSize = 13.sp,
+            fontWeight = if (last) FontWeight.Bold else FontWeight.Normal,
+            color = if (last) recording.mark else colors.onSurfaceVariant,
+        )
     }
 }
 

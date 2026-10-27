@@ -38,6 +38,7 @@ public object Cli {
             "seed",
             "note",
             "tempo",
+            "from",
         )
 
     public fun run(
