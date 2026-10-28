@@ -212,7 +212,7 @@ class SongTabTest {
         runComposeUiTest {
             setContent { SongTab(songs, names, preset = 5, enabled = true) }
             onNodeWithTag("song_record_click").performClick()
-            assertEquals(true, songs.clicking)
+            assertEquals(true, songs.takes.clicking)
         }
 
     @Test

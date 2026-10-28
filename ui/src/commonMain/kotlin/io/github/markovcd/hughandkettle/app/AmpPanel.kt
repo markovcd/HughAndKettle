@@ -80,7 +80,7 @@ fun AmpPanel(
                     onMatch = match::open.takeIf { match.available },
                 )
             }
-            if (songs.recording && tab != PanelTab.Song) RecordingStrip(songs) { picked = PanelTab.Song }
+            if (songs.takes.recording && tab != PanelTab.Song) RecordingStrip(songs.takes) { picked = PanelTab.Song }
             val content = Modifier.weight(1f).fillMaxWidth()
             when {
                 tab == PanelTab.Tones -> {

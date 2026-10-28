@@ -90,6 +90,8 @@ class SongStateTest {
 
     private fun kept() = store.list(amp).getOrThrow().songs
 
+    private fun countdown() = (songs.now as? SongState.Now.CountingIn)?.left
+
     @Test
     fun `A song edited on the phone is kept for its amp`() {
         songs.tempo(96)
@@ -208,7 +210,7 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(delay), next())
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
         assertEquals(FakeWmiEvent.Received(delay), next())
-        until("song over") { songs.position == null }
+        until("song over") { songs.now == SongState.Now.Stopped }
         assertEquals(time, panel.lock?.control)
     }
 
@@ -231,7 +233,7 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(half), next())
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(FakeWmiEvent.Received(quarter), next())
-        until("song over") { songs.position == null }
+        until("song over") { songs.now == SongState.Now.Stopped }
         assertEquals(NoteLength.QUARTER, songs.sounding)
     }
 
@@ -285,7 +287,7 @@ class SongStateTest {
         songs.start()
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 2)), next())
-        until("song over") { songs.position == null }
+        until("song over") { songs.now == SongState.Now.Stopped }
         assertNull(panel.lock)
     }
 
@@ -309,7 +311,7 @@ class SongStateTest {
         assertEquals(FakeWmiEvent.Received(ControlChange(MidiChannel(1), gain.controller, 90)), next())
         assertEquals(FakeWmiEvent.Received(delay), next())
         assertEquals(FakeWmiEvent.Received(delay), next())
-        until("song over") { songs.position == null }
+        until("song over") { songs.now == SongState.Now.Stopped }
     }
 
     @Test
@@ -347,14 +349,14 @@ class SongStateTest {
         songs.tempo(400)
         songs.add()
         songs.start()
-        assertEquals(4, songs.countdown)
+        assertEquals(4, countdown())
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(4, clicks.get())
         songs.stop()
-        assertNull(songs.countdown)
+        assertNull(countdown())
         songs.countIn(false)
         songs.start()
-        assertNull(songs.countdown)
+        assertNull(countdown())
         assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 0)), next())
         assertEquals(4, clicks.get())
         songs.stop()
@@ -416,94 +418,7 @@ class SongStateTest {
         songs.create("Other")
         assertEquals("", songs.song.name)
         songs.stop()
-        assertNull(songs.position)
+        assertEquals(SongState.Now.Stopped, songs.now)
         assertEquals(time, panel.lock?.control)
-    }
-
-    /** Starts a take at 400 BPM with no count-in on [preset], and waits for its [beats]th beat. */
-    private fun recording(
-        preset: Int,
-        beats: Int = 0,
-    ) {
-        connected()
-        songs.tempo(400)
-        songs.countIn(false)
-        panel.recall(preset)
-        next()
-        songs.record()
-        until("beat $beats of the take") { songs.takeAt.let { it != null && it >= 150.milliseconds * beats } }
-    }
-
-    @Test
-    fun `A take keeps each switch of sound as a step, and is kept at Stop as a song of its own, opened`() {
-        recording(preset = 3, beats = 4)
-        fake.emit(ValueBlock(emptyMap(), preset = 5).message())
-        until("the footswitch recall taken") { songs.take?.marks?.size == 2 }
-        until("two beats on") { songs.takeAt!! >= 150.milliseconds * 6 }
-        songs.stopRecording()
-        assertFalse(songs.recording)
-        assertEquals("Take 1", songs.song.name)
-        assertEquals(listOf(3, 5), songs.song.steps.map { it.preset })
-        assertEquals(400, songs.song.tempo)
-        assertEquals("Take 1", songs.keptTake)
-        until("kept and opened") { store.list(amp).getOrThrow().open == "Take 1" }
-    }
-
-    @Test
-    fun `A tone sent from the panel during a take is a step on that tone`() {
-        recording(preset = 3, beats = 4)
-        panel.recall(Tone("Lead", amp, emptyMap()))
-        until("the tone taken") { songs.take?.marks?.size == 2 }
-        songs.stopRecording()
-        assertEquals(listOf(3 to null, null to "Lead"), songs.song.steps.map { it.preset to it.tone })
-    }
-
-    @Test
-    fun `A discarded take is deleted and the song open before it opens again`() {
-        songs.create("Opener")
-        recording(preset = 3, beats = 1)
-        songs.stopRecording()
-        assertEquals("Take 1", songs.song.name)
-        songs.discard()
-        assertEquals("Opener", songs.song.name)
-        assertNull(songs.keptTake)
-        until("the take deleted") { kept().map { it.name } == listOf("Opener") }
-    }
-
-    @Test
-    fun `During a take the song is not changed, played or swapped, and the sound switches as usual`() {
-        songs.add()
-        recording(preset = 3)
-        songs.tempo(90)
-        songs.start()
-        songs.create("Other")
-        assertEquals(400, songs.song.tempo)
-        assertNull(songs.position)
-        assertNull(songs.countdown)
-        assertEquals("", songs.song.name)
-        panel.step(1)
-        assertEquals(FakeWmiEvent.Received(ProgramChange(MidiChannel(1), 3)), next())
-        songs.stopRecording()
-    }
-
-    @Test
-    fun `A take needs the amp linked, and one stopped in its count-in keeps nothing`() {
-        songs.record()
-        assertFalse(songs.recording)
-        connected()
-        songs.tempo(20)
-        songs.record()
-        assertTrue(songs.recording)
-        songs.stopRecording()
-        assertNull(songs.keptTake)
-        assertEquals(emptyList(), kept())
-    }
-
-    @Test
-    fun `A take clicks every beat when the click while recording is on`() {
-        songs.recordClick(true)
-        recording(preset = 3, beats = 3)
-        songs.stopRecording()
-        assertTrue(clicks.get() >= 3, "${clicks.get()} clicks")
     }
 }

@@ -65,14 +65,14 @@ import kotlin.time.Duration
  */
 @Composable
 internal fun SongTake(
-    songs: SongState,
+    takes: TakeState,
     names: PresetNames,
 ) {
-    val take = songs.take ?: return
-    val at = songs.takeAt ?: Duration.ZERO
+    val take = takes.take ?: return
+    val at = takes.at ?: Duration.ZERO
     val beats = (at / take.beat).toInt()
     val steps = take.steps(at)
-    RecordingTitle(songs.takeName, beats)
+    RecordingTitle(takes.name, beats)
     RecordingHero(take.tempo, beats, steps.size, at)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -322,12 +322,12 @@ internal fun RecordOffline() {
  */
 @Composable
 internal fun RecordingStrip(
-    songs: SongState,
+    takes: TakeState,
     onOpen: () -> Unit,
 ) {
-    val take = songs.take ?: return
+    val take = takes.take ?: return
     val recording = RecordingColors.current()
-    val at = songs.takeAt ?: Duration.ZERO
+    val at = takes.at ?: Duration.ZERO
     val beats = (at / take.beat).toInt()
     Row(
         Modifier
@@ -350,7 +350,7 @@ internal fun RecordingStrip(
         Text(
             stringResource(
                 Res.string.song_record_strip,
-                songs.takeName,
+                takes.name,
                 beats / Song.COUNT_IN_BEATS + 1,
                 take.steps(at).size,
             ),
@@ -369,7 +369,7 @@ internal fun RecordingStrip(
                 Modifier
                     .clip(shape)
                     .border(1.dp, recording.mark, shape)
-                    .clickable(role = Role.Button, onClick = songs::stopRecording)
+                    .clickable(role = Role.Button, onClick = takes::stop)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
                     .testTag("song_record_stop"),
         )

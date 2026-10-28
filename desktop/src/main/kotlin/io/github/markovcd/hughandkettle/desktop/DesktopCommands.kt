@@ -30,8 +30,8 @@ class DesktopCommands(
     fun playOrStop() = if (playing) songs.stop() else songs.start()
 
     /** Whether a take is being recorded. */
-    val recording: Boolean get() = songs.recording
+    val recording: Boolean get() = songs.takes.recording
 
     /** Records a take starting on [from], else on the preset the amp is on; or stops the one being recorded. */
-    fun recordOrStop(from: Tone? = null) = if (recording) songs.stopRecording() else songs.record(from)
+    fun recordOrStop(from: Tone? = null) = if (recording) songs.takes.stop() else songs.takes.record(from)
 }

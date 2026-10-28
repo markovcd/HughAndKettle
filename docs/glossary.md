@@ -39,7 +39,7 @@ Prefer the domain's words over the framework's.
 | **tone step** | A song step that sends a tone rather than recalling a preset; it names its tone, and a step whose tone was deleted is a **missing tone** and sets only the delay time. | `SongStep.tone` | tone preset, sound step |
 | **count-in** | The bar of clicks a song plays before its first step, so the band starts on the beat. | `Song.countIn`, `ClickSound` | countdown, pre-roll |
 | **open song** | The one song of an amp model the Song tab shows and plays; the others wait in the song list. | `SongState.song`, `SongList.open` | loaded song, current song |
-| **take** | A song recorded while playing: Record starts it at the open song's tempo, each switch of sound (a preset recalled from the footswitch, the amp or the app, or a tone sent) starts a step on the nearest beat, and Stop keeps it as a song of its own named "Take N". | `Take`, `SoundSwitch`, `SongState.record` | recording (the act, not the thing), loop, sequence |
+| **take** | A song recorded while playing: Record starts it at the open song's tempo, each switch of sound (a preset recalled from the footswitch, the amp or the app, or a tone sent) starts a step on the nearest beat, and Stop keeps it as a song of its own named "Take N". | `Take`, `SoundSwitch`, `TakeState.record` | recording (the act, not the thing), loop, sequence |
 | **controller** | The MIDI control change number a control moves on, 0 to 127. | `controller` | CC (fine in a table), parameter number |
 | **MIDI channel** | The 1 to 16 a message is addressed on. Always with the word MIDI, because the amp has channels too. | `MidiChannel` | channel (alone) |
 | **channel** | The amp's Clean, Crunch, Lead or Ultra. | `channel` control | mode, voice, sound |

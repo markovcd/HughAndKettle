@@ -15,8 +15,6 @@ import io.github.markovcd.hughandkettle.amp.SongImport
 import io.github.markovcd.hughandkettle.amp.SongList
 import io.github.markovcd.hughandkettle.amp.SongStep
 import io.github.markovcd.hughandkettle.amp.SongStore
-import io.github.markovcd.hughandkettle.amp.SoundSwitch
-import io.github.markovcd.hughandkettle.amp.Take
 import io.github.markovcd.hughandkettle.amp.TapTempo
 import io.github.markovcd.hughandkettle.amp.Tone
 import kotlinx.coroutines.CoroutineDispatcher
@@ -35,23 +33,19 @@ import java.io.InputStream
 import java.io.OutputStream
 import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.TimeMark
-import kotlin.time.TimeSource
 
 /**
  * The songs of the panel's amp, kept on the phone in the person's order, and the one open: its tempo and steps,
  * edited and kept as they change, and played from a tap. A bar of [click]s counts it in, unless its count-in is
  * off, each played the sound output's [lag] ahead of its beat so it is heard on the beat the amp switches on.
+ * [takes] records a take of it.
  * The open song's tempo is the one tempo: while the tempo lock is on, the delay time is a [note] at it, moved
  * whenever either changes, and a time the amp sets itself (its knob, a footswitch tap) sets the tempo instead.
  * While it plays, each step recalls its preset, or sends its tone from [tones], on its beat; while locked, the
  * delay time follows and the lock holds it across the recalls, and otherwise each step keeps its own. No other
- * song can be opened while one plays. A take records the sounds switched to while the person plays, at the open
- * song's tempo, counted in as a song is and clicking every beat if [recordClick] says so, and is kept as a song
- * of its own, opened at Stop and offered for discard. An amp with no songs opens on an
- * untitled one, kept once it has a step or a name. A song that cannot be read plays nothing, says why in
+ * song can be opened while one plays, nor during a take. An amp with no songs opens on an untitled one, kept
+ * once it has a step or a name. A song that cannot be read plays nothing, says why in
  * [failure], and is left as it is. The folder is read and written off the main thread, one change at a time.
  */
 class SongState(
@@ -59,11 +53,11 @@ class SongState(
     private val panel: PanelState,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher = Dispatchers.IO,
-    private val click: () -> Unit = {},
-    private val lag: suspend () -> Duration = { Duration.ZERO },
+    click: () -> Unit = {},
+    lag: suspend () -> Duration = { Duration.ZERO },
     private val tones: () -> List<Tone> = { emptyList() },
     recordClick: Flow<Boolean> = flowOf(false),
-    private val keepRecordClick: suspend (Boolean) -> Unit = {},
+    keepRecordClick: suspend (Boolean) -> Unit = {},
 ) {
     private var lists by mutableStateOf(emptyMap<AmpModel, SongList>())
     private var opened by mutableStateOf(emptyMap<AmpModel, String>())
@@ -72,13 +66,8 @@ class SongState(
     private var drafts by mutableStateOf(emptyMap<AmpModel, Song>())
     private var notices by mutableStateOf(emptyMap<AmpModel, SongNotice>())
     private var playing by mutableStateOf<Job?>(null)
-    private var taking by mutableStateOf<Job?>(null)
-
-    /** Where the first beat of the take is, so a switch is timed from it; the count-in runs before it. */
-    private var takeStart: TimeMark? = null
-
-    /** The song open before the take, opened again if the take is discarded. */
-    private var beforeTake: String? = null
+    private var position by mutableStateOf<Song.Position?>(null)
+    private val counting = CountIn(click, lag)
     private var taps = TapTempo()
     private val writes = Mutex()
 
@@ -87,29 +76,8 @@ class SongState(
     /** Why the open song cannot be read, or why a change could not be saved. */
     val failure: String? get() = openKept()?.problem ?: unsaved
 
-    /** The clicks of the count-in still to come, this one among them, or null while not counting in. */
-    var countdown by mutableStateOf<Int?>(null)
-        private set
-
-    /** The take being recorded, or null while none is. */
-    var take by mutableStateOf<Take?>(null)
-        private set
-
-    /** The name the take will be kept under. */
-    var takeName by mutableStateOf("")
-        private set
-
-    /** How far the take is past its first beat, from the last beat on; null before it. */
-    var takeAt by mutableStateOf<Duration?>(null)
-        private set
-
-    /** The take just kept, offered for discard until the song is changed or another is opened. */
-    var keptTake by mutableStateOf<String?>(null)
-        private set
-
-    /** Whether every beat of a take clicks, for playing without a drummer. */
-    var clicking by mutableStateOf(false)
-        private set
+    /** The take of the open song, recorded while the person plays. */
+    val takes: TakeState = TakeState(this, panel, scope, counting, click, recordClick, keepRecordClick)
 
     /** Whether the delay time is a note at the song's tempo: only while the tempo lock is on. */
     val timed: Boolean get() = panel.lock != null
@@ -125,15 +93,39 @@ class SongState(
     var tempoFromAmp by mutableStateOf(false)
         private set
 
-    /** Where the playing song stands, or null while none plays. */
-    var position by mutableStateOf<Song.Position?>(null)
-        private set
+    /** What the open song is doing. */
+    val now: Now
+        get() {
+            val left = counting.left
+            return when {
+                left != null && takes.recording -> {
+                    Now.CountingIn(
+                        left,
+                        takes.take
+                            ?.marks
+                            ?.firstOrNull()
+                            ?.sound,
+                        take = true,
+                    )
+                }
+
+                left != null -> {
+                    Now.CountingIn(left, song.steps.firstOrNull(), take = false)
+                }
+
+                takes.recording -> {
+                    Now.Recording
+                }
+
+                else -> {
+                    position?.let(Now::Playing) ?: Now.Stopped
+                }
+            }
+        }
 
     init {
         AmpModels.all.forEach { amp -> scope.launch { writes.withLock { refresh(amp) } } }
         scope.launch { panel.held.collect(::followAmp) }
-        scope.launch { panel.switches.collect(::switched) }
-        scope.launch { recordClick.collect { clicking = it } }
     }
 
     /** The open song of the panel's amp. */
@@ -156,10 +148,7 @@ class SongState(
     val editable: Boolean get() = choosable && openKept().let { it == null || it.song != null }
 
     /** Whether another song can be opened: not while one counts in or plays, nor during a take. */
-    val choosable: Boolean get() = playing == null && taking == null
-
-    /** Whether a take is being recorded, its count-in among it. */
-    val recording: Boolean get() = taking != null
+    val choosable: Boolean get() = playing == null && !takes.recording
 
     /** Whether the song is counting in or playing. */
     val busy: Boolean get() = playing != null
@@ -173,7 +162,7 @@ class SongState(
         if (!choosable || kept?.song == null) return
         opened = opened + (amp to kept.name)
         drafts = drafts - amp
-        keptTake = null
+        takes.forget()
         taps = TapTempo()
         queue { store.open(amp, kept.name) }
         retime()
@@ -184,11 +173,8 @@ class SongState(
         val amp = panel.amp
         val trimmed = name.trim()
         if (!choosable || trimmed.isEmpty() || taken(trimmed)) return
-        val song = Song(amp, name = trimmed)
-        keep(song, replacing = null)
-        drafts = drafts - amp
-        keptTake = null
-        queue { store.save(song).mapCatching { store.open(amp, trimmed).getOrThrow() } }
+        takes.forget()
+        keepOpened(Song(amp, name = trimmed))
         retime()
     }
 
@@ -302,20 +288,7 @@ class SongState(
     fun note(
         step: Int,
         note: NoteLength?,
-    ) = change { song ->
-        song.copy(
-            steps =
-                song.steps.mapIndexed { i, it ->
-                    if (i ==
-                        step
-                    ) {
-                        it.copy(note = note)
-                    } else {
-                        it
-                    }
-                },
-        )
-    }
+    ) = changeStep(step) { it.copy(note = note) }
 
     fun countIn(on: Boolean) = change { it.copy(countIn = on) }
 
@@ -361,20 +334,7 @@ class SongState(
     fun beats(
         step: Int,
         beats: Int,
-    ) = change { song ->
-        song.copy(
-            steps =
-                song.steps.mapIndexed { i, it ->
-                    if (i ==
-                        step
-                    ) {
-                        it.copy(beats = beats.coerceIn(1, SongStep.MOST_BEATS))
-                    } else {
-                        it
-                    }
-                },
-        )
-    }
+    ) = changeStep(step) { it.copy(beats = beats.coerceIn(1, SongStep.MOST_BEATS)) }
 
     /** Moves [step] to stand at [to], the steps between shifting over to make room. */
     fun move(
@@ -391,13 +351,13 @@ class SongState(
     fun start() {
         val song = song
         if (!choosable || song.steps.isEmpty() || !panel.linked) return
-        keptTake = null
+        takes.forget()
         playing =
             scope.launch {
-                val (started, late) = firstBeat(song, clicks = song.countIn)
-                countIn(song, started, late)
+                val (started, late) = counting.firstBeat(song, clicks = song.countIn)
+                counting.run(song, started, late)
                 delay(-started.elapsedNow())
-                countdown = null
+                counting.over()
                 var cued = -1
                 while (true) {
                     val elapsed = started.elapsedNow().coerceAtLeast(Duration.ZERO)
@@ -420,119 +380,30 @@ class SongState(
     }
 
     private fun ended() {
-        countdown = null
+        counting.over()
         position = null
         playing = null
     }
 
-    /**
-     * Records a take at the open song's tempo, counted in as the song is. It starts on [from], else on the preset
-     * the amp is on; each switch of sound after that starts a step, until Stop or the link is lost.
-     */
-    fun record(from: Tone? = null) {
-        val song = song
-        if (!choosable || !panel.linked) return
-        val note = note.takeIf { timed }
-        val first = from?.let { SoundSwitch(tone = it.name) } ?: panel.state.preset?.let { SoundSwitch(it) }
-        beforeTake = openKept()?.name
-        keptTake = null
-        takeName = Take.name(::taken)
-        take = Take(song.tempo).let { take -> first?.let { take.after(it, Duration.ZERO, note) } ?: take }
-        taking =
-            scope.launch {
-                val (started, late) = firstBeat(song, clicks = song.countIn || clicking)
-                takeStart = started
-                countIn(song, started, late)
-                var beats = 0
-                while (panel.linked) {
-                    val on = song.beat * beats
-                    if (clicking) {
-                        delay(on - late - started.elapsedNow())
-                        click()
-                    }
-                    delay(on - started.elapsedNow())
-                    countdown = null
-                    takeAt = on
-                    beats++
-                }
-                keepTake()
-            }
-    }
-
-    /** Ends the take and keeps it as a song of its own, opened; a take stopped before its first beat is not kept. */
-    fun stopRecording() {
-        val job = taking ?: return
-        job.cancel()
-        keepTake()
-    }
-
-    /** Deletes the take just kept and opens again the song open before it. */
-    fun discard() {
-        val name = keptTake ?: return
-        val amp = panel.amp
-        val before = beforeTake
-        keptTake = null
-        opened = if (before != null) opened + (amp to before) else opened - amp
-        listed(amp) { store.delete(amp, name).mapCatching { if (before != null) store.open(amp, before).getOrThrow() } }
-    }
-
-    /** Clicks every beat of a take from now on, or not; remembered through [keepRecordClick]. */
-    fun recordClick(on: Boolean) {
-        clicking = on
-        scope.launch { keepRecordClick(on) }
-    }
-
-    private fun keepTake() {
-        val take = take ?: return
-        val end = takeStart?.elapsedNow() ?: Duration.ZERO
-        val amp = panel.amp
-        val countIn = song.countIn
-        this.take = null
-        taking = null
-        takeStart = null
-        takeAt = null
-        countdown = null
-        val steps = if (end.isNegative()) emptyList() else take.steps(end)
-        if (steps.isEmpty()) return
-        val song = Song(amp, take.tempo, steps, countIn, takeName)
+    /** Keeps [song] at the end of its amp's list, opened. */
+    internal fun keepOpened(song: Song) {
         keep(song, replacing = null)
-        drafts = drafts - amp
-        keptTake = song.name
-        queue { store.save(song).mapCatching { store.open(amp, song.name).getOrThrow() } }
+        drafts = drafts - song.amp
+        queue { store.save(song).mapCatching { store.open(song.amp, song.name).getOrThrow() } }
     }
 
-    /** Adds [switch] to the take, timed from its first beat, once the take has one. */
-    private fun switched(switch: SoundSwitch) {
-        val take = take ?: return
-        val started = takeStart ?: return
-        this.take = take.after(switch, started.elapsedNow(), note.takeIf { timed })
-    }
-
-    /**
-     * Where the first beat of [song] falls when counted in from now, measured so the count-in runs in negative
-     * time, and how far ahead of its beat a click is played: the sound output's lag when there are [clicks].
-     */
-    private suspend fun firstBeat(
-        song: Song,
-        clicks: Boolean,
-    ): Pair<TimeMark, Duration> {
-        val late = if (clicks) lag().coerceIn(Duration.ZERO, MOST_LAG) else Duration.ZERO
-        return TimeSource.Monotonic.markNow() + song.lead + late to late
-    }
-
-    /** Clicks the count-in of [song], unless it is off, each click [late] ahead of its beat before the first at [started]. */
-    private suspend fun countIn(
-        song: Song,
-        started: TimeMark,
-        late: Duration,
+    /** Deletes the song [name] and opens [reopen], else none. */
+    internal fun drop(
+        name: String,
+        reopen: String?,
     ) {
-        val counts = if (song.countIn) Song.COUNT_IN_BEATS else 0
-        repeat(counts) {
-            countdown = counts - it
-            click()
-            delay(song.beat * (it + 1) - song.lead - late - started.elapsedNow())
-        }
+        val amp = panel.amp
+        opened = if (reopen != null) opened + (amp to reopen) else opened - amp
+        listed(amp) { store.delete(amp, name).mapCatching { if (reopen != null) store.open(amp, reopen).getOrThrow() } }
     }
+
+    /** The name of the open song while it is kept. */
+    internal val openName: String? get() = openKept()?.name
 
     /** Moves the delay time to the note at the song's tempo, while the tempo lock is on. */
     private fun retime() {
@@ -555,9 +426,14 @@ class SongState(
         tempoFromAmp = true
     }
 
+    private fun changeStep(
+        step: Int,
+        how: (SongStep) -> SongStep,
+    ) = change { song -> song.copy(steps = song.steps.mapIndexed { i, it -> if (i == step) how(it) else it }) }
+
     private fun change(how: (Song) -> Song) {
         if (!editable) return
-        keptTake = null
+        takes.forget()
         val amp = panel.amp
         val after = how(song)
         if (!kept && after.steps.isEmpty() && after.name.isBlank()) {
@@ -642,8 +518,24 @@ class SongState(
     companion object {
         /** The beats a step is added with: four bars of four, a short part, lengthened from there. */
         const val NEW_STEP_BEATS = 16
+    }
 
-        /** The most a click is played ahead of its beat; a sound output slower than this is mismeasured. */
-        private val MOST_LAG = 500.milliseconds
+    /** What the open song is doing. */
+    sealed interface Now {
+        data object Stopped : Now
+
+        /** Counting in before [first]: [left] clicks to come, this one among them; the count-in of a take if [take]. */
+        data class CountingIn(
+            val left: Int,
+            val first: SongStep?,
+            val take: Boolean,
+        ) : Now
+
+        data class Playing(
+            val position: Song.Position,
+        ) : Now
+
+        /** Recording a take, from its first beat on; [takes] holds it. */
+        data object Recording : Now
     }
 }

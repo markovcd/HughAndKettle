@@ -110,12 +110,11 @@ fun SongTab(
     loaded: Tone? = null,
 ) {
     val song = songs.song
-    val at = songs.position
+    val now = songs.now
     val names = presetNames.names
-    val countdown = songs.countdown
-    val recording = songs.recording
-    val readable = at != null || countdown != null || recording || songs.editable
-    val playing = (at != null || countdown != null) && !recording
+    val recording = songs.takes.recording
+    val readable = now != SongState.Now.Stopped || songs.editable
+    val playing = now is SongState.Now.Playing || (now is SongState.Now.CountingIn && !now.take)
     val files = rememberToneFiles()
     var listing by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
@@ -127,7 +126,7 @@ fun SongTab(
         Column(Modifier.fillMaxSize().then(if (shown) Modifier.clearAndSetSemantics {} else Modifier)) {
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(if (at == null) 12.dp else 10.dp),
+                verticalArrangement = Arrangement.spacedBy(if (now is SongState.Now.Playing) 10.dp else 12.dp),
             ) {
                 if (!recording) {
                     SongHeader(
@@ -142,86 +141,97 @@ fun SongTab(
                     )
                 }
                 songs.failure?.let { SongAlert(readable, it) }
-                if (countdown != null) {
-                    val first =
-                        if (recording) {
-                            songs.take
-                                ?.marks
-                                ?.firstOrNull()
-                                ?.sound
-                        } else {
-                            song.steps.firstOrNull()
-                        }
-                    SongCountdown(countdown, first?.let { songStepTitle(it) } ?: songs.takeName, song.tempo)
-                } else if (recording) {
-                    SongTake(songs, names)
-                } else if (at != null) {
-                    SongBeatHero(song, at, names)
-                    if (song.delayMs(songs.sounding) != null && songs.timed) SongHeldStrip(song, songs.sounding)
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        song.steps.forEachIndexed { index, step ->
-                            PlayedStepRow(index + 1, step, step.preset?.let(names::get), at.step, at.beat)
+                when (now) {
+                    is SongState.Now.CountingIn -> {
+                        val title = now.first?.let { songStepTitle(it) } ?: songs.takes.name
+                        SongCountdown(now.left, title, song.tempo)
+                    }
+
+                    SongState.Now.Recording -> {
+                        SongTake(songs.takes, names)
+                    }
+
+                    is SongState.Now.Playing -> {
+                        val at = now.position
+                        SongBeatHero(song, at, names)
+                        if (song.delayMs(songs.sounding) != null && songs.timed) SongHeldStrip(song, songs.sounding)
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            song.steps.forEachIndexed { index, step ->
+                                PlayedStepRow(index + 1, step, step.preset?.let(names::get), at.step, at.beat)
+                            }
                         }
                     }
-                } else {
-                    SongTempoCard(songs, readable)
-                    SongSwitches(song.countIn, songs.clicking, songs.editable, songs::countIn, songs::recordClick)
-                    StepsHeader(song)
-                    val adding: (() -> Unit)? =
-                        when (mode) {
-                            SwitcherMode.Presets -> songs::add
-                            SwitcherMode.Tones -> loaded?.let { { songs.add(it) } }
-                        }
-                    song.steps
-                        .indexOfFirst(songs::missing)
-                        .takeIf { it >= 0 }
-                        ?.let { MissingAlert(it) }
-                    if (song.steps.isEmpty()) {
-                        NoSteps(preset, songs.editable && adding != null) { adding?.invoke() }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(STEP_GAP)) {
-                            val drag = remember { StepDrag() }
-                            song.steps.forEachIndexed { index, step ->
-                                SongStepRow(
-                                    index + 1,
-                                    step,
-                                    step.preset?.let(names::get),
-                                    songs.missing(step),
-                                    songs.editable,
-                                    last = index == song.steps.lastIndex,
-                                    timed = songs.timed,
-                                    onNote = { songs.note(index, it) },
-                                    onBeats = { songs.beats(index, it) },
-                                    onMove = { songs.move(index, index + it) },
-                                    onRemove = { songs.remove(index) },
-                                    modifier = Modifier.dragged(drag, index, songs),
-                                )
-                            }
-                            AddStep(
-                                when (mode) {
-                                    SwitcherMode.Presets -> {
-                                        stringResource(Res.string.song_add_what, preset ?: 1, SongState.NEW_STEP_BEATS)
-                                    }
 
-                                    SwitcherMode.Tones -> {
-                                        loaded?.let {
+                    SongState.Now.Stopped -> {
+                        SongTempoCard(songs, readable)
+                        SongSwitches(
+                            song.countIn,
+                            songs.takes.clicking,
+                            songs.editable,
+                            songs::countIn,
+                            songs.takes::recordClick,
+                        )
+                        StepsHeader(song)
+                        val adding: (() -> Unit)? =
+                            when (mode) {
+                                SwitcherMode.Presets -> songs::add
+                                SwitcherMode.Tones -> loaded?.let { { songs.add(it) } }
+                            }
+                        song.steps
+                            .indexOfFirst(songs::missing)
+                            .takeIf { it >= 0 }
+                            ?.let { MissingAlert(it) }
+                        if (song.steps.isEmpty()) {
+                            NoSteps(preset, songs.editable && adding != null) { adding?.invoke() }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(STEP_GAP)) {
+                                val drag = remember { StepDrag() }
+                                song.steps.forEachIndexed { index, step ->
+                                    SongStepRow(
+                                        index + 1,
+                                        step,
+                                        step.preset?.let(names::get),
+                                        songs.missing(step),
+                                        songs.editable,
+                                        last = index == song.steps.lastIndex,
+                                        timed = songs.timed,
+                                        onNote = { songs.note(index, it) },
+                                        onBeats = { songs.beats(index, it) },
+                                        onMove = { songs.move(index, index + it) },
+                                        onRemove = { songs.remove(index) },
+                                        modifier = Modifier.dragged(drag, index, songs),
+                                    )
+                                }
+                                AddStep(
+                                    when (mode) {
+                                        SwitcherMode.Presets -> {
                                             stringResource(
-                                                Res.string.song_add_tone_what,
-                                                it.name,
+                                                Res.string.song_add_what,
+                                                preset ?: 1,
                                                 SongState.NEW_STEP_BEATS,
                                             )
-                                        } ?: stringResource(Res.string.song_add_no_tone)
-                                    }
-                                },
-                                songs.editable && adding != null,
-                            ) { adding?.invoke() }
+                                        }
+
+                                        SwitcherMode.Tones -> {
+                                            loaded?.let {
+                                                stringResource(
+                                                    Res.string.song_add_tone_what,
+                                                    it.name,
+                                                    SongState.NEW_STEP_BEATS,
+                                                )
+                                            } ?: stringResource(Res.string.song_add_no_tone)
+                                        }
+                                    },
+                                    songs.editable && adding != null,
+                                ) { adding?.invoke() }
+                            }
                         }
                     }
                 }
             }
-            songs.keptTake?.takeIf { !recording && !playing }?.let { name ->
+            songs.takes.kept?.takeIf { !recording && !playing }?.let { name ->
                 Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                    TakeNotice(name, song.steps.size, songs::discard)
+                    TakeNotice(name, song.steps.size, songs.takes::discard)
                 }
             }
             if (!enabled && !playing && !recording) RecordOffline()
@@ -231,7 +241,7 @@ fun SongTab(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (recording) {
-                    StopRecordingButton(songs::stopRecording)
+                    StopRecordingButton(songs.takes::stop)
                 } else {
                     PlayBar(
                         playing = playing,
@@ -243,7 +253,7 @@ fun SongTab(
                     if (!playing) {
                         RecordButton(
                             enabled && songs.choosable,
-                            onRecord = { songs.record(loaded.takeIf { mode == SwitcherMode.Tones }) },
+                            onRecord = { songs.takes.record(loaded.takeIf { mode == SwitcherMode.Tones }) },
                             modifier = Modifier.width(128.dp),
                         )
                     }
