@@ -15,9 +15,10 @@ import kotlin.time.Duration
 
 /**
  * The LFOs on the effect cards, at most one a card, each sweeping a control behind the card's switch. While
- * any runs, every [pace] each sends where it is by [now], but only while its effect is on and no tone is
- * being written. They carry on across recalls and song steps, and all stop when the link goes. Switching
- * one off puts its control back where it was; a tempo lock taken on its time stops it where it is.
+ * any runs, every [pace] one of them, in turn, sends where it is by [now], but only while its effect is on
+ * and no tone is being written. They carry on across recalls and song steps, and all stop when the link
+ * goes. Switching one off puts its control back where it was; a tempo lock taken on its time stops it where
+ * it is.
  */
 class LfoState internal constructor(
     private val panel: PanelState,
@@ -39,6 +40,9 @@ class LfoState internal constructor(
     private var before = emptyMap<String, Int?>()
 
     private var ticking: Job? = null
+
+    /** The card whose LFO sent last, so the next tick starts with the one after it. */
+    private var lastSent: String? = null
 
     /** The controls an LFO on [switch]'s card can sweep: the knobs and selectors behind it. */
     fun targets(switch: Control): List<Control> =
@@ -129,12 +133,20 @@ class LfoState internal constructor(
     internal fun tick(at: Duration) {
         if (!panel.linked || panel.holding) return
         val values = panel.state.values
-        running.forEach { (switch, lfo) ->
-            val effect = panel.amp.control(switch) ?: return@forEach
-            if (!effect.isOn(values[switch] ?: 0)) return@forEach
-            val value = lfo.value(at - (started[switch] ?: at))
-            if (value != values[lfo.control.id]) panel.set(lfo.control, value)
-        }
+        val due =
+            running.mapNotNull { (switch, lfo) ->
+                val effect = panel.amp.control(switch) ?: return@mapNotNull null
+                if (!effect.isOn(values[switch] ?: 0)) return@mapNotNull null
+                val value = lfo.value(at - (started[switch] ?: at))
+                if (value == values[lfo.control.id]) null else Triple(switch, lfo, value)
+            }
+        // One change a tick for every LFO together, taken in turn: the WMI-1 dropped the link when three
+        // LFOs each sent one every tick.
+        val order = running.keys.toList()
+        val after = order.indexOf(lastSent)
+        val (switch, lfo, value) = due.minByOrNull { (order.indexOf(it.first) - after - 1).mod(order.size) } ?: return
+        lastSent = switch
+        panel.set(lfo.control, value)
     }
 
     private fun run(

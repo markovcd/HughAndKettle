@@ -190,7 +190,7 @@
     <string name="lfo_rate">Rate</string>
     <string name="lfo_hz">%1$s Hz</string>
     <string name="lfo_rates">0.05 to 10 Hz: one full swing every 20 s up to 10 a second.</string>
-    <string name="lfo_stepped">Above 5 Hz it may sound stepped: the amp gets about 25 changes a second.</string>
+    <string name="lfo_stepped">Above 5 Hz it may sound stepped: the amp gets about 25 changes a second, shared by every LFO that is on.</string>
     <string name="lfo_time_free">Tempo lock turned off: the LFO is moving %1$s. Turning tempo lock on stops this LFO.</string>
     <string name="lfo_crosses">Keep %1$s inside one effect: a wide sweep crosses from %2$s into %3$s.</string>
     <string name="lfo_running">LFO · %1$s · %2$s</string>

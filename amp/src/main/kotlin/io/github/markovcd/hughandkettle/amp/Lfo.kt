@@ -69,7 +69,7 @@ public data class Lfo(
     }
 
     public companion object {
-        /** How often a change is sent at most: 25 a second, a gentle load on the WMI-1 and the amp. */
+        /** How often a change is sent at most, for every LFO running together: 25 a second, a gentle load on the WMI-1 and the amp. */
         public val STEP: Duration = 40.milliseconds
 
         public const val SLOWEST_HZ: Double = 0.05

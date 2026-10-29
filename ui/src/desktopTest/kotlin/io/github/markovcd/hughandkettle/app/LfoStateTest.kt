@@ -21,6 +21,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -197,5 +198,24 @@ class LfoStateTest {
         panel.set(reverb, 0)
         panel.randomize(Random(5))
         assertEquals(lfo, lfos.running.getValue("reverb"))
+    }
+
+    @Test
+    fun `Every LFO together sends one change a tick, each in turn`() {
+        linked()
+        val modulation = amp.control("modulation")!!
+        panel.set(modulation, 127)
+        amp.controls.filter { it.needs == "modulation" }.forEach { panel.set(it, 50) }
+        listOf(modulation, delay, reverb).forEach { lfos.switch(it, on = true) }
+        val swept = lfos.running.values.map { it.control.id }
+
+        fun moved(before: Map<String, Int>) = swept.filter { panel.state.values[it] != before[it] }
+        val seen =
+            (1..3).flatMap { step ->
+                val before = panel.state.values
+                tick((step * 100).milliseconds)
+                moved(before).also { assertEquals(1, it.size, "tick $step moved $it") }
+            }
+        assertEquals(swept.toSet(), seen.toSet())
     }
 }
