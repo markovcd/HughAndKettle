@@ -48,7 +48,7 @@ class MatchStateTest {
     private val holder = LinkHolder()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val panel = PanelState(amp, holder, scope, MutableStateFlow<WmiAddress?>(null))
-    private val names = PresetNames(amp, mapOf(5 to "Clean verse", 7 to "Lead solo", 9 to "Big lead"))
+    private var names = PresetNames(amp, mapOf(5 to "Clean verse", 7 to "Lead solo", 9 to "Big lead"))
     private var song = Song(amp, steps = listOf(SongStep(7, 16), SongStep(5, 16)))
     private val microphone = PushedMicrophone()
 
@@ -118,11 +118,12 @@ class MatchStateTest {
     }
 
     /**
-     * Plays a chord for each listen until the soundcheck is done: a quiet room, then a chord at [loudness] of the
-     * preset and the volume it plays at.
+     * Plays a chord for each listen until the soundcheck is done or [enough]: a quiet room, then a chord at
+     * [loudness] of the preset and the volume it plays at.
      */
     private fun played(
         state: MatchState,
+        enough: () -> Boolean = { false },
         loudness: (preset: Int, volume: Int) -> Double,
     ) {
         repeat(MOST_LISTENS) {
@@ -132,7 +133,7 @@ class MatchStateTest {
                     stage == LoudnessMatch.Stage.Done
             }
             val now = state.match!!
-            if (now.stage == LoudnessMatch.Stage.Done) return
+            if (now.stage == LoudnessMatch.Stage.Done || enough()) return
             val level = loudness(now.at!!, playing)
             // This microphone hands frames over at once, faster than a real one, so each part goes in once the
             // part before is heard and never more than the soundcheck keeps.
@@ -161,6 +162,26 @@ class MatchStateTest {
     }
 
     @Test
+    fun `With no song and fewer than two named presets the set-up offers every preset and says what it needs`() {
+        song = Song(amp)
+        names = PresetNames(amp, mapOf(5 to "Clean verse"))
+        val state = match()
+        state.open()
+        assertEquals(MatchState.Hold.NoLink, state.held)
+        connected()
+        panel.recall(5)
+        until("preset 5 on") { panel.state.preset == 5 }
+        state.open()
+        assertEquals((1..amp.presetCount).toList(), state.offered)
+        assertEquals(setOf(5), state.picked)
+        assertEquals(5, state.reference)
+        assertEquals(MatchState.Hold.TooFew, state.held)
+        state.pick(7, true)
+        assertEquals(null, state.held)
+        assertTrue(state.startable)
+    }
+
+    @Test
     fun `A soundcheck brings each preset to the reference and keeps the corrections`() {
         connected()
         val state = match()
@@ -177,6 +198,22 @@ class MatchStateTest {
         assertEquals(mapOf(7 to -11), store.corrections(amp).getOrThrow().amounts)
         assertEquals(mapOf(7 to -11), panel.trim?.corrections)
         assertEquals(false, state.shown)
+    }
+
+    @Test
+    fun `A soundcheck stopped mid-listen sums up at once what it matched`() {
+        connected()
+        val state = match()
+        state.open()
+        state.pickEveryNamed(true)
+        state.refer(5)
+        state.start(microphone)
+        played(state, enough = { state.match?.at == 9 }) { preset, volume ->
+            if (preset == 5) -20.0 else -20.0 + 0.35 * (volume - 49)
+        }
+        until("listening to preset 9") { state.match?.stage is LoudnessMatch.Stage.Playing }
+        state.stop()
+        assertEquals(-11, state.summary[7])
     }
 
     @Test

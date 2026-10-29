@@ -70,9 +70,15 @@ class MatchState(
     var level by mutableStateOf<Double?>(null)
         private set
 
-    /** The summary's corrections by preset, cleared rows at 0, until kept or discarded. */
-    var summary by mutableStateOf(emptyMap<Int, Int>())
-        private set
+    /** The summary's corrections by preset, cleared rows at 0, once the soundcheck is done. */
+    val summary: Map<Int, Int>
+        get() {
+            val done = match?.takeIf { it.stage == LoudnessMatch.Stage.Done } ?: return emptyMap()
+            return done.corrections() + cleared.associateWith { 0 }
+        }
+
+    /** The presets cleared on the summary. */
+    private var cleared by mutableStateOf(emptySet<Int>())
 
     /** True when the microphone was refused, until the next start. */
     var denied by mutableStateOf(false)
@@ -96,13 +102,19 @@ class MatchState(
     /** The open song's name, when its presets are offered. */
     val songName: String? get() = song().name.takeIf { !everyNamed && songPresets.isNotEmpty() }
 
-    /** The presets the set-up offers: the open song's, or every named one, else the one playing now. */
+    /** The presets the set-up offers: the open song's, or every named one, or every preset when too few are named. */
     val offered: List<Int>
-        get() {
-            val named = names().names.keys.sorted()
-            val offered = if (everyNamed || songPresets.isEmpty()) named else songPresets
-            return offered.ifEmpty { listOfNotNull(panel.state.preset) }
-        }
+        get() =
+            when {
+                !everyNamed && songPresets.isNotEmpty() -> songPresets
+                !everyPreset -> named
+                else -> (1..panel.amp.presetCount).toList()
+            }
+
+    /** Whether the set-up offers every preset of the amp, too few being named to match. */
+    val everyPreset: Boolean get() = (everyNamed || songPresets.isEmpty()) && named.size < 2
+
+    private val named: List<Int> get() = names().names.keys.sorted()
 
     private val songPresets: List<Int> get() = song().steps.mapNotNull { it.preset }.distinct()
 
@@ -113,7 +125,7 @@ class MatchState(
         denied = false
         everyNamed = false
         match = null
-        summary = emptyMap()
+        cleared = emptySet()
         settingUp = true
         offer()
     }
@@ -140,7 +152,19 @@ class MatchState(
     }
 
     /** Whether the soundcheck can start: a link, a reference and at least one other preset. */
-    val startable: Boolean get() = panel.linked && reference != null && picked.size >= 2
+    val startable: Boolean get() = held == null
+
+    /** What keeps the soundcheck from starting, or null when it can. */
+    val held: Hold?
+        get() =
+            when {
+                !panel.linked -> Hold.NoLink
+                reference == null || picked.size < 2 -> Hold.TooFew
+                else -> null
+            }
+
+    /** What the set-up still needs before the soundcheck can start. */
+    enum class Hold { NoLink, TooFew }
 
     /** Asks for the microphone through [access] and, once allowed, starts the soundcheck. */
     fun start(access: MicrophoneAccess) {
@@ -176,7 +200,7 @@ class MatchState(
     /** Takes [preset]'s correction out of the summary, or out of those kept when there is no summary. */
     fun clear(preset: Int) {
         if (match != null) {
-            summary = summary + (preset to 0)
+            cleared = cleared + preset
         } else {
             keep(corrections.without(preset))
         }
@@ -199,14 +223,15 @@ class MatchState(
         running = null
         settingUp = false
         match = null
-        summary = emptyMap()
+        cleared = emptySet()
         level = null
     }
 
     private fun offer() {
         val offered = offered
-        picked = offered.toSet()
-        reference = panel.state.preset?.takeIf { it in offered } ?: offered.firstOrNull()
+        // Every preset of the amp is too many to pick at once: only the one playing is picked.
+        picked = if (everyPreset) listOfNotNull(panel.state.preset).toSet() else offered.toSet()
+        reference = panel.state.preset?.takeIf { it in offered } ?: picked.minOrNull()
     }
 
     private fun keep(corrections: LoudnessCorrections) {
@@ -278,7 +303,6 @@ class MatchState(
                 }
 
                 LoudnessMatch.Stage.Done -> {
-                    summary = now.corrections()
                     return
                 }
             }

@@ -69,6 +69,9 @@ import io.github.markovcd.hughandkettle.ui.match_close
 import io.github.markovcd.hughandkettle.ui.match_count
 import io.github.markovcd.hughandkettle.ui.match_discard
 import io.github.markovcd.hughandkettle.ui.match_every_named
+import io.github.markovcd.hughandkettle.ui.match_every_preset
+import io.github.markovcd.hughandkettle.ui.match_held_few
+import io.github.markovcd.hughandkettle.ui.match_held_link
 import io.github.markovcd.hughandkettle.ui.match_in_song
 import io.github.markovcd.hughandkettle.ui.match_keep
 import io.github.markovcd.hughandkettle.ui.match_kept_note
@@ -82,7 +85,6 @@ import io.github.markovcd.hughandkettle.ui.match_meter_reference
 import io.github.markovcd.hughandkettle.ui.match_mic_denied
 import io.github.markovcd.hughandkettle.ui.match_mic_note
 import io.github.markovcd.hughandkettle.ui.match_named
-import io.github.markovcd.hughandkettle.ui.match_nothing_offered
 import io.github.markovcd.hughandkettle.ui.match_off
 import io.github.markovcd.hughandkettle.ui.match_play
 import io.github.markovcd.hughandkettle.ui.match_play_line
@@ -229,7 +231,7 @@ private fun ColumnScope.Setup(
         Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 match.songName?.let { stringResource(Res.string.match_in_song, it) }
-                    ?: stringResource(Res.string.match_named),
+                    ?: stringResource(if (match.everyPreset) Res.string.match_every_preset else Res.string.match_named),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.onSurfaceVariant,
@@ -243,13 +245,6 @@ private fun ColumnScope.Setup(
             )
         }
         Column(Modifier.testTag("match_presets"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (match.offered.isEmpty()) {
-                Text(
-                    stringResource(Res.string.match_nothing_offered),
-                    fontSize = 15.sp,
-                    color = colors.onSurfaceVariant,
-                )
-            }
             match.offered.forEach { preset ->
                 PickRow(match, preset, name(preset))
             }
@@ -261,6 +256,20 @@ private fun ColumnScope.Setup(
             color = if (match.denied) colors.error else colors.onSurfaceVariant,
         )
         match.failure?.let { Text(it, fontSize = 13.sp, color = colors.error) }
+        match.held?.let {
+            Text(
+                stringResource(
+                    when (it) {
+                        MatchState.Hold.NoLink -> Res.string.match_held_link
+                        MatchState.Hold.TooFew -> Res.string.match_held_few
+                    },
+                ),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.error,
+                modifier = Modifier.testTag("match_held"),
+            )
+        }
     }
     Bottom {
         Button(
@@ -526,6 +535,20 @@ private fun ColumnScope.Summary(
         done.results.forEach { ResultRow(match, it, name(it.preset)) }
         Text(stringResource(Res.string.match_kept_note), fontSize = 13.sp, color = colors.onSurfaceVariant)
         match.failure?.let { Text(it, fontSize = 13.sp, color = colors.error) }
+        match.held?.let {
+            Text(
+                stringResource(
+                    when (it) {
+                        MatchState.Hold.NoLink -> Res.string.match_held_link
+                        MatchState.Hold.TooFew -> Res.string.match_held_few
+                    },
+                ),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.error,
+                modifier = Modifier.testTag("match_held"),
+            )
+        }
     }
     Bottom {
         TextButton(onClick = match::close, modifier = Modifier.height(56.dp).testTag("match_discard")) {

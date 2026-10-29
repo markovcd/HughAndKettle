@@ -293,7 +293,9 @@
     <string name="match_in_song">Presets in %1$s</string>
     <string name="match_named">Named presets</string>
     <string name="match_every_named">All named presets</string>
-    <string name="match_nothing_offered">No presets to offer: name some, or add them to the open song.</string>
+    <string name="match_every_preset">All presets: tick the ones to match</string>
+    <string name="match_held_link">Link to the amp to start.</string>
+    <string name="match_held_few">Pick a reference and at least one more preset to start.</string>
     <string name="match_reference">Reference</string>
     <string name="match_make_reference">Make %1$s the reference</string>
     <string name="match_reference_note">The others are brought to the reference's loudness. Pick a loud one, so nothing has to go past the top.</string>
