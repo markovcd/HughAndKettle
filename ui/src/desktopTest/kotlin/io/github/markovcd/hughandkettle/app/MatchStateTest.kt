@@ -134,7 +134,13 @@ class MatchStateTest {
             val now = state.match!!
             if (now.stage == LoudnessMatch.Stage.Done) return
             val level = loudness(now.at!!, playing)
-            microphone.push(List(12) { -70.0 } + List(5) { level + 6 } + List(32) { level })
+            // This microphone hands frames over at once, faster than a real one, so each part goes in once the
+            // part before is heard and never more than the soundcheck keeps.
+            microphone.push(List(12) { -70.0 })
+            until("the quiet room heard") { state.level == -70.0 }
+            microphone.push(List(5) { level + 6 })
+            until("the strum heard") { state.level == level + 6 }
+            microphone.push(List(32) { level })
             until("the chord heard") { state.match !== now }
         }
         fail("the soundcheck never ended")
