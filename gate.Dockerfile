@@ -5,7 +5,7 @@
 #
 # eclipse-temurin:21-jdk, pinned by digest. Dependabot proposes moves within 21; the major is the
 # toolchain's `jdk` in gradle/libs.versions.toml and moves with it, since the image carries the only JDK.
-FROM eclipse-temurin:21-jdk@sha256:3e3c176ffed168beb42c607be9bc1639b466cf00261a0fb04425562c9d0c5c2b AS gate
+FROM eclipse-temurin:21-jdk@sha256:23cc5734ff46e776f51ce66eb9ee08444fd47caabec0a95b7eb6e94be2d3696d AS gate
 
 # The Android command-line tools zip and its published checksum, from developer.android.com/studio.
 ARG CMDLINE_TOOLS_ZIP=commandlinetools-linux-15859902_latest.zip
