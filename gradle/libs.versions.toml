@@ -17,7 +17,7 @@ composeMultiplatform = "1.12.2"
 composeMultiplatformMaterial3 = "1.9.0"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
-datastore = "1.2.1"
+datastore = "1.3.0"
 robolectric = "4.17"
 # The Android framework Robolectric runs the app's tests on, fetched by Gradle and locked rather than
 # downloaded by Robolectric at test time. Its SDK level is the one in the app's robolectric.properties.
