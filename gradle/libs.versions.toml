@@ -1,7 +1,7 @@
 # One place for every version. Dependabot proposes moves; a session takes a cheap
 # one in a commit of its own (the dependencies skill).
 [versions]
-agp = "9.4.1"
+agp = "9.5.1"
 kotlin = "2.4.21"
 coroutines = "1.11.0"
 # Read and written through its JsonElement tree, so no compiler plugin is needed.
