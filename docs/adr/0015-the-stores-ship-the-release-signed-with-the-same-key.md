@@ -16,7 +16,7 @@ It is unofficial, and every listing says it is not made or endorsed by Hughes & 
 ## Decision
 
 - One Android signing key signs every build that reaches a user. `release.sh` signs the APK on the
-  GitHub release with it, and an Android App Bundle (`.aab`) beside it for Play.
+  GitHub release with it, an Android App Bundle (`.aab`) beside it for Play, and `SHA256SUMS`.
 - Play App Signing is set up with that key rather than a key Google generates.
 - F-Droid builds from the release tag and, when its build matches the signed APK on the GitHub release
   byte for byte bar the signature (reproducible builds), publishes that APK with its signature.

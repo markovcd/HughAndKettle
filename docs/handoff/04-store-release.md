@@ -9,8 +9,8 @@ Hugh & Kettle, and one key signs every build. This is what is left, in order.
 
 ## Steps
 
-1. **The keys and the first release** (the user). Make the Android keystore and the release SSH key,
-   add the secrets, commit `release/allowed_signers` (`release/README.md`), then cut `v0.1.0` from the
+1. **The key and the first release** (the user). Make the Android keystore, add its two secrets,
+   commit `release/allowed_signers` (`release/README.md`), then cut `v0.1.0` from the
    `Release` workflow. The Windows certificate is not needed; without it the release has no MSIX.
 2. **Screenshots.** Phone screenshots of the Amp, FX, Tones and Song tabs into
    `fastlane/metadata/android/en-US/images/phoneScreenshots/`, from the emulator, and Play's

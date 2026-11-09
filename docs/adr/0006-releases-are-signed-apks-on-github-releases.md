@@ -32,3 +32,9 @@ person to start with; a store listing is a later decision.
   throwaway mode and says so. That is a TODO item, not a placeholder key in the tree.
 - Google Play or F-Droid would add their own signing and metadata; either is an ADR of its own when
   the user wants it, and nothing here blocks it.
+
+## Amendment (2026-11-09)
+
+`SHA256SUMS` is signed with the Android signing key, read out of the keystore as an SSH key, rather
+than an SSH key of its own. The key is permanent anyway (ADR 0015), so a second key bought no
+rotation, and a release needs only the keystore and its password as secrets.

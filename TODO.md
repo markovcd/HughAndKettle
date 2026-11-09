@@ -6,7 +6,7 @@ that lands it.
 
 ## Needs the user
 
-- Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
+- Make the release key and commit its public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
 - Put the app on F-Droid, IzzyOnDroid and Google Play: steps 1, 4 and 5 of the [store release](docs/handoff/04-store-release.md).
 - For a Windows package in releases: make the Windows signing certificate, commit its public half as `release/msix.cer` and set its two secrets ([release/README.md](release/README.md#the-windows-certificate)).
 

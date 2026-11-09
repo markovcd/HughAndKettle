@@ -1,8 +1,26 @@
 # Release keys
 
-`allowed_signers` holds the public half of the key that signs a release's `SHA256SUMS`, in OpenSSH
-allowed-signers format: `hughandkettle ssh-ed25519 AAAA...`. It is not here yet; TODO.md says who
-makes it. The private half lives only in the CI secret store and on the user's machine.
+One Android key signs everything a release ships (ADR 0015): the APK, the bundle for Google Play, and,
+used as an SSH key, the `SHA256SUMS` file that vouches for the other downloads. Losing it means the
+app can never be updated again, so keep the `.jks` and its password backed up in two places off the
+machine. It lives otherwise only in the CI secret store.
+
+To make it once, and its public half as `release/allowed_signers`:
+
+```sh
+keytool -genkeypair -keystore hughandkettle-release.jks -alias hughandkettle \
+    -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Hugh and Kettle"
+openssl pkcs12 -in hughandkettle-release.jks -nocerts -nodes | openssl pkey > key.pem
+echo "hughandkettle $(ssh-keygen -y -f key.pem)" > release/allowed_signers
+rm key.pem
+```
+
+Commit `release/allowed_signers` only. The `Release` workflow reads two secrets:
+
+```sh
+base64 -i hughandkettle-release.jks | gh secret set ANDROID_KEYSTORE_BASE64
+gh secret set ANDROID_KEYSTORE_PASSWORD
+```
 
 To verify a download:
 
@@ -11,32 +29,7 @@ ssh-keygen -Y verify -f allowed_signers -I hughandkettle -n hughandkettle -s SHA
 sha256sum -c SHA256SUMS
 ```
 
-To make the key once: `ssh-keygen -t ed25519 -C hughandkettle-release -f hughandkettle-release`, then
-`echo "hughandkettle $(cat hughandkettle-release.pub)" > release/allowed_signers` and commit that file only.
-
-## The Android key
-
-One key signs the APK, the bundle for Google Play and every store's build (ADR 0015). Losing it means
-the app can never be updated again, so keep the `.jks` and its password backed up in two places off the
-machine. To make it once:
-
-```sh
-keytool -genkeypair -keystore hughandkettle-release.jks -alias hughandkettle \
-    -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Hugh and Kettle"
-```
-
-## The secrets
-
-The `Release` workflow reads three:
-
-```sh
-gh secret set RELEASE_SSH_KEY < hughandkettle-release
-base64 -i hughandkettle-release.jks | gh secret set ANDROID_KEYSTORE_BASE64
-gh secret set ANDROID_KEYSTORE_PASSWORD
-```
-
-The SSH key is made without a passphrase, since CI cannot type one. The Windows certificate below is
-optional; without it a release has no MSIX.
+The Windows certificate below is optional; without it a release has no MSIX.
 
 ## The Windows certificate
 
