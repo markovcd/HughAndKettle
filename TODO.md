@@ -7,6 +7,7 @@ that lands it.
 ## Needs the user
 
 - Make the release keys and commit the public half as `release/allowed_signers` ([plan, phase 6](docs/handoff/01-implementation-plan.md#phase-6-release)).
+- Put the app on F-Droid, IzzyOnDroid and Google Play: steps 1, 4 and 5 of the [store release](docs/handoff/04-store-release.md).
 - Make the Windows signing certificate, commit its public half as `release/msix.cer` and set its two secrets ([release/README.md](release/README.md#the-windows-certificate)).
 
 ## Code
@@ -20,5 +21,6 @@ that lands it.
 - `hk trim`, `hk lock`, `hk song play` and every other `hk` recall answer add the loudness match's corrections kept in `~/.hk/loudness`, as the app does.
 - Send the delay time in the amp's 256 steps: controller 4 with its low byte on 36 at 0 or 64, as tap tempo does ([wmi-1.md](docs/wmi-1.md#what-the-amp-reports)).
 - `DesktopClickSoundTest`'s first click took 188 ms to start, against 20, in a full build on the Mac, and passed four times alone: find whether the sound output wakes slowly or the build starves it, then fix the click or the test's reason.
+- The store release's phone screenshots, feature graphic and F-Droid recipe: steps 2 and 3 of the [store release](docs/handoff/04-store-release.md).
 - The [desktop app](docs/handoff/03-desktop-app.md), one item per step, in order.
 - Phases 2 to 6 of the [implementation plan](docs/handoff/01-implementation-plan.md), one item per phase, in order.

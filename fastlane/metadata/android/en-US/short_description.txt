@@ -1,0 +1,1 @@
+Unofficial remote for Hughes & Kettner amps over a WMI-1 or a USB MIDI cable

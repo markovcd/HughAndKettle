@@ -92,23 +92,29 @@ fi
 # --- The gate, on this exact commit, stamped with the version.
 GATE_BUILD_ARGS="--build-arg RELEASE_VERSION=$version" ./gate.sh
 cp build/gate-artifacts/apk/release/app-release-unsigned.apk "$out/unsigned.apk"
+cp build/gate-artifacts/bundle/release/app-release.aab "$out/unsigned.aab"
 cp build/gate-artifacts/cli/hk-*.zip "$out/hk-$version.zip" 2>/dev/null || cp build/gate-artifacts/cli/*.zip "$out/hk-$version.zip"
 cp build/gate-artifacts/desktop-packages/hughandkettle_*.deb "$out/hughandkettle-$version.deb"
 cp build/gate-artifacts/desktop-packages/hughandkettle-linux-x64.tar.gz "$out/hughandkettle-$version-linux-x64.tar.gz"
-packages=("hughandkettle-$version.apk" "hk-$version.zip" "hughandkettle-$version.deb" "hughandkettle-$version-linux-x64.tar.gz")
+packages=("hughandkettle-$version.apk" "hughandkettle-$version.aab" "hk-$version.zip" "hughandkettle-$version.deb" "hughandkettle-$version-linux-x64.tar.gz")
 if [ -n "${MSIX_FILE:-}" ]; then
     cp "$MSIX_FILE" "$out/hughandkettle-$version.msix"
     packages+=("hughandkettle-$version.msix")
 fi
 
-# --- Sign the APK with apksigner from the gate image's build tools, and the checksums with the SSH key.
+# --- Sign the APK with apksigner from the gate image's build tools, the bundle for Google Play with the
+# JDK's jarsigner (apksigner signs no bundle), both with the one key (ADR 0015), and the checksums with
+# the SSH key.
 docker run --rm \
     -v "$PWD/$out:/release" -v "$(realpath "$keystore"):/keys/release.jks:ro" \
     -e ANDROID_KEYSTORE_PASSWORD -e ANDROID_KEY_PASSWORD \
     hughandkettle-gate sh -c 'apksigner sign --ks /keys/release.jks --ks-key-alias "$0" \
         --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
-        --out /release/hughandkettle-'"$version"'.apk /release/unsigned.apk' "$ANDROID_KEY_ALIAS"
-rm "$out/unsigned.apk"
+        --out /release/hughandkettle-'"$version"'.apk /release/unsigned.apk \
+        && jarsigner -keystore /keys/release.jks -storepass:env ANDROID_KEYSTORE_PASSWORD \
+        -keypass:env ANDROID_KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 \
+        -signedjar /release/hughandkettle-'"$version"'.aab /release/unsigned.aab "$0" > /dev/null' "$ANDROID_KEY_ALIAS"
+rm "$out/unsigned.apk" "$out/unsigned.aab"
 (cd "$out" && sha256sum "${packages[@]}" > SHA256SUMS)
 ssh-keygen -Y sign -f "$ssh_key" -n hughandkettle "$out/SHA256SUMS" > /dev/null
 ssh-keygen -Y verify -f "$signers" -I hughandkettle -n hughandkettle -s "$out/SHA256SUMS.sig" < "$out/SHA256SUMS" > /dev/null \

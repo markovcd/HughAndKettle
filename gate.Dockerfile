@@ -51,9 +51,12 @@ COPY . .
 RUN ./gradlew build --no-daemon --console=plain
 # The desktop app's Linux packages, from what passed: the .deb and the portable folder as a tarball.
 RUN ./gradlew :desktop:packageDeb :desktop:portableLinux --no-daemon --console=plain
+# The app as an Android App Bundle, unsigned, for Google Play.
+RUN ./gradlew :app:bundleRelease --no-daemon --console=plain
 
 FROM scratch AS artifacts
 COPY --from=gate /src/app/build/outputs/apk /apk
+COPY --from=gate /src/app/build/outputs/bundle /bundle
 COPY --from=gate /src/cli/build/distributions /cli
 COPY --from=gate /src/desktop/build/install /desktop
 COPY --from=gate /src/desktop/build/compose/binaries/main/deb /desktop-packages

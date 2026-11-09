@@ -1,0 +1,21 @@
+Hugh & Kettle drives a Hughes & Kettner amp from an Android phone, through the amp's WMI-1 WiFi MIDI interface or a USB MIDI cable, the way the official iPad apps do. It works with the GrandMeister Deluxe 40, the GrandMeister 36 and the Black Spirit 200.
+
+<b>The amp</b>
+<ul>
+<li>Every knob, switch and effect the amp puts on MIDI, following what is turned on the amp itself.</li>
+<li>Step through the amp's 128 presets, name them, and read them into tones.</li>
+<li>Tones: named sounds kept on the phone, recalled with a tap, shared as files, and written into one of the amp's presets with its STORE button. GrandMeister Deluxe 40 preset files import as tones.</li>
+</ul>
+
+<b>Beyond the amp</b>
+<ul>
+<li>Tempo lock holds the delay time on a note length across preset changes.</li>
+<li>Volume trim turns every preset up or down at once, standing in for Master.</li>
+<li>Loudness match levels presets against each other through the microphone.</li>
+<li>Songs: a tempo and a run of presets and tones, played on the beat with a count-in, or recorded while playing.</li>
+<li>An LFO behind each effect, and randomize for new effect settings.</li>
+</ul>
+
+The link stays up with the screen off. The app talks only to the amp on the local network or the cable: no account, no ads, no tracking.
+
+Hugh & Kettle is free software under the MIT license. It is not made or endorsed by Hughes & Kettner.

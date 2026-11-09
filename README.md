@@ -126,9 +126,13 @@ Docs: [AGENTS.md](AGENTS.md) is where an agent starts; `docs/agents/rules/` are 
 ## Releases
 
 `release.sh` is the release: it refuses on a dirty tree, an existing tag or an empty changelog, runs
-the gate on the exact commit, signs the APK and a `SHA256SUMS` file, and with `--publish` tags and
-creates the GitHub release. The `Release` workflow runs it with the real keys. Verify a download with
-the two lines in [release/README.md](release/README.md).
+the gate on the exact commit, signs the APK, the Android App Bundle for Google Play and a `SHA256SUMS`
+file, and with `--publish` tags and creates the GitHub release. The `Release` workflow runs it with the
+real keys. Verify a download with the two lines in [release/README.md](release/README.md).
+
+F-Droid and Google Play ship the app signed with the same key
+([ADR 0015](docs/adr/0015-the-stores-ship-the-release-signed-with-the-same-key.md)). Their store text is
+in `fastlane/metadata/android/`, and the privacy policy is [PRIVACY.md](PRIVACY.md).
 
 ## License
 
