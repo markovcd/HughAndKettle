@@ -8,7 +8,7 @@
 #   ./release.sh [X.Y.Z] --print-version     prints the version a release would have, and stops
 #
 # The Windows MSIX is built and signed on a Windows runner (desktop/packaging/msix.ps1), since jpackage
-# cannot cross-build; MSIX_FILE names it, and a published release needs it.
+# cannot cross-build; MSIX_FILE names it. A release without it ships no Windows package.
 #
 # Real keys come from the environment, never from the tree:
 #   RELEASE_SSH_KEY_FILE          private key pairing with release/allowed_signers (signs SHA256SUMS)
@@ -85,8 +85,6 @@ fi
 if $publish && $throwaway; then refuse "--publish needs the real keys; see the header of this script"; fi
 if [ -n "${MSIX_FILE:-}" ]; then
     [ -f "$MSIX_FILE" ] || refuse "MSIX_FILE '$MSIX_FILE' does not exist"
-elif $publish; then
-    refuse "--publish needs MSIX_FILE, the Windows package; see the header of this script"
 fi
 
 # --- The gate, on this exact commit, stamped with the version.

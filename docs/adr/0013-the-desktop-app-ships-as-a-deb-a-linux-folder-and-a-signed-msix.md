@@ -38,3 +38,9 @@ signature chains to a certificate the machine trusts, and the SSH key that signs
 - A Mac builds an app bundle and a `.dmg` (`createDistributable`, `packageDmg`); no release job makes them
   yet. macOS refuses a version whose first number is 0, so builds that are not a release are 1.0.0 there.
 - The lock files carry Skia for macOS on arm64 as well, so a Mac restores against them too.
+
+## Amendment (2026-11-09)
+
+The MSIX is optional in a release. Without the certificate's secrets the Release workflow builds no
+MSIX and `release.sh` publishes without it, so the Android release that F-Droid and Google Play depend
+on (ADR 0015) needs no Windows certificate.
