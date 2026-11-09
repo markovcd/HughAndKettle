@@ -14,6 +14,30 @@ sha256sum -c SHA256SUMS
 To make the key once: `ssh-keygen -t ed25519 -C hughandkettle-release -f hughandkettle-release`, then
 `echo "hughandkettle $(cat hughandkettle-release.pub)" > release/allowed_signers` and commit that file only.
 
+## The Android key
+
+One key signs the APK, the bundle for Google Play and every store's build (ADR 0015). Losing it means
+the app can never be updated again, so keep the `.jks` and its password backed up in two places off the
+machine. To make it once:
+
+```sh
+keytool -genkeypair -keystore hughandkettle-release.jks -alias hughandkettle \
+    -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Hugh and Kettle"
+```
+
+## The secrets
+
+The `Release` workflow reads three:
+
+```sh
+gh secret set RELEASE_SSH_KEY < hughandkettle-release
+base64 -i hughandkettle-release.jks | gh secret set ANDROID_KEYSTORE_BASE64
+gh secret set ANDROID_KEYSTORE_PASSWORD
+```
+
+The SSH key is made without a passphrase, since CI cannot type one. The Windows certificate below is
+optional; without it a release has no MSIX.
+
 ## The Windows certificate
 
 Windows installs an MSIX only if its signature chains to a certificate it trusts, and the MSIX's

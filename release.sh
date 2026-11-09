@@ -13,7 +13,8 @@
 # Real keys come from the environment, never from the tree:
 #   RELEASE_SSH_KEY_FILE          private key pairing with release/allowed_signers (signs SHA256SUMS)
 #   ANDROID_KEYSTORE_FILE         keystore that signs the APK
-#   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   ANDROID_KEYSTORE_PASSWORD     its password, which a PKCS12 keystore shares with the key; the key's
+#                                 alias is hughandkettle
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -73,12 +74,12 @@ else
     signers="$out/throwaway_signers"
 fi
 if [ -n "${ANDROID_KEYSTORE_FILE:-}" ]; then
-    : "${ANDROID_KEYSTORE_PASSWORD:?}" "${ANDROID_KEY_ALIAS:?}" "${ANDROID_KEY_PASSWORD:?}"
+    : "${ANDROID_KEYSTORE_PASSWORD:?}"
     keystore="$ANDROID_KEYSTORE_FILE"
 else
     throwaway=true
-    export ANDROID_KEYSTORE_PASSWORD=throwaway ANDROID_KEY_ALIAS=throwaway ANDROID_KEY_PASSWORD=throwaway
-    keytool -genkeypair -keystore "$out/throwaway.jks" -storepass throwaway -keypass throwaway -alias throwaway \
+    export ANDROID_KEYSTORE_PASSWORD=throwaway
+    keytool -genkeypair -keystore "$out/throwaway.jks" -storepass throwaway -alias hughandkettle \
         -keyalg RSA -keysize 2048 -validity 1 -dname "CN=throwaway" > /dev/null 2>&1
     keystore="$out/throwaway.jks"
 fi
@@ -105,13 +106,13 @@ fi
 # the SSH key.
 docker run --rm \
     -v "$PWD/$out:/release" -v "$(realpath "$keystore"):/keys/release.jks:ro" \
-    -e ANDROID_KEYSTORE_PASSWORD -e ANDROID_KEY_PASSWORD \
-    hughandkettle-gate sh -c 'apksigner sign --ks /keys/release.jks --ks-key-alias "$0" \
-        --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+    -e ANDROID_KEYSTORE_PASSWORD \
+    hughandkettle-gate sh -c 'apksigner sign --ks /keys/release.jks --ks-key-alias hughandkettle \
+        --ks-pass env:ANDROID_KEYSTORE_PASSWORD \
         --out /release/hughandkettle-'"$version"'.apk /release/unsigned.apk \
         && jarsigner -keystore /keys/release.jks -storepass:env ANDROID_KEYSTORE_PASSWORD \
-        -keypass:env ANDROID_KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 \
-        -signedjar /release/hughandkettle-'"$version"'.aab /release/unsigned.aab "$0" > /dev/null' "$ANDROID_KEY_ALIAS"
+        -sigalg SHA256withRSA -digestalg SHA-256 \
+        -signedjar /release/hughandkettle-'"$version"'.aab /release/unsigned.aab hughandkettle > /dev/null'
 rm "$out/unsigned.apk" "$out/unsigned.aab"
 (cd "$out" && sha256sum "${packages[@]}" > SHA256SUMS)
 ssh-keygen -Y sign -f "$ssh_key" -n hughandkettle "$out/SHA256SUMS" > /dev/null

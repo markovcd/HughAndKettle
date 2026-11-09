@@ -199,7 +199,7 @@ the home network from the app.
 
 **Deliverables:**
 
-- [ ] The user makes the keys (`release/README.md`) and adds the five secrets the `Release` workflow
+- [ ] The user makes the keys (`release/README.md`) and adds the secrets the `Release` workflow
   names; `release/allowed_signers` is committed.
 - [ ] A first `./release.sh` with real keys on the user's machine, then `v0.1.0` from the workflow.
 - [ ] The README's install section: download the APK from Releases, verify, sideload. An ADR for a
