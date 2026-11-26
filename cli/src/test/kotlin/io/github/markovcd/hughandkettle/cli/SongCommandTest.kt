@@ -246,6 +246,18 @@ class SongCommandTest {
     }
 
     @Test
+    fun `A take into an open song with no steps fills that song`() {
+        assertEquals(ExitCodes.OK, run("new", "grandmeister_deluxe_40", "Opener").code)
+        val run = run("record", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--from", "3", "--seconds", "1")
+        assertEquals(ExitCodes.OK, run.code, run.err)
+        val listed = run("list", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() }
+        assertEquals(1, listed.size, listed.joinToString("\n"))
+        assertTrue(listed.first().contains(""""name":"Opener","open":true"""), listed.first())
+        val shown = run("show", "grandmeister_deluxe_40").out.lines().filter { it.isNotEmpty() }
+        assertTrue(shown[1].startsWith("""{"step":1,"preset":3,"""), shown[1])
+    }
+
+    @Test
     fun `A take in which nothing was recalled is not kept`() {
         val run = run("record", "127.0.0.1:${fake.port}", "grandmeister_deluxe_40", "--seconds", "1")
         assertEquals(ExitCodes.NOTHING_FOUND, run.code, run.err)

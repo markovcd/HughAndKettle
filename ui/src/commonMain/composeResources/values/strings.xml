@@ -173,6 +173,7 @@
     <string name="song_record_strip">%1$s · bar %2$s · %3$s steps</string>
     <string name="song_record_offline">Record needs the amp linked.</string>
     <string name="song_take_saved">%1$s saved as a new song · %2$s steps</string>
+    <string name="song_take_filled">Take recorded into %1$s · %2$s steps</string>
     <string name="song_take_discard">Discard</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

@@ -54,6 +54,7 @@ import io.github.markovcd.hughandkettle.ui.song_record_what
 import io.github.markovcd.hughandkettle.ui.song_recording
 import io.github.markovcd.hughandkettle.ui.song_stop
 import io.github.markovcd.hughandkettle.ui.song_take_discard
+import io.github.markovcd.hughandkettle.ui.song_take_filled
 import io.github.markovcd.hughandkettle.ui.song_take_saved
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
@@ -261,13 +262,15 @@ internal fun StopRecordingButton(
 }
 
 /**
- * The take just kept, as a new song of [steps] steps, and Discard to throw it away. Tests find it by
+ * The take just kept, of [steps] steps, as a new song or [filled] into the song open before it, and Discard to
+ * throw it away. Tests find it by
  * `song_take_notice` and Discard by `song_take_discard`.
  */
 @Composable
 internal fun TakeNotice(
     name: String,
     steps: Int,
+    filled: Boolean,
     onDiscard: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -285,7 +288,7 @@ internal fun TakeNotice(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            stringResource(Res.string.song_take_saved, name, steps),
+            stringResource(if (filled) Res.string.song_take_filled else Res.string.song_take_saved, name, steps),
             fontSize = 14.sp,
             color = colors.onSurface,
             modifier = Modifier.weight(1f),
