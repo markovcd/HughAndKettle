@@ -512,7 +512,10 @@ public object SongCommand : Command {
         err: PrintWriter,
     ): Int {
         val at = AmpTarget.parse(target)
-        val bpm = args.optionalInt("tempo").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it } ?: open?.tempo ?: Song.DEFAULT_TEMPO
+        val bpm =
+            args.optionalInt("tempo").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+                ?: open?.tempo
+                ?: Song.DEFAULT_TEMPO
         val from = args.optionalInt("from").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (at == null || bpm !in Song.TEMPOS || (from != null && from !in 1..amp.presetCount) ||
