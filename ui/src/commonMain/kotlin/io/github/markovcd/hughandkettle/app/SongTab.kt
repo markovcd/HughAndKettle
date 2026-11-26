@@ -94,8 +94,8 @@ import org.jetbrains.compose.resources.stringResource
  * add on the preset the amp is on or, in the Tones [mode], on the [loaded] tone, and Play along the foot. A
  * step on a deleted tone is marked, and said over the steps. Counting in: the clicks left, big. Playing: the
  * beat, big, over the steps read only, and Stop. Record, beside Play, records a take: the steps grow as the
- * sounds are switched, and the take is kept as a song of its own, offered for discard. A song that cannot be
- * read says so on top and can be neither changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
+ * sounds are switched, and the take fills an empty open song or is kept as a song of its own, offered for
+ * discard. A song that cannot be read says so on top and can be neither changed nor played. Tests find Play and Stop by `song_play`, adding a step by `song_add`, the count-in's
  * switch by `song_count_in` and the clicks left by `song_countdown`. The open song's name heads the tab and
  * opens the list of the amp's songs over it.
  */
@@ -231,7 +231,7 @@ fun SongTab(
             }
             songs.takes.kept?.takeIf { !recording && !playing }?.let { name ->
                 Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                    TakeNotice(name, song.steps.size, songs.takes::discard)
+                    TakeNotice(name, song.steps.size, songs.takes.filled, songs.takes::discard)
                 }
             }
             if (!enabled && !playing && !recording) RecordOffline()

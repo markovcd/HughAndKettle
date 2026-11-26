@@ -34,8 +34,8 @@ import kotlin.time.TimeSource
  * the app does while its tempo lock is on; a step whose tone is missing then sets the delay time alone. `record`
  * records a take, as the app's Record does: from now, at `--tempo` or the open song's, each preset the amp
  * reports recalling starts a step, until `--seconds` pass or stdin closes; the take starts on `--from` if given,
- * else on the first recall heard, and is kept and opened as "Take N". The rest of the verbs keep the list as the
- * app's song list does.
+ * else on the first recall heard, and fills the open song if it has no steps, else is kept and opened as
+ * "Take N". The rest of the verbs keep the list as the app's song list does.
  */
 public object SongCommand : Command {
     override val name: String = "song"
@@ -92,7 +92,7 @@ public object SongCommand : Command {
         val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
         if (verb == "record") {
             val open = list.open?.let(list::find)?.song
-            return record(store, amp, open?.tempo ?: Song.DEFAULT_TEMPO, rest[0], args, out, err)
+            return record(store, amp, open, rest[0], args, out, err)
         }
         if (verb == "list") {
             list.songs.forEach { print(it, it.name.equals(list.open, ignoreCase = true), out) }
@@ -498,20 +498,24 @@ public object SongCommand : Command {
     }
 
     /**
-     * Records a take on the amp behind [target], at `--tempo` or [tempo], from now until the run ends, and keeps it
-     * as the next "Take N" of [amp], opened. Each recall heard prints a line, and the take's song is printed last.
+     * Records a take on the amp behind [target], at `--tempo` or the [open] song's, from now until the run ends. It
+     * fills [open] if that has no steps, else it is kept as the next "Take N" of [amp], opened. Each recall heard
+     * prints a line, and the take's song is printed last.
      */
     private fun record(
         store: SongStore,
         amp: AmpModel,
-        tempo: Int,
+        open: Song?,
         target: String,
         args: Options,
         out: PrintWriter,
         err: PrintWriter,
     ): Int {
         val at = AmpTarget.parse(target)
-        val bpm = args.optionalInt("tempo").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it } ?: tempo
+        val bpm =
+            args.optionalInt("tempo").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
+                ?: open?.tempo
+                ?: Song.DEFAULT_TEMPO
         val from = args.optionalInt("from").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         val seconds = args.optionalInt("seconds").orExit(err, ExitCodes.BAD_ARGUMENTS) { return it }
         if (at == null || bpm !in Song.TEMPOS || (from != null && from !in 1..amp.presetCount) ||
@@ -540,10 +544,13 @@ public object SongCommand : Command {
             err.println("no preset was recalled, so there is no take to keep")
             return ExitCodes.NOTHING_FOUND
         }
+        val filling = open?.takeIf { it.steps.isEmpty() }
         val list = store.list(amp).orExit(err, ExitCodes.BAD_FILE) { return it }
-        val song = Song(amp, bpm, steps, name = Take.name { list.find(it) != null })
+        val song =
+            filling?.copy(tempo = bpm, steps = steps)
+                ?: Song(amp, bpm, steps, name = Take.name { list.find(it) != null })
         store
-            .save(song)
+            .save(song, replace = filling != null)
             .mapCatching { store.open(amp, song.name).getOrThrow() }
             .onFailure {
                 err.println(it.message)

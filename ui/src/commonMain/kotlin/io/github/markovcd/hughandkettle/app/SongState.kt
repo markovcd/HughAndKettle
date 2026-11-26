@@ -392,6 +392,13 @@ class SongState(
         queue { store.save(song).mapCatching { store.open(song.amp, song.name).getOrThrow() } }
     }
 
+    /** Keeps [song] in place of the kept song of the same name, opened. */
+    internal fun keepInPlace(song: Song) {
+        keep(song, replacing = song.name)
+        drafts = drafts - song.amp
+        queue { store.save(song, replace = true).mapCatching { store.open(song.amp, song.name).getOrThrow() } }
+    }
+
     /** Deletes the song [name] and opens [reopen], else none. */
     internal fun drop(
         name: String,

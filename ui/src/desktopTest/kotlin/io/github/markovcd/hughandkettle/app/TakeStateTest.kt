@@ -139,8 +139,25 @@ class TakeStateTest {
     }
 
     @Test
+    fun `A take into a song with no steps fills that song, and discarded empties it again`() {
+        songs.create("Opener")
+        recording(preset = 3, beats = 1)
+        songs.takes.stop()
+        assertEquals("Opener", songs.song.name)
+        assertEquals(listOf(3), songs.song.steps.map { it.preset })
+        assertEquals("Opener", songs.takes.kept)
+        assertTrue(songs.takes.filled)
+        until("filled in place") { kept().map { it.name to it.song?.steps?.size } == listOf("Opener" to 1) }
+        songs.takes.discard()
+        assertEquals("Opener", songs.song.name)
+        assertEquals(emptyList(), songs.song.steps)
+        until("emptied again") { kept().map { it.name to it.song?.steps?.size } == listOf("Opener" to 0) }
+    }
+
+    @Test
     fun `A discarded take is deleted and the song open before it opens again`() {
         songs.create("Opener")
+        songs.add()
         recording(preset = 3, beats = 1)
         songs.takes.stop()
         assertEquals("Take 1", songs.song.name)
